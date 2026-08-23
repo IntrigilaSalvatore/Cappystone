@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RVJ Smart AC Performance Dashboard</title>
+  
+  <!-- Supabase JS Library from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 22px;
+      color: #1e293b;
+      margin: 0 0 6px 0;
+    }
+    h2 {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 400;
+      margin: 0 0 28px 0;
+    }
+    .status-badge {
+      font-size: 24px;
+      font-weight: 700;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+    }
+    .status-on {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+    .status-off {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+    .meta-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 14px;
+      color: #475569;
+      text-align: left;
+    }
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+    }
+    .meta-value {
+      font-weight: 600;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>RVJ Classrooms Performance Monitoring</h1>
+    <h2>Master Node Status</h2>
+
+    <div id="status-display" class="status-badge status-off">
+      AC STOPPED
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <span>Node ID:</span>
+        <span class="meta-value">Node 1 (RVJ Classroom)</span>
+      </div>
+      <div class="meta-item">
+        <span>Last Active User:</span>
+        <span id="user-display" class="meta-value">None</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- SUPABASE CONFIGURATION ---
+    const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const statusDisplay = document.getElementById("status-display");
+    const userDisplay = document.getElementById("user-display");
+
+    function updateUI(acStatus, lastUser) {
+      if (acStatus) {
+        statusDisplay.innerText = "AC RUNNING";
+        statusDisplay.className = "status-badge status-on";
+      } else {
+        statusDisplay.innerText = "AC STOPPED";
+        statusDisplay.className = "status-badge status-off";
+      }
+      userDisplay.innerText = lastUser || "None";
+    }
+
+    // 1. Fetch initial state on page load
+    async function fetchInitialState() {
+      const { data, error } = await supabase
+        .from('rvj_nodes')
+        .select('ac_status, last_user')
+        .eq('id', 1)
+        .single();
+
+      if (!error && data) {
+        updateUI(data.ac_status, data.last_user);
+      } else {
+        console.error("Error fetching state:", error);
+      }
+    }
+
+    // 2. Subscribe to Realtime Updates
+    supabase
+      .channel('table-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'rvj_nodes', filter: 'id=eq.1' },
+        (payload) => {
+          const updated = payload.new;
+          updateUI(updated.ac_status, updated.last_user);
+        }
+      )
+      .subscribe();
+
+    fetchInitialState();
+  </script>
+</body>
+</html>
