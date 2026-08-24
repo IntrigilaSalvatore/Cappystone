@@ -103,7 +103,8 @@
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // THE FIX: Renamed 'supabase' to 'supabaseClient' to avoid the naming collision
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const statusDisplay = document.getElementById("status-display");
     const userDisplay = document.getElementById("user-display");
@@ -121,7 +122,7 @@
 
     // 1. Fetch initial state on page load
     async function fetchInitialState() {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('rvj_nodes')
         .select('ac_status, last_user')
         .eq('id', 1)
@@ -135,7 +136,7 @@
     }
 
     // 2. Subscribe to Realtime Updates
-    supabase
+    supabaseClient
       .channel('table-db-changes')
       .on(
         'postgres_changes',
