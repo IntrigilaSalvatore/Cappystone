@@ -11,7 +11,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
-    background: #FCE883;
+    background: #FFC82A;
     color: #1e293b;
     line-height: 1.5;
 }
@@ -44,19 +44,19 @@ body {
 }
 
 /* ============================================================
-   DASHBOARD
+   DASHBOARD (PROFESSIONAL GRID LAYOUT)
    ============================================================ */
 
 .dashboard {
     width: min(1200px, calc(100% - 40px));
     margin: 20px auto;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
 }
 
 /* ============================================================
-   PANELS (KEPT WHITE)
+   PANELS (CONTAINERS)
    ============================================================ */
 
 .panel {
@@ -65,7 +65,14 @@ body {
     border-top: 4px solid #1e40af;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Span full width for primary status & data sections */
+.panel:nth-child(1),
+.panel:nth-child(3),
+.panel:nth-child(6) {
+    grid-column: span 2;
 }
 
 .panel h2 {
@@ -329,19 +336,20 @@ select {
    RESPONSIVE
    ============================================================ */
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .panel:nth-child(1),
+    .panel:nth-child(3),
+    .panel:nth-child(6) {
+        grid-column: span 1;
+    }
+
     .header {
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .dashboard {
-        width: calc(100% - 20px);
-        margin: 10px auto;
-    }
-
-    .panel {
-        padding: 15px;
     }
 
     .admin-controls {
