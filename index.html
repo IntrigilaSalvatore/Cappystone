@@ -149,10 +149,35 @@
         Overriding mode from administrative controls will force remote power state.
       </div>
       <div class="admin-controls">
-        <button class="button button-on" data-ac-command="POWER_ON">Power ON</button>
-        <button class="button button-off" data-ac-command="POWER_OFF">Power OFF</button>
-        <button class="button" data-ac-command="MODE_AUTO">Set AUTO Mode</button>
-        <button class="button" data-ac-command="MODE_RFID">Set RFID Mode</button>
+        <button
+                type="button"
+                data-ac-command="ON"
+                class="button button-on"
+            >
+                Force AC ON
+            </button>
+
+
+            <!-- Force OFF -->
+
+            <button
+                type="button"
+                data-ac-command="OFF"
+                class="button button-off"
+            >
+                Force AC OFF
+            </button>
+
+
+            <!-- Clear Override -->
+
+            <button
+                type="button"
+                data-ac-command="CLEAR_OVERRIDE"
+                class="button"
+            >
+                Clear Override
+            </button>
       </div>
       <div class="command-result">
         <span class="label">Command Output:</span>
