@@ -1,0 +1,476 @@
+* {
+    box-sizing: border-box;
+}
+
+
+html {
+    margin: 0;
+    padding: 0;
+}
+
+
+body {
+    margin: 0;
+    padding: 0;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #f4f4f4;
+
+    color: #222;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 20px;
+
+    padding: 20px 30px;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid #d8d8d8;
+}
+
+
+.header h1 {
+    margin: 0;
+
+    font-size: 24px;
+}
+
+
+.header p {
+    margin: 5px 0 0;
+
+    color: #666;
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+.dashboard {
+    width: min(
+        1200px,
+        calc(100% - 40px)
+    );
+
+    margin: 20px auto;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 20px;
+}
+
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+
+.panel {
+    background: #ffffff;
+
+    border: 1px solid #d8d8d8;
+
+    border-radius: 8px;
+
+    padding: 20px;
+}
+
+
+.panel h2 {
+    margin: 0 0 20px;
+
+    font-size: 20px;
+}
+
+
+/* ============================================================
+   ROOM SELECTOR
+   ============================================================ */
+
+select {
+    width: 100%;
+
+    padding: 10px;
+
+    margin: 8px 0 20px;
+
+    border: 1px solid #bbb;
+
+    border-radius: 4px;
+
+    background: #ffffff;
+
+    font-size: 15px;
+}
+
+
+.room-information {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+
+/* ============================================================
+   LABEL / VALUE
+   ============================================================ */
+
+.label {
+    display: block;
+
+    font-size: 12px;
+
+    color: #777;
+
+    margin-bottom: 3px;
+}
+
+
+.value {
+    font-size: 16px;
+
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   STATUS BADGE
+   ============================================================ */
+
+.status-badge {
+    display: inline-block;
+
+    padding: 6px 10px;
+
+    border: 1px solid #bbb;
+
+    border-radius: 4px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    background: #eeeeee;
+}
+
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.cards {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+
+.card {
+    padding: 15px;
+
+    border: 1px solid #d8d8d8;
+
+    border-radius: 6px;
+
+    background: #fafafa;
+}
+
+
+.card-title {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size: 13px;
+
+    color: #666;
+}
+
+
+.card-value {
+    display: block;
+
+    font-size: 24px;
+
+    font-weight: bold;
+}
+
+
+/* ============================================================
+   PERFORMANCE
+   ============================================================ */
+
+.performance-container {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+
+.performance-item {
+    padding: 20px;
+
+    border: 1px solid #d8d8d8;
+
+    border-radius: 6px;
+
+    background: #fafafa;
+}
+
+
+.large-value {
+    display: block;
+
+    font-size: 30px;
+
+    font-weight: bold;
+}
+
+
+.chart-placeholder {
+    min-height: 250px;
+
+    margin-top: 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border: 1px dashed #bbb;
+
+    color: #777;
+}
+
+
+/* ============================================================
+   DEGRADATION FACTORS
+   ============================================================ */
+
+.factor-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+
+.factor {
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 15px;
+
+    border: 1px solid #d8d8d8;
+
+    border-radius: 6px;
+}
+
+
+.factor-status {
+    font-weight: bold;
+}
+
+
+/* ============================================================
+   ADMIN CONTROLS
+   ============================================================ */
+
+.admin-controls {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    margin-bottom: 20px;
+}
+
+
+.button {
+    padding: 10px 16px;
+
+    border: 1px solid #999;
+
+    border-radius: 5px;
+
+    background: #eeeeee;
+
+    color: #222;
+
+    font-size: 14px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+.button:hover {
+    background: #dddddd;
+}
+
+
+.button:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+}
+
+
+.button-on {
+    background: #dddddd;
+}
+
+
+.button-off {
+    background: #dddddd;
+}
+
+
+.warning {
+    padding: 10px;
+
+    margin: 0 0 15px;
+
+    border: 1px solid #ccc;
+
+    background: #f7f7f7;
+
+    color: #555;
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   COMMAND STATUS
+   ============================================================ */
+
+.command-result {
+    padding-top: 10px;
+}
+
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+
+.event-information {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(200px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+
+/* ============================================================
+   SYSTEM STATUS
+   ============================================================ */
+
+.system-status {
+    margin: 0 0 15px;
+
+    padding: 10px;
+
+    border: 1px solid #d8d8d8;
+
+    background: #fafafa;
+}
+
+
+.last-update {
+    padding-top: 10px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (
+    max-width: 700px
+) {
+
+    .header {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+
+    .dashboard {
+        width: calc(100% - 20px);
+
+        margin: 10px auto;
+    }
+
+
+    .panel {
+        padding: 15px;
+    }
+
+
+    .admin-controls {
+        flex-direction: column;
+    }
+
+
+    .button {
+        width: 100%;
+    }
+}
