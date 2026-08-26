@@ -16,16 +16,12 @@ body {
     line-height: 1.4;
 }
 
-/* ============================================================
-   HEADER
-   ============================================================ */
-
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 15px;
-    padding: 15px 25px;
+    padding: 15px 10px;
     background: #005A92;
     color: #ffffff;
     border-bottom: 4px solid #f4d35e;
@@ -43,21 +39,13 @@ body {
     font-size: 13px;
 }
 
-/* ============================================================
-   DASHBOARD GRID LAYOUT (RESTORED ORIGINAL MARGIN & MAX-WIDTH)
-   ============================================================ */
-
 .dashboard {
-    width: min(1200px, calc(100% - 30px));
-    margin: 15px auto;
+    width: calc(100% - 20px);
+    margin: 10px auto;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
 }
-
-/* ============================================================
-   PANEL SPANNING & POSITIONING
-   ============================================================ */
 
 .panel {
     background: #ffffff;
@@ -68,28 +56,23 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* 1st Panel: System Overview spans both columns */
 .panel:nth-child(1) {
     grid-column: span 2;
 }
 
-/* 2nd Panel: Live Telemetry on the left spanning vertically */
 .panel:nth-child(2) {
     grid-column: 1;
     grid-row: span 2;
 }
 
-/* 3rd Panel: AC Performance Evaluation on top right */
 .panel:nth-child(3) {
     grid-column: 2;
 }
 
-/* 4th Panel: Degradation Analysis directly under Performance on right */
 .panel:nth-child(4) {
     grid-column: 2;
 }
 
-/* 5th Panel: Admin Controls spans full width at bottom */
 .panel:nth-child(5) {
     grid-column: span 2;
 }
@@ -99,10 +82,6 @@ body {
     font-size: 18px;
     color: #1e40af;
 }
-
-/* ============================================================
-   SYSTEM STATUS & ROOM SELECTOR
-   ============================================================ */
 
 .system-status {
     margin: 0 0 12px;
@@ -137,10 +116,6 @@ select {
     padding-top: 5px;
 }
 
-/* ============================================================
-   LABEL / VALUE
-   ============================================================ */
-
 .label {
     display: block;
     font-size: 11px;
@@ -155,10 +130,6 @@ select {
     color: #1e40af;
 }
 
-/* ============================================================
-   STATUS BADGE
-   ============================================================ */
-
 .status-badge {
     display: inline-block;
     padding: 5px 10px;
@@ -169,10 +140,6 @@ select {
     background: #f4d35e;
     color: #1e40af;
 }
-
-/* ============================================================
-   CARDS (LIVE TELEMETRY)
-   ============================================================ */
 
 .cards {
     display: grid;
@@ -201,10 +168,6 @@ select {
     font-weight: bold;
     color: #1e40af;
 }
-
-/* ============================================================
-   PERFORMANCE & DEGRADATION
-   ============================================================ */
 
 .performance-container {
     display: grid;
@@ -255,10 +218,6 @@ select {
     color: #1e40af;
     font-size: 14px;
 }
-
-/* ============================================================
-   ADMIN CONTROLS
-   ============================================================ */
 
 .admin-controls {
     display: flex;
@@ -323,10 +282,6 @@ select {
 .command-result {
     padding-top: 5px;
 }
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
 
 @media (max-width: 800px) {
     .dashboard {
