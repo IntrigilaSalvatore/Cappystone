@@ -1,6 +1,7 @@
-console.log("======================================");
-console.log("RVJ DASHBOARD STARTING");
-console.log("======================================");
+// ============================================================
+// RVJ SMART AC DASHBOARD
+// app.js
+// ============================================================
 
 
 // ============================================================
@@ -14,136 +15,169 @@ const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
 
-console.log(
-    "Supabase library:",
-    window.supabase
-);
-
-
-if (!window.supabase) {
-
-    console.error(
-        "ERROR: Supabase JavaScript library was not loaded."
-    );
-
-    document.body.insertAdjacentHTML(
-        "afterbegin",
-        `
-        <div style="
-            padding:20px;
-            background:#ffdddd;
-            color:#900;
-            font-family:Arial;
-        ">
-            ERROR: Supabase library failed to load.
-        </div>
-        `
-    );
-
-    throw new Error(
-        "Supabase library not loaded."
-    );
-}
-
-
-// ============================================================
-// CREATE CLIENT
-// ============================================================
-
-const supabaseClient =
+const supabase =
     window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
     );
 
 
-console.log(
-    "Supabase client created:",
-    supabaseClient
-);
+// ============================================================
+// STATE
+// ============================================================
+
+const state = {
+
+    rooms: [],
+
+    selectedRoomId: null,
+
+    selectedRoom: null,
+
+    roomState: null,
+
+    temperatureHistory: [],
+
+    performanceHistory: [],
+
+    degradationEvents: [],
+
+    realtimeChannel: null,
+
+    temperatureChart: null,
+
+    performanceChart: null
+};
 
 
 // ============================================================
-// HELPER
+// UI HELPERS
 // ============================================================
+
+function elements(name) {
+
+    return document.querySelectorAll(
+        `[data-rvj="${name}"]`
+    );
+}
+
 
 function setText(
     name,
     value
 ) {
 
-    const elements =
-        document.querySelectorAll(
-            `[data-rvj="${name}"]`
-        );
-
-
-    console.log(
-        `Updating [data-rvj="${name}"]`,
-        value,
-        "elements:",
-        elements.length
-    );
-
-
-    elements.forEach(
+    elements(name).forEach(
         element => {
+
             element.textContent =
                 value;
+
+        }
+    );
+}
+
+
+function setStatus(
+    name,
+    value
+) {
+
+    elements(name).forEach(
+        element => {
+
+            element.dataset.status =
+                value;
+
         }
     );
 }
 
 
 // ============================================================
-// TEST ROOMS
+// LOAD ROOMS
 // ============================================================
 
-async function testRooms() {
-
-    console.log(
-        "TEST 1: Loading rooms..."
-    );
-
+async function loadRooms() {
 
     const {
         data,
         error
-    } = await supabaseClient
+    } = await supabase
         .from("rooms")
-        .select("*")
+        .select(
+            "id, room_code, room_name, location, capacity, active"
+        )
         .eq(
             "active",
             true
+        )
+        .order(
+            "room_code"
         );
-
-
-    console.log(
-        "ROOM DATA:",
-        data
-    );
-
-
-    console.log(
-        "ROOM ERROR:",
-        error
-    );
 
 
     if (error) {
 
+        console.error(
+            "Room loading error:",
+            error
+        );
+
         setText(
             "system-status",
-            `ROOM ERROR: ${error.message}`
+            error.message
         );
 
         return false;
     }
 
 
+    state.rooms =
+        data || [];
+
+
+    const selectors =
+        elements(
+            "room-selector"
+        );
+
+
+    selectors.forEach(
+        selector => {
+
+            selector.innerHTML =
+                "";
+
+
+            state.rooms.forEach(
+                room => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+
+                    option.value =
+                        room.id;
+
+
+                    option.textContent =
+                        `${room.room_code} - ${room.room_name}`;
+
+
+                    selector.appendChild(
+                        option
+                    );
+                }
+            );
+        }
+    );
+
+
     if (
-        !data ||
-        data.length === 0
+        state.rooms.length === 0
     ) {
 
         setText(
@@ -155,34 +189,52 @@ async function testRooms() {
     }
 
 
-    setText(
-        "system-status",
-        "Supabase connection working."
+    selectors.forEach(
+        selector => {
+
+            selector.addEventListener(
+                "change",
+                async event => {
+
+                    await selectRoom(
+                        Number(
+                            event.target.value
+                        )
+                    );
+                }
+            );
+        }
     );
 
 
-    setText(
-        "room-code",
-        data[0].room_code
-    );
+    const saved =
+        localStorage.getItem(
+            "rvj_selected_room"
+        );
 
 
-    setText(
-        "room-name",
-        data[0].room_name
-    );
+    const savedRoom =
+        state.rooms.find(
+            room =>
+                String(room.id) ===
+                String(saved)
+        );
 
 
-    setText(
-        "room-location",
-        data[0].location || "--"
-    );
+    if (
+        savedRoom
+    ) {
 
+        await selectRoom(
+            savedRoom.id
+        );
 
-    setText(
-        "room-capacity",
-        data[0].capacity
-    );
+    } else {
+
+        await selectRoom(
+            state.rooms[0].id
+        );
+    }
 
 
     return true;
@@ -190,58 +242,160 @@ async function testRooms() {
 
 
 // ============================================================
-// TEST ROOM STATE
+// SELECT ROOM
 // ============================================================
 
-async function testRoomState() {
+async function selectRoom(
+    roomId
+) {
 
-    console.log(
-        "TEST 2: Loading room_state..."
+    const room =
+        state.rooms.find(
+            item =>
+                Number(item.id) ===
+                Number(roomId)
+        );
+
+
+    if (!room) {
+
+        return;
+    }
+
+
+    state.selectedRoomId =
+        Number(room.id);
+
+
+    state.selectedRoom =
+        room;
+
+
+    localStorage.setItem(
+        "rvj_selected_room",
+        String(room.id)
     );
 
+
+    elements(
+        "room-selector"
+    ).forEach(
+        selector => {
+
+            selector.value =
+                String(room.id);
+
+        }
+    );
+
+
+    setText(
+        "room-code",
+        room.room_code
+    );
+
+
+    setText(
+        "room-name",
+        room.room_name
+    );
+
+
+    setText(
+        "room-location",
+        room.location || "--"
+    );
+
+
+    setText(
+        "room-capacity",
+        room.capacity
+    );
+
+
+    if (
+        state.realtimeChannel
+    ) {
+
+        await supabase.removeChannel(
+            state.realtimeChannel
+        );
+
+        state.realtimeChannel =
+            null;
+    }
+
+
+    await loadRoomState();
+
+    await loadTemperatureHistory();
+
+    await loadPerformanceHistory();
+
+    await loadDegradationEvents();
+
+    renderTemperatureChart();
+
+    renderPerformanceChart();
+
+    subscribeRealtime();
+
+
+    setText(
+        "connection-status",
+        "CONNECTED"
+    );
+}
+
+
+// ============================================================
+// ROOM STATE
+// ============================================================
+
+async function loadRoomState() {
 
     const {
         data,
         error
-    } = await supabaseClient
+    } = await supabase
         .from("room_state")
         .select("*")
         .eq(
             "room_id",
-            1
+            state.selectedRoomId
         )
         .maybeSingle();
 
 
-    console.log(
-        "ROOM STATE DATA:",
-        data
-    );
-
-
-    console.log(
-        "ROOM STATE ERROR:",
-        error
-    );
-
-
     if (error) {
 
-        setText(
-            "system-status",
-            `ROOM STATE ERROR: ${error.message}`
+        console.error(
+            error
         );
 
         return;
     }
 
 
-    if (!data) {
+    state.roomState =
+        data;
 
-        setText(
-            "system-status",
-            "Room exists but no room_state row was found."
-        );
+
+    renderRoomState(
+        data
+    );
+}
+
+
+// ============================================================
+// RENDER ROOM STATE
+// ============================================================
+
+function renderRoomState(
+    data
+) {
+
+    if (!data) {
 
         return;
     }
@@ -276,25 +430,19 @@ async function testRoomState() {
     );
 
 
+    setStatus(
+        "ac-status",
+        data.ac_power
+            ? "on"
+            : "off"
+    );
+
+
     setText(
         "rfid-status",
         data.rfid_present
             ? "PRESENT"
             : "REMOVED"
-    );
-
-
-    setText(
-        "door-status",
-        data.door_open
-            ? "OPEN"
-            : "CLOSED"
-    );
-
-
-    setText(
-        "crowd-count",
-        data.crowd_count ?? 0
     );
 
 
@@ -306,10 +454,63 @@ async function testRoomState() {
 
 
     setText(
-        "performance-score",
-        data.performance_score ??
-        "--"
+        "door-status",
+        data.door_open
+            ? "OPEN"
+            : "CLOSED"
     );
+
+
+    setStatus(
+        "door-status",
+        data.door_open
+            ? "open"
+            : "closed"
+    );
+
+
+    setText(
+        "crowd-count",
+        data.crowd_count ??
+        0
+    );
+
+
+    setText(
+        "crowd-alert",
+        data.overcrowded
+            ? "OVERCROWDED"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "weather-alert",
+        data.hot_weather
+            ? "HOT WEATHER"
+            : "NORMAL"
+    );
+
+
+    if (
+        data.performance_score !== null &&
+        data.performance_score !== undefined
+    ) {
+
+        setText(
+            "performance-score",
+            Number(
+                data.performance_score
+            ).toFixed(0)
+        );
+
+    } else {
+
+        setText(
+            "performance-score",
+            "--"
+        );
+    }
 
 
     setText(
@@ -319,263 +520,889 @@ async function testRoomState() {
     );
 
 
-    console.log(
-        "Room state displayed successfully."
+    setText(
+        "last-update",
+        formatDateTime(
+            data.updated_at
+        )
     );
 }
 
 
 // ============================================================
-// TEST TEMPERATURE READINGS
+// TEMPERATURE HISTORY
 // ============================================================
 
-async function testTemperatureReadings() {
-
-    console.log(
-        "TEST 3: Loading temperature history..."
-    );
-
+async function loadTemperatureHistory() {
 
     const {
         data,
         error
-    } = await supabaseClient
+    } = await supabase
         .from("temperature_readings")
         .select(
-            "*"
+            "id, device_id, temperature_c, recorded_at"
         )
         .eq(
             "room_id",
-            1
+            state.selectedRoomId
         )
         .order(
             "recorded_at",
             {
-                ascending: false
+                ascending: true
             }
         )
         .limit(
-            10
+            500
         );
-
-
-    console.log(
-        "TEMPERATURE DATA:",
-        data
-    );
-
-
-    console.log(
-        "TEMPERATURE ERROR:",
-        error
-    );
 
 
     if (error) {
 
-        setText(
-            "system-status",
-            `TEMPERATURE ERROR: ${error.message}`
+        console.error(
+            "Temperature history:",
+            error
         );
 
         return;
     }
 
 
-    console.log(
-        `Received ${data.length} temperature records.`
-    );
+    state.temperatureHistory =
+        data || [];
 }
 
 
 // ============================================================
-// TEST REALTIME
+// BUILD AVERAGE TEMPERATURE CHART DATA
 // ============================================================
 
-function testRealtime() {
+function buildTemperatureChartData() {
 
-    console.log(
-        "TEST 4: Starting Realtime..."
+    const grouped =
+        new Map();
+
+
+    state.temperatureHistory.forEach(
+        reading => {
+
+            const time =
+                new Date(
+                    reading.recorded_at
+                );
+
+
+            const key =
+                time.toISOString();
+
+
+            if (
+                !grouped.has(key)
+            ) {
+
+                grouped.set(
+                    key,
+                    []
+                );
+            }
+
+
+            grouped
+                .get(key)
+                .push(
+                    Number(
+                        reading.temperature_c
+                    )
+                );
+        }
     );
 
 
-    const channel =
-        supabaseClient
-            .channel(
-                "rvj-room-state-test"
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "room_state",
-                    filter: "room_id=eq.1"
-                },
-                payload => {
+    const labels = [];
 
-                    console.log(
-                        "REALTIME ROOM STATE:",
-                        payload
-                    );
+    const values = [];
 
 
-                    testRoomState();
-                }
-            )
-            .subscribe(
-                (
-                    status,
-                    error
-                ) => {
+    grouped.forEach(
+        (temps, key) => {
 
-                    console.log(
-                        "REALTIME STATUS:",
-                        status
-                    );
-
-
-                    if (error) {
-
-                        console.error(
-                            "REALTIME ERROR:",
-                            error
-                        );
-                    }
+            const average =
+                temps.reduce(
+                    (
+                        sum,
+                        value
+                    ) =>
+                        sum + value,
+                    0
+                ) /
+                temps.length;
 
 
-                    if (
-                        status ===
-                        "SUBSCRIBED"
-                    ) {
-
-                        setText(
-                            "connection-status",
-                            "CONNECTED"
-                        );
-
-                        setAttributeStatus(
-                            "connection-status",
-                            "connected"
-                        );
-                    }
-                }
+            labels.push(
+                formatChartTime(
+                    key
+                )
             );
 
 
-    return channel;
+            values.push(
+                Number(
+                    average.toFixed(2)
+                )
+            );
+        }
+    );
+
+
+    return {
+        labels,
+        values
+    };
 }
 
 
 // ============================================================
-// STATUS ATTRIBUTE
+// TEMPERATURE CHART
 // ============================================================
 
-function setAttributeStatus(
-    name,
-    status
-) {
+function renderTemperatureChart() {
 
-    const elements =
-        document.querySelectorAll(
-            `[data-rvj="${name}"]`
+    const canvas =
+        document.getElementById(
+            "temperatureChart"
         );
 
 
-    elements.forEach(
-        element => {
+    if (!canvas) {
 
-            element.dataset.status =
-                status;
-        }
-    );
+        return;
+    }
+
+
+    const chartData =
+        buildTemperatureChartData();
+
+
+    if (
+        state.temperatureChart
+    ) {
+
+        state.temperatureChart.destroy();
+    }
+
+
+    state.temperatureChart =
+        new Chart(
+            canvas,
+            {
+                type: "line",
+
+                data: {
+
+                    labels:
+                        chartData.labels,
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Average Temperature (°C)",
+
+                            data:
+                                chartData.values,
+
+                            tension:
+                                0.25,
+
+                            fill:
+                                false
+                        }
+
+                    ]
+                },
+
+                options: {
+
+                    responsive:
+                        true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    scales: {
+
+                        y: {
+
+                            title: {
+
+                                display:
+                                    true,
+
+                                text:
+                                    "Temperature °C"
+                            }
+                        }
+
+                    }
+
+                }
+            }
+        );
 }
 
 
 // ============================================================
-// INITIALIZATION
+// PERFORMANCE HISTORY
 // ============================================================
 
-async function initialize() {
+async function loadPerformanceHistory() {
 
-    console.log(
-        "======================================"
-    );
-
-    console.log(
-        "INITIALIZING TESTS"
-    );
-
-    console.log(
-        "======================================"
-    );
-
-
-    try {
-
-        setText(
-            "connection-status",
-            "CONNECTING"
+    const {
+        data,
+        error
+    } = await supabase
+        .from("performance_samples")
+        .select("*")
+        .eq(
+            "room_id",
+            state.selectedRoomId
+        )
+        .order(
+            "recorded_at",
+            {
+                ascending: true
+            }
+        )
+        .limit(
+            300
         );
 
 
-        const roomsOk =
-            await testRooms();
-
-
-        if (!roomsOk) {
-
-            return;
-        }
-
-
-        await testRoomState();
-
-
-        await testTemperatureReadings();
-
-
-        testRealtime();
-
-
-        setText(
-            "connection-status",
-            "CONNECTED"
-        );
-
-
-        setAttributeStatus(
-            "connection-status",
-            "connected"
-        );
-
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "ALL DASHBOARD TESTS INITIALIZED"
-        );
-
-        console.log(
-            "======================================"
-        );
-
-    } catch (error) {
+    if (error) {
 
         console.error(
-            "FATAL DASHBOARD ERROR:",
+            "Performance history:",
+            error
+        );
+
+        return;
+    }
+
+
+    state.performanceHistory =
+        data || [];
+
+
+    if (
+        state.performanceHistory.length
+    ) {
+
+        const latest =
+            state.performanceHistory[
+                state.performanceHistory.length - 1
+            ];
+
+
+        setText(
+            "performance-score",
+            Number(
+                latest.performance_score
+            ).toFixed(0)
+        );
+
+
+        setText(
+            "performance-status",
+            latest.performance_status
+        );
+    }
+}
+
+
+// ============================================================
+// PERFORMANCE CHART
+// ============================================================
+
+function renderPerformanceChart() {
+
+    const canvas =
+        document.getElementById(
+            "performanceChart"
+        );
+
+
+    if (!canvas) {
+
+        return;
+    }
+
+
+    if (
+        state.performanceChart
+    ) {
+
+        state.performanceChart.destroy();
+    }
+
+
+    const labels =
+        state.performanceHistory.map(
+            sample =>
+                formatChartTime(
+                    sample.recorded_at
+                )
+        );
+
+
+    const values =
+        state.performanceHistory.map(
+            sample =>
+                Number(
+                    sample.performance_score
+                )
+        );
+
+
+    state.performanceChart =
+        new Chart(
+            canvas,
+            {
+                type: "line",
+
+                data: {
+
+                    labels,
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Performance Score",
+
+                            data:
+                                values,
+
+                            tension:
+                                0.25,
+
+                            fill:
+                                false
+                        }
+
+                    ]
+                },
+
+                options: {
+
+                    responsive:
+                        true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    scales: {
+
+                        y: {
+
+                            min:
+                                0,
+
+                            max:
+                                100,
+
+                            title: {
+
+                                display:
+                                    true,
+
+                                text:
+                                    "Score"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+}
+
+
+// ============================================================
+// DEGRADATION
+// ============================================================
+
+async function loadDegradationEvents() {
+
+    const {
+        data,
+        error
+    } = await supabase
+        .from("degradation_events")
+        .select("*")
+        .eq(
+            "room_id",
+            state.selectedRoomId
+        )
+        .is(
+            "resolved_at",
+            null
+        );
+
+
+    if (error) {
+
+        console.error(
+            error
+        );
+
+        return;
+    }
+
+
+    state.degradationEvents =
+        data || [];
+
+
+    setText(
+        "door-factor",
+        state.degradationEvents.some(
+            event =>
+                event.factor_type ===
+                "DOOR_OPEN"
+        )
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "crowd-factor",
+        state.degradationEvents.some(
+            event =>
+                event.factor_type ===
+                "OVERCROWDING"
+        )
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "weather-factor",
+        state.degradationEvents.some(
+            event =>
+                event.factor_type ===
+                "HOT_WEATHER"
+        )
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+}
+
+
+// ============================================================
+// ADMIN COMMAND
+// ============================================================
+
+async function sendACCommand(
+    command
+) {
+
+    const allowed =
+        [
+            "ON",
+            "OFF",
+            "CLEAR_OVERRIDE"
+        ];
+
+
+    if (
+        !allowed.includes(
+            command
+        )
+    ) {
+
+        return;
+    }
+
+
+    const {
+        data,
+        error
+    } = await supabase
+        .from("ac_commands")
+        .insert({
+            room_id:
+                state.selectedRoomId,
+
+            command:
+                command,
+
+            source:
+                "ADMIN",
+
+            status:
+                "PENDING"
+        })
+        .select()
+        .single();
+
+
+    if (error) {
+
+        console.error(
             error
         );
 
 
         setText(
-            "system-status",
-            `FATAL ERROR: ${error.message}`
+            "command-status",
+            error.message
         );
+
+
+        return;
     }
+
+
+    setText(
+        "command-status",
+        `Command ${command} sent.`
+    );
+
+
+    return data;
 }
+
+
+// ============================================================
+// BUTTONS
+// ============================================================
+
+function setupButtons() {
+
+    document
+        .querySelectorAll(
+            "[data-ac-command]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    async () => {
+
+                        const command =
+                            button.dataset.acCommand;
+
+
+                        await sendACCommand(
+                            command
+                        );
+                    }
+                );
+            }
+        );
+}
+
+
+// ============================================================
+// REALTIME
+// ============================================================
+
+function subscribeRealtime() {
+
+    const roomId =
+        state.selectedRoomId;
+
+
+    const channel =
+        supabase.channel(
+            `rvj-room-${roomId}`
+        );
+
+
+    // --------------------------------------------------------
+    // ROOM STATE
+    // --------------------------------------------------------
+
+    channel.on(
+        "postgres_changes",
+        {
+            event: "UPDATE",
+            schema: "public",
+            table: "room_state",
+            filter:
+                `room_id=eq.${roomId}`
+        },
+        payload => {
+
+            state.roomState =
+                payload.new;
+
+
+            renderRoomState(
+                payload.new
+            );
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // TEMPERATURE
+    // --------------------------------------------------------
+
+    channel.on(
+        "postgres_changes",
+        {
+            event: "INSERT",
+            schema: "public",
+            table: "temperature_readings",
+            filter:
+                `room_id=eq.${roomId}`
+        },
+        async payload => {
+
+            state.temperatureHistory.push(
+                payload.new
+            );
+
+
+            if (
+                state.temperatureHistory.length >
+                500
+            ) {
+
+                state.temperatureHistory.shift();
+            }
+
+
+            renderTemperatureChart();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // PERFORMANCE
+    // --------------------------------------------------------
+
+    channel.on(
+        "postgres_changes",
+        {
+            event: "INSERT",
+            schema: "public",
+            table: "performance_samples",
+            filter:
+                `room_id=eq.${roomId}`
+        },
+        payload => {
+
+            state.performanceHistory.push(
+                payload.new
+            );
+
+
+            if (
+                state.performanceHistory.length >
+                300
+            ) {
+
+                state.performanceHistory.shift();
+            }
+
+
+            setText(
+                "performance-score",
+                Number(
+                    payload.new.performance_score
+                ).toFixed(0)
+            );
+
+
+            setText(
+                "performance-status",
+                payload.new.performance_status
+            );
+
+
+            renderPerformanceChart();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // AC EVENT
+    // --------------------------------------------------------
+
+    channel.on(
+        "postgres_changes",
+        {
+            event: "INSERT",
+            schema: "public",
+            table: "ac_events",
+            filter:
+                `room_id=eq.${roomId}`
+        },
+        payload => {
+
+            setText(
+                "last-ac-event",
+                formatEvent(
+                    payload.new.event_type
+                )
+            );
+
+
+            setText(
+                "last-ac-event-time",
+                formatDateTime(
+                    payload.new.occurred_at
+                )
+            );
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // DEGRADATION
+    // --------------------------------------------------------
+
+    channel.on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "degradation_events",
+            filter:
+                `room_id=eq.${roomId}`
+        },
+        async () => {
+
+            await loadDegradationEvents();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // SUBSCRIBE
+    // --------------------------------------------------------
+
+    channel.subscribe(
+        (
+            status,
+            error
+        ) => {
+
+            console.log(
+                "Realtime:",
+                status
+            );
+
+
+            if (
+                error
+            ) {
+
+                console.error(
+                    error
+                );
+            }
+        }
+    );
+
+
+    state.realtimeChannel =
+        channel;
+}
+
+
+// ============================================================
+// FORMATTING
+// ============================================================
+
+function formatDateTime(
+    value
+) {
+
+    if (!value) {
+
+        return "--";
+    }
+
+
+    return new Date(
+        value
+    ).toLocaleString(
+        "en-PH"
+    );
+}
+
+
+function formatChartTime(
+    value
+) {
+
+    const date =
+        new Date(
+            value
+        );
+
+
+    return date.toLocaleTimeString(
+        "en-PH",
+        {
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit",
+
+            second:
+                "2-digit"
+        }
+    );
+}
+
+
+function formatEvent(
+    value
+) {
+
+    return String(
+        value || "--"
+    )
+        .replace(
+            /_/g,
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            char =>
+                char.toUpperCase()
+        );
+}
+
+
+// ============================================================
+// PUBLIC API
+// ============================================================
+
+window.RVJDashboard = {
+
+    state,
+
+    selectRoom,
+
+    loadRoomState,
+
+    loadTemperatureHistory,
+
+    loadPerformanceHistory,
+
+    sendACCommand
+};
 
 
 // ============================================================
@@ -584,5 +1411,29 @@ async function initialize() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    initialize
+    async () => {
+
+        setText(
+            "connection-status",
+            "CONNECTING"
+        );
+
+
+        setupButtons();
+
+
+        const success =
+            await loadRooms();
+
+
+        if (
+            success
+        ) {
+
+            setText(
+                "system-status",
+                "Dashboard ready."
+            );
+        }
+    }
 );
