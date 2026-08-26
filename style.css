@@ -44,7 +44,7 @@ body {
 }
 
 /* ============================================================
-   DASHBOARD (WIDE TWO-COLUMN GRID)
+   DASHBOARD GRID LAYOUT
    ============================================================ */
 
 .dashboard {
@@ -56,7 +56,7 @@ body {
 }
 
 /* ============================================================
-   PANELS (CONTAINERS)
+   PANEL SPANNING & POSITIONING
    ============================================================ */
 
 .panel {
@@ -68,8 +68,28 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Full-width panels for System Overview (1st) and Admin Controls (5th) */
-.panel:nth-child(1),
+/* 1st Panel: System Overview spans both columns */
+.panel:nth-child(1) {
+    grid-column: span 2;
+}
+
+/* 2nd Panel: Live Telemetry spans 2 rows vertically on the left */
+.panel:nth-child(2) {
+    grid-column: 1;
+    grid-row: span 2;
+}
+
+/* 3rd Panel: AC Performance Evaluation on the right */
+.panel:nth-child(3) {
+    grid-column: 2;
+}
+
+/* 4th Panel: Degradation Analysis directly under Performance on the right */
+.panel:nth-child(4) {
+    grid-column: 2;
+}
+
+/* 5th Panel: Admin Controls spans full width at bottom */
 .panel:nth-child(5) {
     grid-column: span 2;
 }
@@ -314,8 +334,12 @@ select {
     }
 
     .panel:nth-child(1),
+    .panel:nth-child(2),
+    .panel:nth-child(3),
+    .panel:nth-child(4),
     .panel:nth-child(5) {
         grid-column: span 1;
+        grid-row: auto;
     }
 
     .room-information {
