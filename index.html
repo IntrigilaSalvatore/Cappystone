@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RVJ Classroom Performance Dashboard</title>
   
- <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=9" />
 
   <!-- Supabase JS Client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,21 +26,20 @@
   <!-- MAIN DASHBOARD CONTENT CONTAINER -->
   <main class="dashboard">
 
-    <!-- SYSTEM STATUS PANEL -->
+    <!-- COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
     <section class="panel">
-      <h2>System Overview</h2>
+      <h2>System & Room Overview</h2>
+      
       <div class="system-status" data-rvj="system-status">
         Connecting to system services...
       </div>
-    </section>
 
-    <!-- ROOM SELECTOR PANEL -->
-    <section class="panel">
-      <h2>Select Room</h2>
-      <label class="label" for="room-selector">Classroom:</label>
-      <select id="room-selector" data-rvj="room-selector">
-        <option value="">Loading rooms...</option>
-      </select>
+      <div class="room-select-group">
+        <label class="label" for="room-selector">Select Classroom:</label>
+        <select id="room-selector" data-rvj="room-selector">
+          <option value="">Loading rooms...</option>
+        </select>
+      </div>
 
       <div class="room-information">
         <div>
