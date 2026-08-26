@@ -11,10 +11,14 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
-    background: #FCE883;
+    background: #FFC82A;
     color: #1e293b;
     line-height: 1.4;
 }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
 
 .header {
     display: flex;
@@ -24,7 +28,7 @@ body {
     padding: 15px 15px;
     background: #005A92;
     color: #ffffff;
-    border-bottom: 4px solid #f4d35e;
+    border-bottom: 4px solid #FCE883;
 }
 
 .header h1 {
@@ -39,6 +43,10 @@ body {
     font-size: 13px;
 }
 
+/* ============================================================
+   DASHBOARD GRID LAYOUT
+   ============================================================ */
+
 .dashboard {
     width: min(1400px, calc(100% - 20px));
     margin: 10px auto;
@@ -46,6 +54,10 @@ body {
     grid-template-columns: repeat(2, 1fr);
     gap: 15px;
 }
+
+/* ============================================================
+   PANEL SPANNING & POSITIONING
+   ============================================================ */
 
 .panel {
     background: #ffffff;
@@ -83,6 +95,10 @@ body {
     color: #1e40af;
 }
 
+/* ============================================================
+   SYSTEM STATUS & ROOM SELECTOR
+   ============================================================ */
+
 .system-status {
     margin: 0 0 12px;
     padding: 8px 12px;
@@ -116,6 +132,10 @@ select {
     padding-top: 5px;
 }
 
+/* ============================================================
+   LABEL / VALUE
+   ============================================================ */
+
 .label {
     display: block;
     font-size: 11px;
@@ -130,16 +150,24 @@ select {
     color: #1e40af;
 }
 
+/* ============================================================
+   STATUS BADGE
+   ============================================================ */
+
 .status-badge {
     display: inline-block;
     padding: 5px 10px;
-    border: 1px solid #f4d35e;
+    border: 1px solid #FCE883;
     border-radius: 16px;
     font-size: 11px;
     font-weight: bold;
-    background: #f4d35e;
+    background: #FCE883;
     color: #1e40af;
 }
+
+/* ============================================================
+   CARDS (LIVE TELEMETRY)
+   ============================================================ */
 
 .cards {
     display: grid;
@@ -169,6 +197,10 @@ select {
     color: #1e40af;
 }
 
+/* ============================================================
+   PERFORMANCE & DEGRADATION
+   ============================================================ */
+
 .performance-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -182,6 +214,7 @@ select {
     background: #ffffff;
     border-left: 4px solid #1e40af;
 }
+
 .large-value {
     display: block;
     font-size: 22px;
@@ -218,6 +251,10 @@ select {
     font-size: 14px;
 }
 
+/* ============================================================
+   ADMIN CONTROLS
+   ============================================================ */
+
 .admin-controls {
     display: flex;
     flex-wrap: wrap;
@@ -250,7 +287,7 @@ select {
 .button-on {
     background: #FCE883;
     color: #1e40af;
-    border-color: #e0b828;
+    border-color: #ebd46e;
 }
 
 .button-on:hover {
@@ -281,6 +318,10 @@ select {
 .command-result {
     padding-top: 5px;
 }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 
 @media (max-width: 800px) {
     .dashboard {
