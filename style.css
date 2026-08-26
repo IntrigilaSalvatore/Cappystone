@@ -11,8 +11,8 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
-    background: #f4f4f4;
-    color: #222;
+    background: #eef2f7;
+    color: #1a2530;
     line-height: 1.5;
 }
 
@@ -26,18 +26,20 @@ body {
     align-items: center;
     gap: 20px;
     padding: 20px 30px;
-    background: #ffffff;
-    border-bottom: 1px solid #d8d8d8;
+    background: #0d3b66;
+    color: #ffffff;
+    border-bottom: 4px solid #f4d35e;
 }
 
 .header h1 {
     margin: 0;
     font-size: 24px;
+    color: #ffffff;
 }
 
 .header p {
     margin: 5px 0 0;
-    color: #666;
+    color: #e0e6ed;
     font-size: 14px;
 }
 
@@ -59,14 +61,17 @@ body {
 
 .panel {
     background: #ffffff;
-    border: 1px solid #d8d8d8;
+    border: 1px solid #cbd5e1;
+    border-top: 4px solid #0d3b66;
     border-radius: 8px;
     padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .panel h2 {
     margin: 0 0 20px;
     font-size: 20px;
+    color: #0d3b66;
 }
 
 /* ============================================================
@@ -77,10 +82,12 @@ select {
     width: 100%;
     padding: 10px;
     margin: 8px 0 20px;
-    border: 1px solid #bbb;
-    border-radius: 4px;
+    border: 2px solid #0d3b66;
+    border-radius: 6px;
     background: #ffffff;
     font-size: 15px;
+    color: #0d3b66;
+    font-weight: bold;
 }
 
 .room-information {
@@ -96,13 +103,15 @@ select {
 .label {
     display: block;
     font-size: 12px;
-    color: #777;
+    color: #5a6b7c;
     margin-bottom: 3px;
+    font-weight: 600;
 }
 
 .value {
     font-size: 16px;
     font-weight: 600;
+    color: #0d3b66;
 }
 
 /* ============================================================
@@ -111,12 +120,13 @@ select {
 
 .status-badge {
     display: inline-block;
-    padding: 6px 10px;
-    border: 1px solid #bbb;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border: 1px solid #f4d35e;
+    border-radius: 20px;
     font-size: 12px;
     font-weight: bold;
-    background: #eeeeee;
+    background: #f4d35e;
+    color: #0d3b66;
 }
 
 /* ============================================================
@@ -131,22 +141,24 @@ select {
 
 .card {
     padding: 15px;
-    border: 1px solid #d8d8d8;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
-    background: #fafafa;
+    background: #f8fafc;
+    border-left: 4px solid #0d3b66;
 }
 
 .card-title {
     display: block;
     margin-bottom: 8px;
     font-size: 13px;
-    color: #666;
+    color: #5a6b7c;
 }
 
 .card-value {
     display: block;
     font-size: 24px;
     font-weight: bold;
+    color: #0d3b66;
 }
 
 /* ============================================================
@@ -161,15 +173,17 @@ select {
 
 .performance-item {
     padding: 20px;
-    border: 1px solid #d8d8d8;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
-    background: #fafafa;
+    background: #f8fafc;
+    border-left: 4px solid #f4d35e;
 }
 
 .large-value {
     display: block;
     font-size: 30px;
     font-weight: bold;
+    color: #0d3b66;
 }
 
 .chart-placeholder {
@@ -178,8 +192,9 @@ select {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px dashed #bbb;
-    color: #777;
+    border: 2px dashed #0d3b66;
+    color: #0d3b66;
+    background: #ffffff;
 }
 
 .chart-container {
@@ -210,13 +225,14 @@ select {
     align-items: center;
     gap: 10px;
     padding: 15px;
-    border: 1px solid #d8d8d8;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
-    background: #fafafa;
+    background: #f8fafc;
 }
 
 .factor-status {
     font-weight: bold;
+    color: #0d3b66;
 }
 
 /* ============================================================
@@ -232,18 +248,19 @@ select {
 
 .button {
     padding: 10px 16px;
-    border: 1px solid #999;
+    border: 1px solid #0d3b66;
     border-radius: 5px;
-    background: #eeeeee;
-    color: #222;
+    background: #0d3b66;
+    color: #ffffff;
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .button:hover {
-    background: #dddddd;
+    background: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
 .button:disabled {
@@ -252,30 +269,33 @@ select {
 }
 
 .button-on {
-    background: #e2f0d9;
-    border-color: #b2d89c;
+    background: #f4d35e;
+    color: #0d3b66;
+    border-color: #e0b828;
 }
 
 .button-on:hover {
-    background: #d0e8c1;
+    background: #e0b828;
 }
 
 .button-off {
-    background: #fce4d6;
-    border-color: #f4b084;
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #dc2626;
 }
 
 .button-off:hover {
-    background: #f8cbad;
+    background: #dc2626;
 }
 
 .warning {
-    padding: 10px;
+    padding: 12px;
     margin: 0 0 15px;
-    border: 1px solid #ccc;
+    border: 1px solid #f4d35e;
+    border-left: 5px solid #f4d35e;
     border-radius: 4px;
-    background: #fffbe6;
-    color: #555;
+    background: #fffbeb;
+    color: #78350f;
     font-size: 14px;
 }
 
@@ -293,11 +313,12 @@ select {
 
 .system-status {
     margin: 0;
-    padding: 10px;
-    border: 1px solid #d8d8d8;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
     border-radius: 4px;
-    background: #fafafa;
+    background: #f8fafc;
     font-size: 14px;
+    color: #0d3b66;
 }
 
 .last-update {
