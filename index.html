@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RVJ Classroom Performance Dashboard</title>
   
-  <link rel="stylesheet" href="style.css?v=11" />
+  <link rel="stylesheet" href="style.css?v=12" />
 
   <!-- Supabase JS Client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,7 +26,7 @@
   <!-- MAIN DASHBOARD CONTENT CONTAINER -->
   <main class="dashboard">
 
-    <!-- COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
+    <!-- 1. COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
     <section class="panel">
       <h2>System & Room Overview</h2>
       
@@ -61,7 +61,7 @@
       </div>
     </section>
 
-    <!-- METRICS & SENSOR CARDS -->
+    <!-- 2. LIVE TELEMETRY (LEFT COLUMN) -->
     <section class="panel">
       <h2>Live Telemetry</h2>
       <div class="cards">
@@ -100,7 +100,7 @@
       </div>
     </section>
 
-    <!-- PERFORMANCE PANEL -->
+    <!-- 3. PERFORMANCE PANEL (RIGHT COLUMN - TOP) -->
     <section class="panel">
       <h2>AC Performance Evaluation</h2>
       <div class="performance-container">
@@ -119,7 +119,7 @@
       </div>
     </section>
 
-    <!-- DEGRADATION FACTORS PANEL -->
+    <!-- 4. DEGRADATION FACTORS PANEL (RIGHT COLUMN - BOTTOM) -->
     <section class="panel">
       <h2>Degradation Analysis</h2>
       <div class="factor-grid">
@@ -142,7 +142,7 @@
       </div>
     </section>
 
-    <!-- ADMIN AC CONTROLS PANEL -->
+    <!-- 5. ADMIN AC CONTROLS PANEL (BOTTOM FULL WIDTH) -->
     <section class="panel">
       <h2>Manual Admin Controls</h2>
       <div class="warning">
