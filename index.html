@@ -55,21 +55,13 @@
 <main class="dashboard">
 
 
-    <!-- =====================================================
-         CLASSROOM
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Classroom Selection
-        </h2>
-
+        <h2>Classroom Selection</h2>
 
         <label for="room-selector">
             Select Room
         </label>
-
 
         <select
             id="room-selector"
@@ -147,15 +139,9 @@
     </section>
 
 
-    <!-- =====================================================
-         CURRENT STATE
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Current Room State
-        </h2>
+        <h2>Current Room State</h2>
 
 
         <div class="cards">
@@ -293,19 +279,12 @@
     </section>
 
 
-    <!-- =====================================================
-         PERFORMANCE
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            AC Performance
-        </h2>
+        <h2>AC Performance</h2>
 
 
         <div class="performance-container">
-
 
             <div class="performance-item">
 
@@ -343,46 +322,30 @@
 
         <div class="chart-container">
 
-            <canvas
-                id="temperatureChart"
-            ></canvas>
+            <canvas id="temperatureChart"></canvas>
 
         </div>
 
     </section>
 
 
-    <!-- =====================================================
-         PERFORMANCE HISTORY
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Cooling Performance Trend
-        </h2>
+        <h2>Cooling Performance Trend</h2>
 
 
         <div class="chart-container">
 
-            <canvas
-                id="performanceChart"
-            ></canvas>
+            <canvas id="performanceChart"></canvas>
 
         </div>
 
     </section>
 
 
-    <!-- =====================================================
-         DEGRADATION
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Active Degradation Factors
-        </h2>
+        <h2>Active Degradation Factors</h2>
 
 
         <div class="factor-grid">
@@ -437,20 +400,9 @@
     </section>
 
 
-    <!-- =====================================================
-         ADMIN CONTROL
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Administrator Control
-        </h2>
-
-
-        <p class="warning">
-            These controls send commands to the Master Node.
-        </p>
+        <h2>Administrator Control</h2>
 
 
         <div
@@ -505,15 +457,9 @@
     </section>
 
 
-    <!-- =====================================================
-         LAST AC EVENT
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            Latest AC Event
-        </h2>
+        <h2>Latest AC Event</h2>
 
 
         <div class="event-information">
@@ -554,15 +500,9 @@
     </section>
 
 
-    <!-- =====================================================
-         SYSTEM
-         ===================================================== -->
-
     <section class="panel">
 
-        <h2>
-            System Status
-        </h2>
+        <h2>System Status</h2>
 
 
         <p
@@ -594,27 +534,23 @@
 </main>
 
 
-<!-- =========================================================
-     EXTERNAL LIBRARIES
-     ========================================================= -->
+<!-- SUPABASE -->
 
 <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
 ></script>
 
 
+<!-- CHART.JS -->
+
 <script
     src="https://cdn.jsdelivr.net/npm/chart.js"
 ></script>
 
 
-<!-- =========================================================
-     YOUR APPLICATION
-     ========================================================= -->
+<!-- NEW APPLICATION FILE -->
 
-<script
-    src="./app.js"
-></script>
+<script src="./dashboard.js"></script>
 
 
 </body>
