@@ -2,22 +2,10 @@
 
     "use strict";
 
-
-    console.log(
-        "======================================"
-    );
-
-    console.log(
-        "RVJ DASHBOARD NEW FILE LOADED"
-    );
-
-    console.log(
-        "dashboard.js"
-    );
-
-    console.log(
-        "======================================"
-    );
+    console.log("======================================");
+    console.log("RVJ DASHBOARD NEW FILE LOADED");
+    console.log("dashboard.js");
+    console.log("======================================");
 
 
     // ========================================================
@@ -27,7 +15,6 @@
     const SUPABASE_URL =
         "https://raphpzlmjjzgwohjgczu.supabase.co";
 
-
     const SUPABASE_PUBLISHABLE_KEY =
         "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
@@ -36,9 +23,7 @@
     // CHECK SUPABASE
     // ========================================================
 
-    if (
-        !window.supabase
-    ) {
+    if (!window.supabase) {
 
         console.error(
             "Supabase library is missing."
@@ -54,7 +39,7 @@
 
 
     // ========================================================
-    // CLIENT
+    // CREATE SUPABASE CLIENT
     // ========================================================
 
     const client =
@@ -70,24 +55,21 @@
 
 
     // ========================================================
-    // STATE
+    // APPLICATION STATE
     // ========================================================
 
-    let currentRoomId =
-        null;
+    let currentRoomId = null;
 
+    let rooms = [];
 
-    let rooms =
-        [];
+    let realtimeChannel = null;
 
 
     // ========================================================
     // ELEMENT HELPER
     // ========================================================
 
-    function get(
-        name
-    ) {
+    function get(name) {
 
         return document.querySelectorAll(
             `[data-rvj="${name}"]`
@@ -95,16 +77,12 @@
     }
 
 
-    function text(
-        name,
-        value
-    ) {
+    function text(name, value) {
 
         get(name).forEach(
             element => {
 
-                element.textContent =
-                    value;
+                element.textContent = value;
 
             }
         );
@@ -112,38 +90,29 @@
 
 
     // ========================================================
-    // DISPLAY ROOM
+    // DISPLAY ROOM INFORMATION
     // ========================================================
 
-    function displayRoom(
-        room
-    ) {
+    function displayRoom(room) {
 
         text(
             "room-code",
-            room.room_code ||
-            "--"
+            room.room_code || "--"
         );
-
 
         text(
             "room-name",
-            room.room_name ||
-            "--"
+            room.room_name || "--"
         );
-
 
         text(
             "room-location",
-            room.location ||
-            "--"
+            room.location || "--"
         );
-
 
         text(
             "room-capacity",
-            room.capacity ??
-            "--"
+            room.capacity ?? "--"
         );
     }
 
@@ -152,9 +121,7 @@
     // DISPLAY ROOM STATE
     // ========================================================
 
-    function displayState(
-        data
-    ) {
+    function displayState(data) {
 
         console.log(
             "DISPLAYING ROOM STATE:",
@@ -169,22 +136,78 @@
                 "--"
             );
 
+            text(
+                "ac-status",
+                "OFF"
+            );
+
+            text(
+                "rfid-status",
+                "REMOVED"
+            );
+
+            text(
+                "control-mode",
+                "RFID"
+            );
+
+            text(
+                "door-status",
+                "CLOSED"
+            );
+
+            text(
+                "crowd-count",
+                "0"
+            );
+
+            text(
+                "crowd-alert",
+                "NORMAL"
+            );
+
+            text(
+                "weather-alert",
+                "NORMAL"
+            );
+
+            text(
+                "performance-score",
+                "--"
+            );
+
+            text(
+                "performance-status",
+                "UNKNOWN"
+            );
+
+            text(
+                "degradation-factor",
+                "NONE"
+            );
+
             return;
         }
 
 
+        // ====================================================
+        // TEMPERATURE
+        // ====================================================
+
         text(
             "temperature",
-            data.avg_temperature_c ===
-            null ||
-            data.avg_temperature_c ===
-            undefined
+            data.avg_temperature_c === null ||
+            data.avg_temperature_c === undefined
                 ? "--"
                 : `${Number(
                     data.avg_temperature_c
                 ).toFixed(1)} °C`
         );
 
+
+        // ====================================================
+        // AC STATUS
+        // ====================================================
 
         text(
             "ac-status",
@@ -194,6 +217,10 @@
         );
 
 
+        // ====================================================
+        // RFID
+        // ====================================================
+
         text(
             "rfid-status",
             data.rfid_present
@@ -202,12 +229,20 @@
         );
 
 
+        // ====================================================
+        // CONTROL MODE
+        // ====================================================
+
         text(
             "control-mode",
             data.ac_control_mode ||
             "RFID"
         );
 
+
+        // ====================================================
+        // DOOR
+        // ====================================================
 
         text(
             "door-status",
@@ -217,10 +252,13 @@
         );
 
 
+        // ====================================================
+        // CROWD
+        // ====================================================
+
         text(
             "crowd-count",
-            data.crowd_count ??
-            0
+            data.crowd_count ?? 0
         );
 
 
@@ -232,6 +270,10 @@
         );
 
 
+        // ====================================================
+        // WEATHER
+        // ====================================================
+
         text(
             "weather-alert",
             data.hot_weather
@@ -240,12 +282,14 @@
         );
 
 
+        // ====================================================
+        // PERFORMANCE
+        // ====================================================
+
         text(
             "performance-score",
-            data.performance_score ===
-            null ||
-            data.performance_score ===
-            undefined
+            data.performance_score === null ||
+            data.performance_score === undefined
                 ? "--"
                 : Number(
                     data.performance_score
@@ -260,6 +304,10 @@
         );
 
 
+        // ====================================================
+        // LAST UPDATE
+        // ====================================================
+
         text(
             "last-update",
             data.updated_at
@@ -269,6 +317,79 @@
                     "en-PH"
                 )
                 : "--"
+        );
+
+
+        // ====================================================
+        // DEGRADATION ANALYSIS
+        //
+        // THIS IS THE PART YOU ASKED ABOUT.
+        //
+        // The room_state object has already been loaded above.
+        // We now pass that same object to the degradation
+        // display function.
+        // ====================================================
+
+        displayDegradationState(data);
+    }
+
+
+    // ========================================================
+    // DISPLAY DEGRADATION STATE
+    // ========================================================
+
+    function displayDegradationState(data) {
+
+        console.log(
+            "DISPLAYING DEGRADATION STATE:",
+            data
+        );
+
+
+        // ----------------------------------------------------
+        // Door factor
+        // ----------------------------------------------------
+
+        text(
+            "door-factor",
+            data.door_open
+                ? "ACTIVE"
+                : "NORMAL"
+        );
+
+
+        // ----------------------------------------------------
+        // Crowd factor
+        // ----------------------------------------------------
+
+        text(
+            "crowd-factor",
+            data.overcrowded
+                ? "ACTIVE"
+                : "NORMAL"
+        );
+
+
+        // ----------------------------------------------------
+        // Weather factor
+        // ----------------------------------------------------
+
+        text(
+            "weather-factor",
+            data.hot_weather
+                ? "ACTIVE"
+                : "NORMAL"
+        );
+
+
+        // ----------------------------------------------------
+        // Primary degradation factor
+        // ----------------------------------------------------
+
+        text(
+            "degradation-factor",
+            data.degradation_factor ||
+            "NONE"
         );
     }
 
@@ -303,9 +424,7 @@
         );
 
 
-        if (
-            result.error
-        ) {
+        if (result.error) {
 
             text(
                 "system-status",
@@ -321,8 +440,7 @@
 
 
         rooms =
-            result.data ||
-            [];
+            result.data || [];
 
 
         if (
@@ -346,8 +464,7 @@
 
         if (selector) {
 
-            selector.innerHTML =
-                "";
+            selector.innerHTML = "";
 
 
             rooms.forEach(
@@ -372,26 +489,6 @@
                     );
                 }
             );
-        }
-
-
-        currentRoomId =
-            Number(
-                rooms[0].id
-            );
-
-
-        displayRoom(
-            rooms[0]
-        );
-
-
-        if (selector) {
-
-            selector.value =
-                String(
-                    currentRoomId
-                );
 
 
             selector.onchange =
@@ -406,16 +503,12 @@
                     const room =
                         rooms.find(
                             item =>
-                                Number(
-                                    item.id
-                                ) ===
+                                Number(item.id) ===
                                 currentRoomId
                         );
 
 
-                    if (
-                        room
-                    ) {
+                    if (room) {
 
                         displayRoom(
                             room
@@ -425,6 +518,26 @@
                     }
                 };
         }
+
+
+        currentRoomId =
+            Number(
+                rooms[0].id
+            );
+
+
+        if (selector) {
+
+            selector.value =
+                String(
+                    currentRoomId
+                );
+        }
+
+
+        displayRoom(
+            rooms[0]
+        );
 
 
         await loadRoomState();
@@ -440,6 +553,9 @@
             "system-status",
             "Dashboard connected to Supabase."
         );
+
+
+        subscribeToRealtime();
     }
 
 
@@ -472,9 +588,7 @@
         );
 
 
-        if (
-            result.error
-        ) {
+        if (result.error) {
 
             text(
                 "system-status",
@@ -575,7 +689,7 @@
     // REALTIME
     // ========================================================
 
-    function subscribe() {
+    function subscribeToRealtime() {
 
         if (
             !currentRoomId
@@ -585,10 +699,23 @@
         }
 
 
-        const channel =
+        if (
+            realtimeChannel
+        ) {
+
+            client.removeChannel(
+                realtimeChannel
+            );
+
+            realtimeChannel =
+                null;
+        }
+
+
+        realtimeChannel =
             client
                 .channel(
-                    `rvj-${currentRoomId}`
+                    `rvj-room-${currentRoomId}`
                 )
                 .on(
                     "postgres_changes",
@@ -608,7 +735,7 @@
                     payload => {
 
                         console.log(
-                            "REALTIME:",
+                            "REALTIME ROOM STATE:",
                             payload
                         );
 
@@ -627,10 +754,6 @@
                         );
                     }
                 );
-
-
-        window.__RVJ_REALTIME_CHANNEL__ =
-            channel;
     }
 
 
@@ -646,9 +769,6 @@
 
 
         await loadRooms();
-
-
-        subscribe();
     }
 
 
@@ -665,8 +785,7 @@
             "DOMContentLoaded",
             start,
             {
-                once:
-                    true
+                once: true
             }
         );
 
@@ -686,59 +805,13 @@
 
         loadRoomState,
 
-        state: {
+        displayDegradationState,
 
-            get roomId() {
+        getCurrentRoomId: function () {
 
-                return currentRoomId;
-            },
-
-            get rooms() {
-
-                return rooms;
-            }
+            return currentRoomId;
         }
+
     };
 
 })();
-function displayDegradationState(data) {
-
-    if (!data) {
-        return;
-    }
-
-
-    const factor =
-        data.degradation_factor ||
-        "NONE";
-
-
-    setText(
-        "door-factor",
-        data.door_open
-            ? "ACTIVE"
-            : "NORMAL"
-    );
-
-
-    setText(
-        "crowd-factor",
-        data.overcrowded
-            ? "ACTIVE"
-            : "NORMAL"
-    );
-
-
-    setText(
-        "weather-factor",
-        data.hot_weather
-            ? "ACTIVE"
-            : "NORMAL"
-    );
-
-
-    setText(
-        "degradation-factor",
-        factor
-    );
-}
