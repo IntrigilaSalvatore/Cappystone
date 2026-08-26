@@ -2,29 +2,19 @@
     box-sizing: border-box;
 }
 
-
 html {
     margin: 0;
     padding: 0;
 }
 
-
 body {
     margin: 0;
     padding: 0;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
+    font-family: Arial, Helvetica, sans-serif;
     background: #f4f4f4;
-
     color: #222;
-
     line-height: 1.5;
 }
-
 
 /* ============================================================
    HEADER
@@ -32,56 +22,36 @@ body {
 
 .header {
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     gap: 20px;
-
     padding: 20px 30px;
-
     background: #ffffff;
-
     border-bottom: 1px solid #d8d8d8;
 }
 
-
 .header h1 {
     margin: 0;
-
     font-size: 24px;
 }
 
-
 .header p {
     margin: 5px 0 0;
-
     color: #666;
-
     font-size: 14px;
 }
-
 
 /* ============================================================
    DASHBOARD
    ============================================================ */
 
 .dashboard {
-    width: min(
-        1200px,
-        calc(100% - 40px)
-    );
-
+    width: min(1200px, calc(100% - 40px));
     margin: 20px auto;
-
     display: flex;
-
     flex-direction: column;
-
     gap: 20px;
 }
-
 
 /* ============================================================
    PANELS
@@ -89,21 +59,15 @@ body {
 
 .panel {
     background: #ffffff;
-
     border: 1px solid #d8d8d8;
-
     border-radius: 8px;
-
     padding: 20px;
 }
 
-
 .panel h2 {
     margin: 0 0 20px;
-
     font-size: 20px;
 }
-
 
 /* ============================================================
    ROOM SELECTOR
@@ -111,33 +75,19 @@ body {
 
 select {
     width: 100%;
-
     padding: 10px;
-
     margin: 8px 0 20px;
-
     border: 1px solid #bbb;
-
     border-radius: 4px;
-
     background: #ffffff;
-
     font-size: 15px;
 }
 
-
 .room-information {
     display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(180px, 1fr)
-        );
-
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 15px;
 }
-
 
 /* ============================================================
    LABEL / VALUE
@@ -145,21 +95,15 @@ select {
 
 .label {
     display: block;
-
     font-size: 12px;
-
     color: #777;
-
     margin-bottom: 3px;
 }
 
-
 .value {
     font-size: 16px;
-
     font-weight: 600;
 }
-
 
 /* ============================================================
    STATUS BADGE
@@ -167,20 +111,13 @@ select {
 
 .status-badge {
     display: inline-block;
-
     padding: 6px 10px;
-
     border: 1px solid #bbb;
-
     border-radius: 4px;
-
     font-size: 12px;
-
     font-weight: bold;
-
     background: #eeeeee;
 }
-
 
 /* ============================================================
    CARDS
@@ -188,47 +125,29 @@ select {
 
 .cards {
     display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(180px, 1fr)
-        );
-
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 15px;
 }
 
-
 .card {
     padding: 15px;
-
     border: 1px solid #d8d8d8;
-
     border-radius: 6px;
-
     background: #fafafa;
 }
 
-
 .card-title {
     display: block;
-
     margin-bottom: 8px;
-
     font-size: 13px;
-
     color: #666;
 }
 
-
 .card-value {
     display: block;
-
     font-size: 24px;
-
     font-weight: bold;
 }
-
 
 /* ============================================================
    PERFORMANCE
@@ -236,53 +155,44 @@ select {
 
 .performance-container {
     display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(220px, 1fr)
-        );
-
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 15px;
 }
 
-
 .performance-item {
     padding: 20px;
-
     border: 1px solid #d8d8d8;
-
     border-radius: 6px;
-
     background: #fafafa;
 }
 
-
 .large-value {
     display: block;
-
     font-size: 30px;
-
     font-weight: bold;
 }
 
-
 .chart-placeholder {
     min-height: 250px;
-
     margin-top: 20px;
-
     display: flex;
-
     align-items: center;
-
     justify-content: center;
-
     border: 1px dashed #bbb;
-
     color: #777;
 }
 
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    margin-top: 20px;
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
 
 /* ============================================================
    DEGRADATION FACTORS
@@ -290,36 +200,24 @@ select {
 
 .factor-grid {
     display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(180px, 1fr)
-        );
-
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 15px;
 }
 
-
 .factor {
     display: flex;
-
     justify-content: space-between;
-
+    align-items: center;
     gap: 10px;
-
     padding: 15px;
-
     border: 1px solid #d8d8d8;
-
     border-radius: 6px;
+    background: #fafafa;
 }
-
 
 .factor-status {
     font-weight: bold;
 }
-
 
 /* ============================================================
    ADMIN CONTROLS
@@ -327,70 +225,59 @@ select {
 
 .admin-controls {
     display: flex;
-
     flex-wrap: wrap;
-
     gap: 10px;
-
     margin-bottom: 20px;
 }
 
-
 .button {
     padding: 10px 16px;
-
     border: 1px solid #999;
-
     border-radius: 5px;
-
     background: #eeeeee;
-
     color: #222;
-
     font-size: 14px;
-
     font-weight: bold;
-
     cursor: pointer;
+    transition: background 0.2s ease;
 }
-
 
 .button:hover {
     background: #dddddd;
 }
 
-
 .button:disabled {
     opacity: 0.5;
-
     cursor: not-allowed;
 }
 
-
 .button-on {
-    background: #dddddd;
+    background: #e2f0d9;
+    border-color: #b2d89c;
 }
 
+.button-on:hover {
+    background: #d0e8c1;
+}
 
 .button-off {
-    background: #dddddd;
+    background: #fce4d6;
+    border-color: #f4b084;
 }
 
+.button-off:hover {
+    background: #f8cbad;
+}
 
 .warning {
     padding: 10px;
-
     margin: 0 0 15px;
-
     border: 1px solid #ccc;
-
-    background: #f7f7f7;
-
+    border-radius: 4px;
+    background: #fffbe6;
     color: #555;
-
     font-size: 14px;
 }
-
 
 /* ============================================================
    COMMAND STATUS
@@ -400,93 +287,47 @@ select {
     padding-top: 10px;
 }
 
-
-/* ============================================================
-   EVENTS
-   ============================================================ */
-
-.event-information {
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            auto-fit,
-            minmax(200px, 1fr)
-        );
-
-    gap: 15px;
-}
-
-
 /* ============================================================
    SYSTEM STATUS
    ============================================================ */
 
 .system-status {
-    margin: 0 0 15px;
-
+    margin: 0;
     padding: 10px;
-
     border: 1px solid #d8d8d8;
-
+    border-radius: 4px;
     background: #fafafa;
+    font-size: 14px;
 }
-
 
 .last-update {
-    padding-top: 10px;
+    padding-top: 15px;
 }
-
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
 
-@media (
-    max-width: 700px
-) {
-
+@media (max-width: 700px) {
     .header {
         flex-direction: column;
-
         align-items: flex-start;
     }
 
-
     .dashboard {
         width: calc(100% - 20px);
-
         margin: 10px auto;
     }
-
 
     .panel {
         padding: 15px;
     }
 
-
     .admin-controls {
         flex-direction: column;
     }
 
-
     .button {
         width: 100%;
     }
-}
-.chart-container {
-    position: relative;
-
-    width: 100%;
-
-    height: 350px;
-
-    margin-top: 20px;
-}
-
-
-.chart-container canvas {
-    width: 100% !important;
-
-    height: 100% !important;
 }
