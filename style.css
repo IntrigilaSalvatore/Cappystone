@@ -44,7 +44,7 @@ body {
 }
 
 /* ============================================================
-   DASHBOARD (OPTIMIZED COMPACT GRID)
+   DASHBOARD (TWO-COLUMN GRID)
    ============================================================ */
 
 .dashboard {
@@ -68,9 +68,8 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Full width panels for Overview, Live Telemetry, and Admin Controls */
+/* Full-width panels for System Overview (1) and Admin Controls (5) */
 .panel:nth-child(1),
-.panel:nth-child(2),
 .panel:nth-child(5) {
     grid-column: span 2;
 }
@@ -152,12 +151,12 @@ select {
 }
 
 /* ============================================================
-   CARDS (COMPACT GRID)
+   CARDS (COMPACT GRID FOR SIDE-BY-SIDE LAYOUT)
    ============================================================ */
 
 .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 10px;
 }
 
@@ -189,7 +188,7 @@ select {
 
 .performance-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
 }
 
@@ -218,7 +217,7 @@ select {
 
 .factor-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px;
 }
 
@@ -318,7 +317,6 @@ select {
     }
 
     .panel:nth-child(1),
-    .panel:nth-child(2),
     .panel:nth-child(5) {
         grid-column: span 1;
     }
