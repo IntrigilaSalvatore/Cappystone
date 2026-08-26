@@ -701,3 +701,44 @@
     };
 
 })();
+function displayDegradationState(data) {
+
+    if (!data) {
+        return;
+    }
+
+
+    const factor =
+        data.degradation_factor ||
+        "NONE";
+
+
+    setText(
+        "door-factor",
+        data.door_open
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "crowd-factor",
+        data.overcrowded
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "weather-factor",
+        data.hot_weather
+            ? "ACTIVE"
+            : "NORMAL"
+    );
+
+
+    setText(
+        "degradation-factor",
+        factor
+    );
+}
