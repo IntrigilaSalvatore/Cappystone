@@ -48,23 +48,25 @@
     // FRESHNESS CONFIGURATION
     // ========================================================
 
-    // Master sends heartbeat every ~10 seconds.
+    // Master heartbeat is sent every 10 seconds.
     //
-    // We allow up to 30 seconds before declaring it offline.
+    // Dashboard allows up to 60 seconds before declaring
+    // the Master Node offline.
 
     const MASTER_TIMEOUT_MS =
-        30000;
+        60000;
 
 
-    // Temp nodes normally transmit every 10 seconds.
+    // Temp Nodes send every 30 seconds.
     //
-    // Allow 30 seconds before considering telemetry stale.
+    // Allow up to 90 seconds before declaring temperature
+    // telemetry stale.
 
     const TEMPERATURE_TIMEOUT_MS =
-        30000;
+        90000;
 
 
-    // Crowd analysis runs every 5 minutes.
+    // Crowd scan runs every 5 minutes.
     //
     // Allow one missed scan.
 
@@ -73,14 +75,12 @@
 
 
     // Weather analysis runs every 5 minutes.
-    //
-    // Again allow one missed run.
 
     const WEATHER_TIMEOUT_MS =
         10 * 60 * 1000;
 
 
-    // Dashboard checks freshness once per second.
+    // Check freshness every second.
 
     const FRESHNESS_CHECK_INTERVAL_MS =
         1000;
@@ -119,7 +119,7 @@
 
 
     // ========================================================
-    // ELEMENT HELPERS
+    // UI HELPERS
     // ========================================================
 
     function getElements(name) {
@@ -163,7 +163,7 @@
 
 
     // ========================================================
-    // DATE PARSING
+    // DATE
     // ========================================================
 
     function parseDate(
@@ -197,7 +197,7 @@
 
 
     // ========================================================
-    // FRESHNESS CHECK
+    // FRESHNESS
     // ========================================================
 
     function isFresh(
@@ -230,12 +230,14 @@
 
 
     // ========================================================
-    // MASTER ONLINE STATE
+    // MASTER ONLINE STATUS
     // ========================================================
 
     function calculateMasterOnline() {
 
-        if (!lastMasterSeenAt) {
+        if (
+            !lastMasterSeenAt
+        ) {
 
             return false;
         }
@@ -249,7 +251,7 @@
 
 
     // ========================================================
-    // SET MASTER ONLINE/OFFLINE
+    // MASTER STATUS UPDATE
     // ========================================================
 
     function updateMasterStatus() {
@@ -258,10 +260,9 @@
             calculateMasterOnline();
 
 
-        // Only update when state changes.
-
         if (
-            online === masterOnline
+            online ===
+            masterOnline
         ) {
 
             return;
@@ -302,7 +303,7 @@
             enableAdminControls();
 
 
-            // Refresh everything when the Master returns.
+            // Refresh current telemetry.
 
             loadRoomState();
 
@@ -329,7 +330,7 @@
 
             setText(
                 "system-status",
-                "Master Node is offline or has stopped reporting. Live device data is unavailable."
+                "Master Node is offline or its Internet connection is down. Live device data is unavailable."
             );
 
 
@@ -342,14 +343,10 @@
 
 
     // ========================================================
-    // CLEAR LIVE DATA
+    // CLEAR DEVICE DATA
     // ========================================================
 
     function clearLiveDeviceData() {
-
-        // ----------------------------------------------------
-        // Hardware state
-        // ----------------------------------------------------
 
         setText(
             "temperature",
@@ -405,10 +402,6 @@
         );
 
 
-        // ----------------------------------------------------
-        // Performance
-        // ----------------------------------------------------
-
         setText(
             "performance-score",
             "UNAVAILABLE"
@@ -420,10 +413,6 @@
             "UNAVAILABLE"
         );
 
-
-        // ----------------------------------------------------
-        // Degradation
-        // ----------------------------------------------------
 
         setText(
             "door-factor",
@@ -449,10 +438,6 @@
         );
 
 
-        // ----------------------------------------------------
-        // Last update
-        // ----------------------------------------------------
-
         setText(
             "last-update",
             "UNAVAILABLE"
@@ -461,7 +446,7 @@
 
 
     // ========================================================
-    // DISABLE ADMIN CONTROLS
+    // ADMIN CONTROLS
     // ========================================================
 
     function disableAdminControls() {
@@ -480,10 +465,6 @@
             );
     }
 
-
-    // ========================================================
-    // ENABLE ADMIN CONTROLS
-    // ========================================================
 
     function enableAdminControls() {
 
@@ -563,7 +544,19 @@
                 null;
 
 
-            updateMasterStatus();
+            masterOnline =
+                false;
+
+
+            clearLiveDeviceData();
+
+            disableAdminControls();
+
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
+
 
             return;
         }
@@ -591,6 +584,7 @@
 
             disableAdminControls();
 
+
             setText(
                 "connection-status",
                 "DEVICE OFFLINE"
@@ -605,7 +599,7 @@
 
             setText(
                 "system-status",
-                "Master Node is offline or has stopped reporting."
+                "Master Node is offline or its Internet connection is down."
             );
 
 
@@ -632,11 +626,6 @@
         // ====================================================
         // TEMPERATURE
         // ====================================================
-        //
-        // We do not blindly trust avg_temperature_c.
-        // Temperature readings are checked separately for
-        // freshness.
-        //
 
         updateTemperatureDisplay();
 
@@ -670,14 +659,6 @@
             data.rfid_present === true
                 ? "PRESENT"
                 : "REMOVED"
-        );
-
-
-        setStatus(
-            "rfid-status",
-            data.rfid_present === true
-                ? "present"
-                : "removed"
         );
 
 
@@ -857,7 +838,7 @@
 
 
         // ====================================================
-        // LAST DATABASE UPDATE
+        // LAST UPDATE
         // ====================================================
 
         setText(
@@ -868,14 +849,11 @@
                 )
                 : "--"
         );
-
-
-        updateMasterStatus();
     }
 
 
     // ========================================================
-    // TEMPERATURE READING FRESHNESS
+    // TEMPERATURE DISPLAY
     // ========================================================
 
     function updateTemperatureDisplay() {
@@ -889,18 +867,6 @@
                 "UNAVAILABLE"
             );
 
-            return;
-        }
-
-
-        if (
-            latestTemperatureReadings.length === 0
-        ) {
-
-            setText(
-                "temperature",
-                "NO DATA"
-            );
 
             return;
         }
@@ -914,13 +880,13 @@
             latestTemperatureReadings.filter(
                 reading => {
 
-                    const timestamp =
+                    const date =
                         parseDate(
                             reading.recorded_at
                         );
 
 
-                    if (!timestamp) {
+                    if (!date) {
 
                         return false;
                     }
@@ -928,7 +894,7 @@
 
                     const age =
                         now -
-                        timestamp.getTime();
+                        date.getTime();
 
 
                     return (
@@ -940,20 +906,31 @@
             );
 
 
-        // We expect all three nodes.
+        // ----------------------------------------------------
+        // No fresh sensors
+        // ----------------------------------------------------
 
         if (
-            freshReadings.length < 3
+            freshReadings.length === 0
         ) {
 
             setText(
                 "temperature",
-                "SENSOR DATA INCOMPLETE"
+                "SENSOR DATA UNAVAILABLE"
             );
+
 
             return;
         }
 
+
+        // ----------------------------------------------------
+        // Any fresh sensors are acceptable.
+        //
+        // 1 sensor -> that sensor
+        // 2 sensors -> average of 2
+        // 3 sensors -> average of 3
+        // ----------------------------------------------------
 
         const total =
             freshReadings.reduce(
@@ -978,18 +955,25 @@
             "temperature",
             `${average.toFixed(1)} °C`
         );
+
+
+        console.log(
+            `Temperature display using ${freshReadings.length} fresh sensor(s).`
+        );
     }
 
 
     // ========================================================
-    // DEGRADATION STATE
+    // DISPLAY DEGRADATION
     // ========================================================
 
     function displayDegradationState(
         data
     ) {
 
-        if (!masterOnline) {
+        if (
+            !masterOnline
+        ) {
 
             setText(
                 "door-factor",
@@ -1078,7 +1062,7 @@
 
 
         // ----------------------------------------------------
-        // Primary factor
+        // Primary Factor
         // ----------------------------------------------------
 
         setText(
@@ -1140,46 +1124,32 @@
                 [];
 
 
-            if (
-                masterOnline
-            ) {
-
-                setText(
-                    "temperature",
-                    "NO DATA"
-                );
-            }
+            updateTemperatureDisplay();
 
 
             return;
         }
 
 
-        latestTemperatureReadings =
-            result.data || [];
-
-
-        // Get the newest reading per device.
+        // ----------------------------------------------------
+        // Keep newest record for each device.
+        // ----------------------------------------------------
 
         const newestByDevice =
             new Map();
 
 
-        latestTemperatureReadings.forEach(
+        (result.data || []).forEach(
             reading => {
-
-                const deviceId =
-                    reading.device_id;
-
 
                 if (
                     !newestByDevice.has(
-                        deviceId
+                        reading.device_id
                     )
                 ) {
 
                     newestByDevice.set(
-                        deviceId,
+                        reading.device_id,
                         reading
                     );
                 }
@@ -1191,6 +1161,12 @@
             Array.from(
                 newestByDevice.values()
             );
+
+
+        console.log(
+            "Latest readings:",
+            latestTemperatureReadings
+        );
 
 
         updateTemperatureDisplay();
@@ -1211,7 +1187,9 @@
         const result =
             await client
                 .from("rooms")
-                .select("*")
+                .select(
+                    "*"
+                )
                 .eq(
                     "active",
                     true
@@ -1221,20 +1199,14 @@
                 );
 
 
-        console.log(
-            "ROOM RESPONSE:",
-            result
-        );
-
-
         if (
             result.error
         ) {
 
-            setText(
-                "system-status",
+            showError(
                 `ROOM ERROR: ${result.error.message}`
             );
+
 
             return false;
         }
@@ -1244,14 +1216,20 @@
             result.data || [];
 
 
+        console.log(
+            "Rooms:",
+            rooms
+        );
+
+
         if (
             rooms.length === 0
         ) {
 
-            setText(
-                "system-status",
+            showError(
                 "No rooms returned."
             );
+
 
             return false;
         }
@@ -1266,7 +1244,7 @@
             );
 
 
-        const savedRoomExists =
+        const savedExists =
             rooms.some(
                 room =>
                     String(room.id) ===
@@ -1275,7 +1253,7 @@
 
 
         await selectRoom(
-            savedRoomExists
+            savedExists
                 ? Number(savedRoom)
                 : Number(rooms[0].id)
         );
@@ -1377,7 +1355,6 @@
 
                 selector.value =
                     String(room.id);
-
             }
         );
 
@@ -1386,8 +1363,6 @@
             room
         );
 
-
-        // Remove previous Realtime channel.
 
         if (
             realtimeChannel
@@ -1402,8 +1377,6 @@
                 null;
         }
 
-
-        // Reset live state.
 
         roomState =
             null;
@@ -1433,19 +1406,14 @@
         );
 
 
-        // Load initial data.
-
         await loadRoomState();
+
 
         await loadTemperatureReadings();
 
 
-        // Subscribe after initial data.
-
         subscribeToRealtime();
 
-
-        // Check freshness.
 
         updateMasterStatus();
     }
@@ -1463,12 +1431,6 @@
 
             return;
         }
-
-
-        console.log(
-            "REQUESTING room_state for room:",
-            currentRoomId
-        );
 
 
         const result =
@@ -1492,15 +1454,23 @@
             result.error
         ) {
 
-            setText(
-                "system-status",
-                `ROOM STATE ERROR: ${result.error.message}`
+            console.error(
+                "Room state error:",
+                result.error
             );
 
 
             clearLiveDeviceData();
 
+
             disableAdminControls();
+
+
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
+
 
             return;
         }
@@ -1513,14 +1483,12 @@
 
 
     // ========================================================
-    // ADMIN COMMANDS
+    // ADMIN COMMAND
     // ========================================================
 
     async function sendACCommand(
         command
     ) {
-
-        // Never allow commands while the Master is offline.
 
         if (
             !masterOnline
@@ -1530,6 +1498,7 @@
                 "command-status",
                 "Command blocked: Master Node is offline."
             );
+
 
             return;
         }
@@ -1582,7 +1551,6 @@
         ) {
 
             console.error(
-                "Command error:",
                 result.error
             );
 
@@ -1605,7 +1573,7 @@
 
 
     // ========================================================
-    // COMMAND BUTTONS
+    // ADMIN BUTTONS
     // ========================================================
 
     function setupCommandButtons() {
@@ -1623,9 +1591,7 @@
                             await sendACCommand(
                                 button.dataset.acCommand
                             );
-
                         };
-
                 }
             );
     }
@@ -1709,13 +1675,7 @@
                         filter:
                             `room_id=eq.${roomId}`
                     },
-                    async payload => {
-
-                        console.log(
-                            "REALTIME TEMPERATURE:",
-                            payload.new
-                        );
-
+                    payload => {
 
                         const existing =
                             latestTemperatureReadings.find(
@@ -1750,7 +1710,7 @@
 
                         updateTemperatureDisplay();
                     }
-                )
+                );
 
 
                 // ------------------------------------------------
@@ -1877,7 +1837,7 @@
 
 
     // ========================================================
-    // PERIODIC FRESHNESS CHECK
+    // FRESHNESS MONITOR
     // ========================================================
 
     function startFreshnessMonitor() {
@@ -1978,46 +1938,29 @@
 
 
     // ========================================================
-    // STARTUP
+    // ERROR
     // ========================================================
 
-    async function start() {
+    function showError(
+        message
+    ) {
 
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "RVJ DASHBOARD START"
-        );
-
-        console.log(
-            "======================================"
+        console.error(
+            "[RVJ Dashboard]",
+            message
         );
 
 
-        setupCommandButtons();
+        setText(
+            "system-status",
+            message
+        );
 
 
-        disableAdminControls();
-
-
-        const loaded =
-            await loadRooms();
-
-
-        if (
-            loaded
-        ) {
-
-            setText(
-                "system-status",
-                "Waiting for Master Node heartbeat..."
-            );
-        }
-
-
-        startFreshnessMonitor();
+        setText(
+            "connection-status",
+            "ERROR"
+        );
     }
 
 
@@ -2038,16 +1981,48 @@
         getMasterStatus: function () {
 
             return masterOnline;
-
         },
 
         getLastMasterSeen: function () {
 
             return lastMasterSeenAt;
-
         }
 
     };
+
+
+    // ========================================================
+    // START
+    // ========================================================
+
+    async function start() {
+
+        console.log(
+            "======================================"
+        );
+
+
+        console.log(
+            "RVJ DASHBOARD START"
+        );
+
+
+        console.log(
+            "======================================"
+        );
+
+
+        setupCommandButtons();
+
+
+        disableAdminControls();
+
+
+        await loadRooms();
+
+
+        startFreshnessMonitor();
+    }
 
 
     // ========================================================
@@ -2063,7 +2038,8 @@
             "DOMContentLoaded",
             start,
             {
-                once: true
+                once:
+                    true
             }
         );
 
@@ -2071,6 +2047,5 @@
 
         start();
     }
-
 
 })();
