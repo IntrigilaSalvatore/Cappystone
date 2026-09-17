@@ -27,10 +27,22 @@
     </div>
     <div style="display: flex; align-items: center; gap: 10px;">
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
-      <!-- LOGOUT BUTTON -->
+      
+      <!-- STYLED LOGOUT BUTTON -->
       <button 
         type="button" 
-        class="button" 
+        style="
+          background-color: #FFE17D; 
+          color: #003B95; 
+          border: none; 
+          padding: 8px 18px; 
+          border-radius: 20px; 
+          font-weight: bold; 
+          font-size: 13px; 
+          cursor: pointer; 
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        " 
         onclick="localStorage.removeItem('access_granted'); window.location.href='login.html';"
       >
         Logout
