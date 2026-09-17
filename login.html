@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Access</title>
+
+<style>
+
+body {
+    font-family: Arial;
+    background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg") no-repeat center center/cover;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+    color:white;
+    overflow:hidden;
+}
+
+/* LIGHT MODE */
+body.light-mode{
+    color:#111827;
+}
+
+/* FOG CONTAINER */
+.fog{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+}
+
+/* FOG LAYERS */
+.fog-layer{
+    position:absolute;
+    width:200%;
+    height:200%;
+    top:-50%;
+    left:-50%;
+    filter:blur(60px);
+}
+
+/* ANIMATION */
+.layer1{
+animation:fogMove1 80s linear infinite;
+}
+.layer2{
+animation:fogMove2 120s linear infinite;
+opacity:0.7;
+}
+.layer3{
+animation:fogMove3 160s linear infinite;
+opacity:0.5;
+}
+
+@keyframes fogMove1{
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-400px) translateY(-150px);}
+}
+@keyframes fogMove2{
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-300px) translateY(200px);}
+}
+@keyframes fogMove3{
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-500px) translateY(100px);}
+}
+
+/* DARK MODE FOG (transparent black) */
+body:not(.light-mode) .fog-layer{
+background:
+    radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0%, transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.4) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(0,0,0,0.35) 0%, transparent 40%);
+}
+
+/* LIGHT MODE FOG (soft semi-transparent white) */
+body.light-mode .fog-layer{
+background:
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
+}
+
+/* LOGIN BOX */
+.box{
+    background:rgba(30,41,59,0.9);
+    backdrop-filter:blur(10px);
+    padding:40px;
+    border-radius:12px;
+    width:320px;
+    text-align:center;
+    position:relative;
+    z-index:2;
+}
+
+body.light-mode .box{
+    background:rgba(255,255,255,0.9);
+    color:#111827;
+}
+
+/* INPUT */
+input{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+}
+
+/* LOGIN BUTTON */
+button.submit-btn{
+    margin-top:15px;
+    width:100%;
+    padding:12px;
+    background:#FADA7A;
+    border:none;
+    border-radius:8px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button.submit-btn:hover{
+    background:#d9a944;
+}
+
+.error{
+    color:#ef4444;
+    margin-top:10px;
+}
+
+/* TOGGLE BUTTON */
+.toggle-btn{
+    position:fixed;
+    top:20px;
+    right:20px;
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    border:none;
+    background:#888;
+    color:white;
+    cursor:pointer;
+    font-size:10px;
+    z-index:3;
+}
+
+body.light-mode .toggle-btn{
+    background:#111827;
+    color:#f0f0f0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="fog">
+<div class="fog-layer layer1"></div>
+<div class="fog-layer layer2"></div>
+<div class="fog-layer layer3"></div>
+</div>
+
+<button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
+
+<div class="box">
+
+<h2>Admin Access</h2>
+
+<form onsubmit="checkCode(event)">
+<input type="password" id="code" placeholder="Enter Access Code" required>
+<button type="submit" class="submit-btn">Enter Dashboard</button>
+</form>
+
+<div id="error" class="error"></div>
+
+</div>
+
+<script>
+
+const ACCESS_CODE = "admin123";
+
+// If already logged in, redirect straight to index.html
+if (localStorage.getItem("access_granted") === "true") {
+    window.location.href = "index.html";
+}
+
+function checkCode(event) {
+    event.preventDefault();
+    const code = document.getElementById("code").value;
+    if (code === ACCESS_CODE) {
+        localStorage.setItem("access_granted", "true");
+        window.location.href = "index.html";
+    } else {
+        document.getElementById("error").innerText = "Invalid Access Code";
+    }
+}
+
+const toggleBtn = document.getElementById("modeToggle");
+
+// Load saved theme preference on launch
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+    toggleBtn.textContent = "Dark Mode";
+}
+
+function toggleMode() {
+    document.body.classList.toggle("light-mode");
+    if (document.body.classList.contains("light-mode")) {
+        toggleBtn.textContent = "Dark Mode";
+        localStorage.setItem("theme", "light");
+    } else {
+        toggleBtn.textContent = "Light Mode";
+        localStorage.setItem("theme", "dark");
+    }
+}
+
+</script>
+
+</body>
+</html>
