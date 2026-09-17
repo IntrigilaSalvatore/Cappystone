@@ -167,58 +167,55 @@
       </div>
       <div class="admin-controls">
         <button
-                type="button"
-                data-ac-command="ON"
-                class="button button-on"
-            >
-                Force AC ON
-            </button>
+            type="button"
+            data-ac-command="ON"
+            class="button button-on"
+        >
+            Force AC ON
+        </button>
 
+        <!-- Force OFF -->
+        <button
+            type="button"
+            data-ac-command="OFF"
+            class="button button-off"
+        >
+            Force AC OFF
+        </button>
 
-            <!-- Force OFF -->
+        <!-- Temperature Range Preset Controls -->
+        <button
+            type="button"
+            data-ac-command="TEMP_LOW"
+            class="button"
+        >
+            Low Cool (24°C - 26°C)
+        </button>
 
-            <button
-                type="button"
-                data-ac-command="OFF"
-                class="button button-off"
-            >
-                Force AC OFF
-            </button>
+        <button
+            type="button"
+            data-ac-command="TEMP_MID"
+            class="button"
+        >
+            Mid Cool (21°C - 23°C)
+        </button>
 
-            <!-- ADD THE THREE NEW TEMP BUTTONS HERE -->
-            <button
-                type="button"
-                data-ac-command="TEMP_LOW"
-                class="button"
-            >
-                Cool (Low)
-            </button>
+        <button
+            type="button"
+            data-ac-command="TEMP_HIGH"
+            class="button"
+        >
+            High Cool (18°C - 20°C)
+        </button>
 
-            <button
-                type="button"
-                data-ac-command="TEMP_MID"
-                class="button"
-            >
-                Cool (Mid)
-            </button>
-
-            <button
-                type="button"
-                data-ac-command="TEMP_HIGH"
-                class="button"
-            >
-                Cool (High)
-            </button>
-
-            <!-- Clear Override -->
-
-            <button
-                type="button"
-                data-ac-command="CLEAR_OVERRIDE"
-                class="button"
-            >
-                Clear Override
-            </button>
+        <!-- Clear Override -->
+        <button
+            type="button"
+            data-ac-command="CLEAR_OVERRIDE"
+            class="button"
+        >
+            Clear Override
+        </button>
       </div>
       <div class="command-result">
         <span class="label">Command Output:</span>
@@ -226,6 +223,7 @@
       </div>
     </section>
 
+    
   </main>
 
   <script src="dashboard.js?v=24"></script>
