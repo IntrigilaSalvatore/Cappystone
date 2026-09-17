@@ -159,69 +159,45 @@
       </div>
     </section>
 
-   <!-- 5. ADMIN AC CONTROLS PANEL (BOTTOM FULL WIDTH) -->
-    <section class="panel">
-      <h2>Manual Admin Controls</h2>
-      <div class="warning">
-        Overriding mode from administrative controls will force remote power state.
-      </div>
-      <div class="admin-controls">
-        <button
-            type="button"
-            data-ac-command="ON"
-            class="button button-on"
-        >
-            Force AC ON
-        </button>
+<!-- 5. ADMIN AC CONTROLS PANEL (BOTTOM FULL WIDTH) -->
+<section class="panel">
+  <h2>Manual Admin Controls</h2>
+  <div class="warning">
+    Overriding mode from administrative controls will force remote power state.
+  </div>
+  <div class="admin-controls">
+    <!-- Power Controls -->
+    <button type="button" data-ac-command="ON" class="button button-on">
+      Force AC ON
+    </button>
 
-        <!-- Force OFF -->
-        <button
-            type="button"
-            data-ac-command="OFF"
-            class="button button-off"
-        >
-            Force AC OFF
-        </button>
+    <button type="button" data-ac-command="OFF" class="button button-off">
+      Force AC OFF
+    </button>
 
-        <!-- Temperature Range Preset Controls -->
-        <button
-            type="button"
-            data-ac-command="TEMP_LOW"
-            class="button"
-        >
-            Low Cool (24°C - 26°C)
-        </button>
+    <!-- Temperature Level Override Controls -->
+    <button type="button" data-ac-command="SET_TEMP_LOW" class="button">
+      Low Cool (24°C - 26°C)
+    </button>
 
-        <button
-            type="button"
-            data-ac-command="TEMP_MID"
-            class="button"
-        >
-            Mid Cool (21°C - 23°C)
-        </button>
+    <button type="button" data-ac-command="SET_TEMP_MID" class="button">
+      Mid Cool (21°C - 23°C)
+    </button>
 
-        <button
-            type="button"
-            data-ac-command="TEMP_HIGH"
-            class="button"
-        >
-            High Cool (18°C - 20°C)
-        </button>
+    <button type="button" data-ac-command="SET_TEMP_HIGH" class="button">
+      High Cool (18°C - 20°C)
+    </button>
 
-        <!-- Clear Override -->
-        <button
-            type="button"
-            data-ac-command="CLEAR_OVERRIDE"
-            class="button"
-        >
-            Clear Override
-        </button>
-      </div>
-      <div class="command-result">
-        <span class="label">Command Output:</span>
-        <span class="value" data-rvj="command-status">Idle</span>
-      </div>
-    </section>
+    <!-- Mode Reset -->
+    <button type="button" data-ac-command="CLEAR_OVERRIDE" class="button">
+      Clear Override
+    </button>
+  </div>
+  <div class="command-result">
+    <span class="label">Command Output:</span>
+    <span class="value" data-rvj="command-status">Idle</span>
+  </div>
+</section>
 
     
   </main>
