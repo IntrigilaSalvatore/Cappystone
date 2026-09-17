@@ -19,7 +19,7 @@
 </head>
 <body>
 
-  <!-- HEADER SECTION -->
+<!-- HEADER SECTION -->
   <header class="header">
     <div>
       <h1>RVJ Performance Dashboard</h1>
@@ -28,24 +28,14 @@
     <div style="display: flex; align-items: center; gap: 10px;">
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
       
-      <!-- STYLED LOGOUT BUTTON -->
+      <!-- LOGOUT BUTTON USING STATUS-BADGE CLASS -->
       <button 
         type="button" 
-        style="
-          background-color: #FCE883; 
-          color: #003B95; 
-          border: none; 
-          padding: 8px 18px; 
-          border-radius: 20px; 
-          font-weight: bold; 
-          font-size: 13px; 
-          cursor: pointer; 
-          letter-spacing: 0.5px;
-          text-transform: uppercase;
-        " 
+        class="status-badge" 
+        style="cursor: pointer;"
         onclick="localStorage.removeItem('access_granted'); window.location.href='login.html';"
       >
-        Logout
+        LOGOUT
       </button>
     </div>
   </header>
