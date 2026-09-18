@@ -3,9 +3,9 @@
     "use strict";
 
 
-    // =========================================================
-    // SUPABASE CONFIGURATION
-    // =========================================================
+    // ========================================================
+    // SUPABASE
+    // ========================================================
 
     const SUPABASE_URL =
         "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -14,10 +14,6 @@
     const SUPABASE_PUBLISHABLE_KEY =
         "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
-
-    // =========================================================
-    // CREATE CLIENT
-    // =========================================================
 
     if (
         !window.supabase ||
@@ -39,45 +35,41 @@
         );
 
 
-    console.log(
-        "RVJ Dashboard: Supabase client initialized."
-    );
-
-
-    // =========================================================
-    // FRESHNESS SETTINGS
-    // =========================================================
-
-    // Master sends heartbeat every 10 seconds.
+    // ========================================================
+    // FRESHNESS
+    // ========================================================
 
     const MASTER_TIMEOUT_MS =
         60000;
 
 
-    // Temp nodes send approximately every 30 seconds.
-
     const TEMPERATURE_TIMEOUT_MS =
         90000;
 
 
-    // Refresh database data every 10 seconds.
-    //
-    // This is a fallback for Realtime.
-    //
+    const CROWD_TIMEOUT_MS =
+        10 * 60 * 1000;
+
+
+    const WEATHER_TIMEOUT_MS =
+        10 * 60 * 1000;
+
 
     const POLL_INTERVAL_MS =
         10000;
 
 
-    // =========================================================
-    // APPLICATION STATE
-    // =========================================================
+    const FRESHNESS_INTERVAL_MS =
+        1000;
+
+
+    // ========================================================
+    // STATE
+    // ========================================================
 
     let rooms = [];
 
     let currentRoomId = null;
-
-    let currentRoom = null;
 
     let currentRoomState = null;
 
@@ -94,9 +86,9 @@
     let freshnessTimer = null;
 
 
-    // =========================================================
-    // UI HELPERS
-    // =========================================================
+    // ========================================================
+    // UI
+    // ========================================================
 
     function getElements(name) {
 
@@ -138,9 +130,9 @@
     }
 
 
-    // =========================================================
-    // DATE HELPER
-    // =========================================================
+    // ========================================================
+    // DATE
+    // ========================================================
 
     function parseDate(
         value
@@ -172,10 +164,6 @@
     }
 
 
-    // =========================================================
-    // FRESHNESS
-    // =========================================================
-
     function isFresh(
         timestamp,
         timeoutMs
@@ -205,22 +193,45 @@
     }
 
 
-    // =========================================================
-    // MASTER STATUS
-    // =========================================================
+    // ========================================================
+    // ADMIN CONTROLS
+    // ========================================================
 
-    function calculateMasterOnline() {
+    function disableAdminControls() {
 
-        return isFresh(
-            lastMasterSeenAt,
-            MASTER_TIMEOUT_MS
-        );
+        document
+            .querySelectorAll(
+                "[data-ac-command]"
+            )
+            .forEach(
+                button => {
+
+                    button.disabled =
+                        true;
+                }
+            );
     }
 
 
-    // =========================================================
+    function enableAdminControls() {
+
+        document
+            .querySelectorAll(
+                "[data-ac-command]"
+            )
+            .forEach(
+                button => {
+
+                    button.disabled =
+                        false;
+                }
+            );
+    }
+
+
+    // ========================================================
     // CLEAR LIVE DEVICE DATA
-    // =========================================================
+    // ========================================================
 
     function clearLiveDeviceData() {
 
@@ -321,52 +332,23 @@
     }
 
 
-    // =========================================================
-    // ADMIN BUTTONS
-    // =========================================================
+    // ========================================================
+    // MASTER ONLINE
+    // ========================================================
 
-    function disableAdminControls() {
+    function masterIsActuallyOnline() {
 
-        document
-            .querySelectorAll(
-                "[data-ac-command]"
-            )
-            .forEach(
-                button => {
-
-                    button.disabled =
-                        true;
-
-                }
-            );
+        return isFresh(
+            lastMasterSeenAt,
+            MASTER_TIMEOUT_MS
+        );
     }
 
-
-    function enableAdminControls() {
-
-        document
-            .querySelectorAll(
-                "[data-ac-command]"
-            )
-            .forEach(
-                button => {
-
-                    button.disabled =
-                        false;
-
-                }
-            );
-    }
-
-
-    // =========================================================
-    // APPLY MASTER STATUS
-    // =========================================================
 
     function updateMasterStatus() {
 
         const online =
-            calculateMasterOnline();
+            masterIsActuallyOnline();
 
 
         if (
@@ -386,11 +368,6 @@
             masterOnline
         ) {
 
-            console.log(
-                "MASTER NODE ONLINE"
-            );
-
-
             setText(
                 "connection-status",
                 "DEVICE ONLINE"
@@ -403,27 +380,16 @@
             );
 
 
+            enableAdminControls();
+
+
             setText(
                 "system-status",
                 "Master Node is online and reporting."
             );
 
 
-            enableAdminControls();
-
-
-            // Immediately refresh.
-
-            loadRoomState();
-
-            loadTemperatureReadings();
-
         } else {
-
-            console.warn(
-                "MASTER NODE OFFLINE"
-            );
-
 
             setText(
                 "connection-status",
@@ -437,23 +403,23 @@
             );
 
 
-            setText(
-                "system-status",
-                "Master Node is offline or its Internet connection is unavailable."
-            );
-
-
             disableAdminControls();
 
 
             clearLiveDeviceData();
+
+
+            setText(
+                "system-status",
+                "Master Node is offline or its Internet connection is unavailable."
+            );
         }
     }
 
 
-    // =========================================================
-    // DISPLAY ROOM
-    // =========================================================
+    // ========================================================
+    // ROOM
+    // ========================================================
 
     function displayRoom(
         room
@@ -488,9 +454,137 @@
     }
 
 
-    // =========================================================
-    // DISPLAY TEMPERATURE
-    // =========================================================
+    // ========================================================
+    // CROWD
+    // ========================================================
+
+    function displayCrowdState(
+        data
+    ) {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "crowd-count",
+                "UNAVAILABLE"
+            );
+
+
+            setText(
+                "crowd-alert",
+                "UNAVAILABLE"
+            );
+
+
+            return;
+        }
+
+
+        const scanStatus =
+            data.crowd_scan_status ||
+            "READY";
+
+
+        if (
+            scanStatus ===
+            "CHECKING"
+        ) {
+
+            setText(
+                "crowd-count",
+                "CHECKING"
+            );
+
+
+            setText(
+                "crowd-alert",
+                "CHECKING"
+            );
+
+
+            setText(
+                "system-status",
+                "Checking crowd density. Administrator controls are temporarily disabled."
+            );
+
+
+            disableAdminControls();
+
+
+            return;
+        }
+
+
+        if (
+            !data.crowd_last_scan_at
+        ) {
+
+            setText(
+                "crowd-count",
+                "NO DATA"
+            );
+
+
+            setText(
+                "crowd-alert",
+                "NO DATA"
+            );
+
+
+            return;
+        }
+
+
+        const fresh =
+            isFresh(
+                data.crowd_last_scan_at,
+                CROWD_TIMEOUT_MS
+            );
+
+
+        if (
+            !fresh
+        ) {
+
+            setText(
+                "crowd-count",
+                "DATA STALE"
+            );
+
+
+            setText(
+                "crowd-alert",
+                "DATA STALE"
+            );
+
+
+            return;
+        }
+
+
+        setText(
+            "crowd-count",
+            data.crowd_count ??
+            "NO DATA"
+        );
+
+
+        setText(
+            "crowd-alert",
+            data.crowd_level ||
+            "LOW"
+        );
+
+
+        enableAdminControls();
+    }
+
+
+    // ========================================================
+    // TEMPERATURE
+    // ========================================================
 
     function updateTemperatureDisplay() {
 
@@ -518,10 +612,6 @@
             );
 
 
-        // -----------------------------------------------------
-        // No sensors
-        // -----------------------------------------------------
-
         if (
             freshReadings.length === 0
         ) {
@@ -536,26 +626,19 @@
         }
 
 
-        // -----------------------------------------------------
-        // Use all fresh sensors.
-        //
-        // 1 sensor = 1 value
-        // 2 sensors = average of 2
-        // 3 sensors = average of 3
-        // -----------------------------------------------------
+        let total =
+            0;
 
-        const total =
-            freshReadings.reduce(
-                (
-                    sum,
-                    reading
-                ) =>
-                    sum +
+
+        freshReadings.forEach(
+            reading => {
+
+                total +=
                     Number(
                         reading.temperature_c
-                    ),
-                0
-            );
+                    );
+            }
+        );
 
 
         const average =
@@ -570,340 +653,9 @@
     }
 
 
-    // =========================================================
-    // DISPLAY ROOM STATE
-    // =========================================================
-
-    function displayRoomState(
-        data
-    ) {
-
-        currentRoomState =
-            data;
-
-
-        if (!data) {
-
-            lastMasterSeenAt =
-                null;
-
-
-            masterOnline =
-                false;
-
-
-            clearLiveDeviceData();
-
-            disableAdminControls();
-
-
-            setText(
-                "connection-status",
-                "DEVICE OFFLINE"
-            );
-
-
-            return;
-        }
-
-
-        // -----------------------------------------------------
-        // HEARTBEAT
-        // -----------------------------------------------------
-
-        lastMasterSeenAt =
-            data.master_last_seen_at;
-
-
-        // -----------------------------------------------------
-        // Determine device health
-        // -----------------------------------------------------
-
-        const online =
-            calculateMasterOnline();
-
-
-        if (
-            !online
-        ) {
-
-            masterOnline =
-                false;
-
-
-            clearLiveDeviceData();
-
-            disableAdminControls();
-
-
-            setText(
-                "connection-status",
-                "DEVICE OFFLINE"
-            );
-
-
-            setStatus(
-                "connection-status",
-                "offline"
-            );
-
-
-            setText(
-                "system-status",
-                "Master Node is offline or has stopped reporting."
-            );
-
-
-            return;
-        }
-
-
-        masterOnline =
-            true;
-
-
-        setText(
-            "connection-status",
-            "DEVICE ONLINE"
-        );
-
-
-        setStatus(
-            "connection-status",
-            "connected"
-        );
-
-
-        enableAdminControls();
-
-
-        // =====================================================
-        // TEMPERATURE
-        // =====================================================
-
-        updateTemperatureDisplay();
-
-
-        // =====================================================
-        // AC
-        // =====================================================
-
-        setText(
-            "ac-status",
-            data.ac_power === true
-                ? "ON"
-                : "OFF"
-        );
-
-
-        setStatus(
-            "ac-status",
-            data.ac_power === true
-                ? "on"
-                : "off"
-        );
-
-
-        // =====================================================
-        // RFID
-        // =====================================================
-
-        setText(
-            "rfid-status",
-            data.rfid_present === true
-                ? "PRESENT"
-                : "REMOVED"
-        );
-
-
-        // =====================================================
-        // CONTROL MODE
-        // =====================================================
-
-        setText(
-            "control-mode",
-            data.ac_control_mode ||
-            "RFID"
-        );
-
-
-        // =====================================================
-        // DOOR
-        // =====================================================
-
-        setText(
-            "door-status",
-            data.door_open === true
-                ? "OPEN"
-                : "CLOSED"
-        );
-
-
-        // =====================================================
-        // CROWD
-        // =====================================================
-
-        const crowdDataFresh =
-            isFresh(
-                data.crowd_last_scan_at,
-                600000
-            );
-
-
-        if (
-            crowdDataFresh
-        ) {
-
-            setText(
-                "crowd-count",
-                data.crowd_count ??
-                0
-            );
-
-
-            setText(
-                "crowd-alert",
-                data.overcrowded
-                    ? "OVERCROWDED"
-                    : "NORMAL"
-            );
-
-        } else {
-
-            setText(
-                "crowd-count",
-                "UNAVAILABLE"
-            );
-
-
-            setText(
-                "crowd-alert",
-                "DATA STALE"
-            );
-        }
-
-
-        // =====================================================
-        // WEATHER
-        // =====================================================
-
-        const weatherFresh =
-            isFresh(
-                data.weather_last_updated_at,
-                600000
-            );
-
-
-        if (
-            weatherFresh
-        ) {
-
-            setText(
-                "weather-alert",
-                data.hot_weather
-                    ? "HOT WEATHER"
-                    : "NORMAL"
-            );
-
-
-            if (
-                data.outdoor_temperature_c !==
-                null &&
-                data.outdoor_temperature_c !==
-                undefined
-            ) {
-
-                setText(
-                    "outdoor-temperature",
-                    `${Number(
-                        data.outdoor_temperature_c
-                    ).toFixed(1)} °C`
-                );
-            }
-
-        } else {
-
-            setText(
-                "weather-alert",
-                "UNAVAILABLE"
-            );
-
-
-            setText(
-                "outdoor-temperature",
-                "UNAVAILABLE"
-            );
-        }
-
-
-        // =====================================================
-        // PERFORMANCE
-        // =====================================================
-
-        if (
-            data.performance_score !== null &&
-            data.performance_score !== undefined
-        ) {
-
-            setText(
-                "performance-score",
-                Number(
-                    data.performance_score
-                ).toFixed(0)
-            );
-
-
-            setText(
-                "performance-status",
-                data.performance_status ||
-                "UNKNOWN"
-            );
-
-        } else {
-
-            setText(
-                "performance-score",
-                "NO DATA"
-            );
-
-
-            setText(
-                "performance-status",
-                "NO DATA"
-            );
-        }
-
-
-        // =====================================================
-        // DEGRADATION
-        // =====================================================
-
-        displayDegradationState(
-            data
-        );
-
-
-        // =====================================================
-        // DATABASE UPDATED
-        // =====================================================
-
-        if (
-            data.updated_at
-        ) {
-
-            setText(
-                "last-update",
-                formatDateTime(
-                    data.updated_at
-                )
-            );
-        }
-    }
-
-
-    // =========================================================
+    // ========================================================
     // DEGRADATION
-    // =========================================================
+    // ========================================================
 
     function displayDegradationState(
         data
@@ -953,15 +705,22 @@
 
         // Crowd
 
-        const crowdFresh =
-            isFresh(
-                data.crowd_last_scan_at,
-                600000
+        if (
+            data.crowd_scan_status ===
+            "CHECKING"
+        ) {
+
+            setText(
+                "crowd-factor",
+                "CHECKING"
             );
 
-
-        if (
-            crowdFresh
+        } else if (
+            data.crowd_last_scan_at &&
+            isFresh(
+                data.crowd_last_scan_at,
+                CROWD_TIMEOUT_MS
+            )
         ) {
 
             setText(
@@ -982,15 +741,12 @@
 
         // Weather
 
-        const weatherFresh =
+        if (
+            data.weather_last_updated_at &&
             isFresh(
                 data.weather_last_updated_at,
-                600000
-            );
-
-
-        if (
-            weatherFresh
+                WEATHER_TIMEOUT_MS
+            )
         ) {
 
             setText(
@@ -1009,8 +765,6 @@
         }
 
 
-        // Primary factor
-
         setText(
             "degradation-factor",
             data.degradation_factor ||
@@ -1019,9 +773,276 @@
     }
 
 
-    // =========================================================
-    // LOAD LATEST TEMPERATURES
-    // =========================================================
+    // ========================================================
+    // DISPLAY ROOM STATE
+    // ========================================================
+
+    function displayRoomState(
+        data
+    ) {
+
+        currentRoomState =
+            data;
+
+
+        if (!data) {
+
+            lastMasterSeenAt =
+                null;
+
+
+            masterOnline =
+                false;
+
+
+            clearLiveDeviceData();
+
+            disableAdminControls();
+
+
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
+
+
+            setStatus(
+                "connection-status",
+                "offline"
+            );
+
+
+            return;
+        }
+
+
+        lastMasterSeenAt =
+            data.master_last_seen_at;
+
+
+        masterOnline =
+            masterIsActuallyOnline();
+
+
+        if (
+            !masterOnline
+        ) {
+
+            clearLiveDeviceData();
+
+            disableAdminControls();
+
+
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
+
+
+            setStatus(
+                "connection-status",
+                "offline"
+            );
+
+
+            setText(
+                "system-status",
+                "Master Node is offline or its Internet connection is unavailable."
+            );
+
+
+            return;
+        }
+
+
+        setText(
+            "connection-status",
+            "DEVICE ONLINE"
+        );
+
+
+        setStatus(
+            "connection-status",
+            "connected"
+        );
+
+
+        // ----------------------------------------------------
+        // CROWD
+        // ----------------------------------------------------
+
+        displayCrowdState(
+            data
+        );
+
+
+        // ----------------------------------------------------
+        // TEMPERATURE
+        // ----------------------------------------------------
+
+        updateTemperatureDisplay();
+
+
+        // ----------------------------------------------------
+        // AC
+        // ----------------------------------------------------
+
+        setText(
+            "ac-status",
+            data.ac_power
+                ? "ON"
+                : "OFF"
+        );
+
+
+        // ----------------------------------------------------
+        // RFID
+        // ----------------------------------------------------
+
+        setText(
+            "rfid-status",
+            data.rfid_present
+                ? "PRESENT"
+                : "REMOVED"
+        );
+
+
+        // ----------------------------------------------------
+        // CONTROL MODE
+        // ----------------------------------------------------
+
+        setText(
+            "control-mode",
+            data.ac_control_mode ||
+            "RFID"
+        );
+
+
+        // ----------------------------------------------------
+        // DOOR
+        // ----------------------------------------------------
+
+        setText(
+            "door-status",
+            data.door_open
+                ? "OPEN"
+                : "CLOSED"
+        );
+
+
+        // ----------------------------------------------------
+        // WEATHER
+        // ----------------------------------------------------
+
+        const weatherFresh =
+            data.weather_last_updated_at &&
+            isFresh(
+                data.weather_last_updated_at,
+                WEATHER_TIMEOUT_MS
+            );
+
+
+        if (
+            weatherFresh
+        ) {
+
+            setText(
+                "weather-alert",
+                data.hot_weather
+                    ? "HOT WEATHER"
+                    : "NORMAL"
+            );
+
+
+            setText(
+                "outdoor-temperature",
+                data.outdoor_temperature_c !==
+                null &&
+                data.outdoor_temperature_c !==
+                undefined
+                    ? `${Number(
+                        data.outdoor_temperature_c
+                    ).toFixed(1)} °C`
+                    : "--"
+            );
+
+        } else {
+
+            setText(
+                "weather-alert",
+                "UNAVAILABLE"
+            );
+
+
+            setText(
+                "outdoor-temperature",
+                "UNAVAILABLE"
+            );
+        }
+
+
+        // ----------------------------------------------------
+        // PERFORMANCE
+        // ----------------------------------------------------
+
+        setText(
+            "performance-score",
+            data.performance_score !==
+            null &&
+            data.performance_score !==
+            undefined
+                ? Number(
+                    data.performance_score
+                ).toFixed(0)
+                : "NO DATA"
+        );
+
+
+        setText(
+            "performance-status",
+            data.performance_status ||
+            "NO DATA"
+        );
+
+
+        // ----------------------------------------------------
+        // DEGRADATION
+        // ----------------------------------------------------
+
+        displayDegradationState(
+            data
+        );
+
+
+        // ----------------------------------------------------
+        // LAST UPDATE
+        // ----------------------------------------------------
+
+        setText(
+            "last-update",
+            data.updated_at
+                ? new Date(
+                    data.updated_at
+                ).toLocaleString(
+                    "en-PH"
+                )
+                : "--"
+        );
+
+
+        if (
+            data.crowd_scan_status !==
+            "CHECKING"
+        ) {
+
+            enableAdminControls();
+        }
+    }
+
+
+    // ========================================================
+    // TEMPERATURE READINGS
+    // ========================================================
 
     async function loadTemperatureReadings() {
 
@@ -1048,7 +1069,8 @@
                 .order(
                     "recorded_at",
                     {
-                        ascending: false
+                        ascending:
+                            false
                     }
                 )
                 .limit(
@@ -1076,10 +1098,6 @@
             return;
         }
 
-
-        // -----------------------------------------------------
-        // Get newest reading per device.
-        // -----------------------------------------------------
 
         const newestByDevice =
             new Map();
@@ -1109,19 +1127,13 @@
             );
 
 
-        console.log(
-            "Latest sensor readings:",
-            latestTemperatureReadings
-        );
-
-
         updateTemperatureDisplay();
     }
 
 
-    // =========================================================
-    // LOAD ROOM STATE
-    // =========================================================
+    // ========================================================
+    // ROOM STATE
+    // ========================================================
 
     async function loadRoomState() {
 
@@ -1148,12 +1160,6 @@
                 .maybeSingle();
 
 
-        console.log(
-            "Room state response:",
-            result
-        );
-
-
         if (
             result.error
         ) {
@@ -1161,12 +1167,6 @@
             console.error(
                 "Room state error:",
                 result.error
-            );
-
-
-            setText(
-                "system-status",
-                `Room state error: ${result.error.message}`
             );
 
 
@@ -1180,16 +1180,11 @@
     }
 
 
-    // =========================================================
-    // LOAD ROOMS
-    // =========================================================
+    // ========================================================
+    // ROOMS
+    // ========================================================
 
     async function loadRooms() {
-
-        console.log(
-            "Loading rooms..."
-        );
-
 
         const result =
             await client
@@ -1208,18 +1203,12 @@
                 );
 
 
-        console.log(
-            "Rooms response:",
-            result
-        );
-
-
         if (
             result.error
         ) {
 
             showError(
-                `Room error: ${result.error.message}`
+                result.error.message
             );
 
 
@@ -1228,7 +1217,8 @@
 
 
         rooms =
-            result.data || [];
+            result.data ||
+            [];
 
 
         if (
@@ -1256,8 +1246,12 @@
         const savedExists =
             rooms.some(
                 room =>
-                    String(room.id) ===
-                    String(savedRoom)
+                    String(
+                        room.id
+                    ) ===
+                    String(
+                        savedRoom
+                    )
             );
 
 
@@ -1272,9 +1266,9 @@
     }
 
 
-    // =========================================================
+    // ========================================================
     // ROOM SELECTOR
-    // =========================================================
+    // ========================================================
 
     function setupRoomSelector() {
 
@@ -1325,9 +1319,9 @@
     }
 
 
-    // =========================================================
+    // ========================================================
     // SELECT ROOM
-    // =========================================================
+    // ========================================================
 
     async function selectRoom(
         roomId
@@ -1336,8 +1330,12 @@
         const room =
             rooms.find(
                 item =>
-                    Number(item.id) ===
-                    Number(roomId)
+                    Number(
+                        item.id
+                    ) ===
+                    Number(
+                        roomId
+                    )
             );
 
 
@@ -1348,16 +1346,16 @@
 
 
         currentRoomId =
-            Number(room.id);
-
-
-        currentRoom =
-            room;
+            Number(
+                room.id
+            );
 
 
         localStorage.setItem(
             "rvj_selected_room",
-            String(room.id)
+            String(
+                room.id
+            )
         );
 
 
@@ -1367,7 +1365,9 @@
             selector => {
 
                 selector.value =
-                    String(room.id);
+                    String(
+                        room.id
+                    );
             }
         );
 
@@ -1377,7 +1377,19 @@
         );
 
 
-        // Reset live state while changing rooms.
+        if (
+            realtimeChannel
+        ) {
+
+            await client.removeChannel(
+                realtimeChannel
+            );
+
+
+            realtimeChannel =
+                null;
+        }
+
 
         currentRoomState =
             null;
@@ -1395,10 +1407,9 @@
             false;
 
 
-        disableAdminControls();
-
-
         clearLiveDeviceData();
+
+        disableAdminControls();
 
 
         setText(
@@ -1407,150 +1418,19 @@
         );
 
 
-        // -----------------------------------------------------
-        // Load immediately.
-        // -----------------------------------------------------
-
         await loadRoomState();
+
 
         await loadTemperatureReadings();
 
 
-        // -----------------------------------------------------
-        // Reconnect Realtime.
-        // -----------------------------------------------------
-
         subscribeToRealtime();
-
-
-        // -----------------------------------------------------
-        // Freshness check.
-        // -----------------------------------------------------
-
-        updateMasterStatus();
     }
 
 
-    // =========================================================
-    // ADMIN COMMAND
-    // =========================================================
-
-    async function sendACCommand(
-        command
-    ) {
-
-        if (
-            !masterOnline
-        ) {
-
-            setText(
-                "command-status",
-                "Command blocked: Master Node is offline."
-            );
-
-
-            return;
-        }
-
-
-        const validCommands = [
-            "ON",
-            "OFF",
-            "CLEAR_OVERRIDE"
-        ];
-
-
-        if (
-            !validCommands.includes(
-                command
-            )
-        ) {
-
-            return;
-        }
-
-
-        setText(
-            "command-status",
-            `Sending ${command}...`
-        );
-
-
-        const result =
-            await client
-                .from(
-                    "ac_commands"
-                )
-                .insert({
-                    room_id:
-                        currentRoomId,
-
-                    command:
-                        command,
-
-                    source:
-                        "ADMIN",
-
-                    status:
-                        "PENDING"
-                });
-
-
-        if (
-            result.error
-        ) {
-
-            console.error(
-                "Command error:",
-                result.error
-            );
-
-
-            setText(
-                "command-status",
-                `ERROR: ${result.error.message}`
-            );
-
-
-            return;
-        }
-
-
-        setText(
-            "command-status",
-            `Command ${command} sent.`
-        );
-    }
-
-
-    // =========================================================
-    // ADMIN BUTTON SETUP
-    // =========================================================
-
-    function setupCommandButtons() {
-
-        document
-            .querySelectorAll(
-                "[data-ac-command]"
-            )
-            .forEach(
-                button => {
-
-                    button.onclick =
-                        async function () {
-
-                            await sendACCommand(
-                                button.dataset.acCommand
-                            );
-                        };
-                }
-            );
-    }
-
-
-    // =========================================================
+    // ========================================================
     // REALTIME
-    // =========================================================
+    // ========================================================
 
     function subscribeToRealtime() {
 
@@ -1564,29 +1444,6 @@
 
         const roomId =
             currentRoomId;
-
-
-        if (
-            realtimeChannel
-        ) {
-
-            try {
-
-                client.removeChannel(
-                    realtimeChannel
-                );
-
-            } catch (error) {
-
-                console.warn(
-                    error
-                );
-            }
-
-
-            realtimeChannel =
-                null;
-        }
 
 
         realtimeChannel =
@@ -1617,12 +1474,6 @@
                     },
                     payload => {
 
-                        console.log(
-                            "REALTIME room_state:",
-                            payload.new
-                        );
-
-
                         displayRoomState(
                             payload.new
                         );
@@ -1651,13 +1502,7 @@
                     },
                     payload => {
 
-                        console.log(
-                            "REALTIME temperature:",
-                            payload.new
-                        );
-
-
-                        const existingIndex =
+                        const index =
                             latestTemperatureReadings.findIndex(
                                 reading =>
                                     reading.device_id ===
@@ -1666,7 +1511,7 @@
 
 
                         if (
-                            existingIndex ===
+                            index ===
                             -1
                         ) {
 
@@ -1677,7 +1522,7 @@
                         } else {
 
                             latestTemperatureReadings[
-                                existingIndex
+                                index
                             ] =
                                 payload.new;
                         }
@@ -1689,101 +1534,60 @@
 
 
                 // ------------------------------------------------
-                // PERFORMANCE
+                // AC COMMAND STATUS
                 // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
                     {
                         event:
-                            "INSERT",
+                            "UPDATE",
 
                         schema:
                             "public",
 
                         table:
-                            "performance_samples",
+                            "ac_commands",
 
                         filter:
                             `room_id=eq.${roomId}`
                     },
                     payload => {
 
+                        const command =
+                            payload.new;
+
+
                         if (
-                            !masterOnline
+                            command.status ===
+                            "EXECUTED"
                         ) {
 
-                            return;
+                            const commandName =
+                                getCommandDisplayName(
+                                    command.command
+                                );
+
+
+                            setText(
+                                "command-status",
+                                `${commandName} executed successfully.`
+                            );
+
+
+                        } else if (
+                            command.status ===
+                            "FAILED"
+                        ) {
+
+                            setText(
+                                "command-status",
+                                `${command.command} failed.`
+                            );
                         }
-
-
-                        setText(
-                            "performance-score",
-                            Number(
-                                payload.new.performance_score
-                            ).toFixed(0)
-                        );
-
-
-                        setText(
-                            "performance-status",
-                            payload.new.performance_status ||
-                            "UNKNOWN"
-                        );
                     }
                 )
 
-
-                // ------------------------------------------------
-                // AC EVENTS
-                // ------------------------------------------------
-
-                .on(
-                    "postgres_changes",
-                    {
-                        event:
-                            "INSERT",
-
-                        schema:
-                            "public",
-
-                        table:
-                            "ac_events",
-
-                        filter:
-                            `room_id=eq.${roomId}`
-                    },
-                    payload => {
-
-                        if (
-                            !masterOnline
-                        ) {
-
-                            return;
-                        }
-
-
-                        setText(
-                            "last-ac-event",
-                            formatEventName(
-                                payload.new.event_type
-                            )
-                        );
-
-
-                        setText(
-                            "last-ac-event-time",
-                            formatDateTime(
-                                payload.new.occurred_at
-                            )
-                        );
-                    }
-                )
-
-
-                // ------------------------------------------------
-                // SUBSCRIBE
-                // ------------------------------------------------
 
                 .subscribe(
                     (
@@ -1811,9 +1615,9 @@
     }
 
 
-    // =========================================================
-    // DATABASE POLLING FALLBACK
-    // =========================================================
+    // ========================================================
+    // DATABASE POLLING
+    // ========================================================
 
     function startDatabasePolling() {
 
@@ -1839,11 +1643,6 @@
                     }
 
 
-                    console.log(
-                        "Polling Supabase..."
-                    );
-
-
                     await loadRoomState();
 
                     await loadTemperatureReadings();
@@ -1854,9 +1653,9 @@
     }
 
 
-    // =========================================================
+    // ========================================================
     // FRESHNESS MONITOR
-    // =========================================================
+    // ========================================================
 
     function startFreshnessMonitor() {
 
@@ -1896,21 +1695,228 @@
                             currentRoomState
                         ) {
 
-                            displayDegradationState(
+                            displayCrowdState(
                                 currentRoomState
                             );
                         }
                     }
 
                 },
-                1000
+                FRESHNESS_INTERVAL_MS
             );
     }
 
 
-    // =========================================================
+    // ========================================================
+    // COMMAND DISPLAY NAME
+    // ========================================================
+
+    function getCommandDisplayName(
+        command
+    ) {
+
+        switch (
+            command
+        ) {
+
+            case "ON":
+
+                return "Force AC ON";
+
+
+            case "OFF":
+
+                return "Force AC OFF";
+
+
+            case "CLEAR_OVERRIDE":
+
+                return "Clear Override";
+
+
+            case "SET_TEMP_LOW":
+
+                return "LOW temperature";
+
+
+            case "SET_TEMP_MID":
+
+                return "MEDIUM temperature";
+
+
+            case "SET_TEMP_HIGH":
+
+                return "HIGH temperature";
+
+
+            default:
+
+                return command;
+        }
+    }
+
+
+    // ========================================================
+    // SEND AC COMMAND
+    // ========================================================
+
+    async function sendACCommand(
+        command
+    ) {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "command-status",
+                "Command blocked: Master Node is offline."
+            );
+
+
+            return;
+        }
+
+
+        if (
+            currentRoomState &&
+            currentRoomState.crowd_scan_status ===
+            "CHECKING"
+        ) {
+
+            setText(
+                "command-status",
+                "Command blocked: crowd density scan in progress."
+            );
+
+
+            return;
+        }
+
+
+        const validCommands = [
+
+            "ON",
+
+            "OFF",
+
+            "SET_TEMP_LOW",
+
+            "SET_TEMP_MID",
+
+            "SET_TEMP_HIGH",
+
+            "CLEAR_OVERRIDE"
+
+        ];
+
+
+        if (
+            !validCommands.includes(
+                command
+            )
+        ) {
+
+            console.error(
+                "Invalid AC command:",
+                command
+            );
+
+
+            return;
+        }
+
+
+        const displayName =
+            getCommandDisplayName(
+                command
+            );
+
+
+        setText(
+            "command-status",
+            `Sending ${displayName}...`
+        );
+
+
+        const result =
+            await client
+                .from(
+                    "ac_commands"
+                )
+                .insert({
+
+                    room_id:
+                        currentRoomId,
+
+                    command:
+                        command,
+
+                    source:
+                        "ADMIN",
+
+                    status:
+                        "PENDING"
+
+                });
+
+
+        if (
+            result.error
+        ) {
+
+            console.error(
+                "AC command error:",
+                result.error
+            );
+
+
+            setText(
+                "command-status",
+                `ERROR: ${result.error.message}`
+            );
+
+
+            return;
+        }
+
+
+        setText(
+            "command-status",
+            `${displayName} command sent. Waiting for Master...`
+        );
+    }
+
+
+    // ========================================================
+    // COMMAND BUTTONS
+    // ========================================================
+
+    function setupCommandButtons() {
+
+        document
+            .querySelectorAll(
+                "[data-ac-command]"
+            )
+            .forEach(
+                button => {
+
+                    button.onclick =
+                        async function () {
+
+                            await sendACCommand(
+                                button.dataset.acCommand
+                            );
+
+                        };
+                }
+            );
+    }
+
+
+    // ========================================================
     // ERROR
-    // =========================================================
+    // ========================================================
 
     function showError(
         message
@@ -1932,73 +1938,12 @@
             "connection-status",
             "ERROR"
         );
-
-
-        setStatus(
-            "connection-status",
-            "error"
-        );
     }
 
 
-    // =========================================================
-    // FORMAT DATE
-    // =========================================================
-
-    function formatDateTime(
-        value
-    ) {
-
-        const date =
-            parseDate(
-                value
-            );
-
-
-        if (!date) {
-
-            return "--";
-        }
-
-
-        return date.toLocaleString(
-            "en-PH"
-        );
-    }
-
-
-    // =========================================================
-    // FORMAT EVENT
-    // =========================================================
-
-    function formatEventName(
-        value
-    ) {
-
-        if (!value) {
-
-            return "--";
-        }
-
-
-        return String(
-            value
-        )
-            .replace(
-                /_/g,
-                " "
-            )
-            .replace(
-                /\b\w/g,
-                character =>
-                    character.toUpperCase()
-            );
-    }
-
-
-    // =========================================================
+    // ========================================================
     // START
-    // =========================================================
+    // ========================================================
 
     async function start() {
 
@@ -2023,23 +1968,8 @@
         disableAdminControls();
 
 
-        const success =
-            await loadRooms();
+        await loadRooms();
 
-
-        if (
-            success
-        ) {
-
-            setText(
-                "system-status",
-                "Dashboard connected. Waiting for live device telemetry."
-            );
-        }
-
-
-        // Realtime is useful,
-        // but polling is our safety net.
 
         startDatabasePolling();
 
@@ -2048,9 +1978,9 @@
     }
 
 
-    // =========================================================
+    // ========================================================
     // PUBLIC API
-    // =========================================================
+    // ========================================================
 
     window.RVJDashboard = {
 
@@ -2066,20 +1996,14 @@
             function () {
 
                 return masterOnline;
-            },
-
-        getLastMasterSeen:
-            function () {
-
-                return lastMasterSeenAt;
             }
 
     };
 
 
-    // =========================================================
+    // ========================================================
     // DOM READY
-    // =========================================================
+    // ========================================================
 
     if (
         document.readyState ===
