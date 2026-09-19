@@ -538,51 +538,32 @@
 
 
     function updateCooldownDisplay() {
+    const commandStatus = document.querySelector(
+        '[data-rvj="command-status"]'
+    );
 
-        if (
-            !masterOnline
-        ) {
+    if (!commandStatus) return;
 
-            return;
-        }
+    const remainingMs = getCooldownRemainingMs();
 
+    if (remainingMs > 0) {
+        cooldownWasActive = true;
 
-        const remaining =
-            getCooldownRemainingMs();
+        commandStatus.textContent =
+            `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. ` +
+            `AC cannot be turned ON yet.`;
 
-
-        if (
-            remaining > 0
-        ) {
-
-            cooldownWasActive =
-                true;
-
-
-            setText(
-                "command-status",
-                `AC COOLDOWN: ${formatCooldown(remaining)} remaining. Please wait.`
-            );
-
-
-            return;
-        }
-
-
-        if (
-            cooldownWasActive
-        ) {
-
-            cooldownWasActive =
-                false;
-
-
-            setText(
-                "command-status",
-                "AC cooldown complete. Press ON again or present the RFID again."
-            );
-        }
+        return;
     }
+
+    // Cooldown just ended
+    if (cooldownWasActive) {
+        cooldownWasActive = false;
+
+        commandStatus.textContent =
+            "AC COOLDOWN COMPLETE. Press ON or present RFID to activate the AC.";
+    }
+}
 
 
     // ========================================================
