@@ -92,6 +92,10 @@
 
     let cooldownWasActive = false;
 
+    let dashboardCooldownUntil = null;
+    
+    let previousACStatus = null;
+
 
     // ========================================================
     // UI HELPERS
@@ -914,6 +918,20 @@
 
             return;
         }
+
+        const currentACStatus =
+    String(data.ac_power ?? data.ac_status ?? "")
+        .trim()
+        .toUpperCase();
+
+if (
+    previousACStatus === "ON" &&
+    currentACStatus === "OFF"
+) {
+    startDashboardCooldown();
+}
+
+previousACStatus = currentACStatus;
 
 
         lastMasterSeenAt =
@@ -2253,3 +2271,32 @@
     }
 
 })();
+
+function startDashboardCooldown() {
+    dashboardCooldownUntil = Date.now() + (3 * 60 * 1000);
+
+    updateCooldownDisplay();
+}
+
+function updateCooldownDisplay() {
+    const remainingMs = dashboardCooldownUntil
+        ? Math.max(0, dashboardCooldownUntil - Date.now())
+        : 0;
+
+    if (remainingMs > 0) {
+        setText(
+            "command-status",
+            `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. Please wait.`
+        );
+        return;
+    }
+
+    if (dashboardCooldownUntil !== null) {
+        dashboardCooldownUntil = null;
+
+        setText(
+            "command-status",
+            "AC COOLDOWN COMPLETE. Press ON or present RFID to activate."
+        );
+    }
+}
