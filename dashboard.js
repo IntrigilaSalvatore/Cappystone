@@ -90,6 +90,8 @@
 
     let freshnessTimer = null;
 
+    let cooldownWasActive = false;
+
 
     // ========================================================
     // UI HELPERS
@@ -136,7 +138,7 @@
 
 
     // ========================================================
-    // DATE
+    // DATE HELPERS
     // ========================================================
 
     function parseDate(
@@ -464,6 +466,122 @@
             room.capacity ??
             "--"
         );
+    }
+
+
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
+
+    function getCooldownRemainingMs() {
+
+        if (
+            !currentRoomState ||
+            !currentRoomState.ac_cooldown_until
+        ) {
+
+            return 0;
+        }
+
+
+        const cooldownUntil =
+            new Date(
+                currentRoomState.ac_cooldown_until
+            ).getTime();
+
+
+        if (
+            Number.isNaN(
+                cooldownUntil
+            )
+        ) {
+
+            return 0;
+        }
+
+
+        return Math.max(
+            0,
+            cooldownUntil -
+            Date.now()
+        );
+    }
+
+
+    function formatCooldown(
+        milliseconds
+    ) {
+
+        const totalSeconds =
+            Math.ceil(
+                milliseconds /
+                1000
+            );
+
+
+        const minutes =
+            Math.floor(
+                totalSeconds /
+                60
+            );
+
+
+        const seconds =
+            totalSeconds %
+            60;
+
+
+        return (
+            `${minutes}:${String(seconds).padStart(2, "0")}`
+        );
+    }
+
+
+    function updateCooldownDisplay() {
+
+        if (
+            !masterOnline
+        ) {
+
+            return;
+        }
+
+
+        const remaining =
+            getCooldownRemainingMs();
+
+
+        if (
+            remaining > 0
+        ) {
+
+            cooldownWasActive =
+                true;
+
+
+            setText(
+                "command-status",
+                `AC COOLDOWN: ${formatCooldown(remaining)} remaining. Please wait.`
+            );
+
+
+            return;
+        }
+
+
+        if (
+            cooldownWasActive
+        ) {
+
+            cooldownWasActive =
+                false;
+
+
+            setText(
+                "command-status",
+                "AC cooldown complete. Press ON again or present the RFID again."
+            );
+        }
     }
 
 
@@ -868,13 +986,32 @@
         );
 
 
+        // ----------------------------------------------------
+        // COOLDOWN
+        // ----------------------------------------------------
+
+        updateCooldownDisplay();
+
+
+        // ----------------------------------------------------
+        // CROWD
+        // ----------------------------------------------------
+
         displayCrowdState(
             data
         );
 
 
+        // ----------------------------------------------------
+        // TEMPERATURE
+        // ----------------------------------------------------
+
         updateTemperatureDisplay();
 
+
+        // ----------------------------------------------------
+        // AC
+        // ----------------------------------------------------
 
         setText(
             "ac-status",
@@ -884,6 +1021,10 @@
         );
 
 
+        // ----------------------------------------------------
+        // RFID
+        // ----------------------------------------------------
+
         setText(
             "rfid-status",
             data.rfid_present
@@ -892,12 +1033,20 @@
         );
 
 
+        // ----------------------------------------------------
+        // CONTROL MODE
+        // ----------------------------------------------------
+
         setText(
             "control-mode",
             data.ac_control_mode ||
             "RFID"
         );
 
+
+        // ----------------------------------------------------
+        // DOOR
+        // ----------------------------------------------------
 
         setText(
             "door-status",
@@ -906,6 +1055,10 @@
                 : "CLOSED"
         );
 
+
+        // ----------------------------------------------------
+        // WEATHER
+        // ----------------------------------------------------
 
         const weatherFresh =
             data.weather_last_updated_at &&
@@ -935,6 +1088,10 @@
         }
 
 
+        // ----------------------------------------------------
+        // PERFORMANCE
+        // ----------------------------------------------------
+
         setText(
             "performance-score",
             data.performance_score !==
@@ -955,10 +1112,18 @@
         );
 
 
+        // ----------------------------------------------------
+        // DEGRADATION
+        // ----------------------------------------------------
+
         displayDegradationState(
             data
         );
 
+
+        // ----------------------------------------------------
+        // LAST UPDATE
+        // ----------------------------------------------------
 
         setText(
             "last-update",
@@ -972,7 +1137,12 @@
         );
 
 
-        // Do not re-enable during crowd scan.
+        // ----------------------------------------------------
+        // Enable commands unless crowd scan is active.
+        //
+        // Cooldown does NOT disable the buttons because the
+        // ON button should be clickable and show the timer.
+        // ----------------------------------------------------
 
         if (
             data.crowd_scan_status !==
@@ -1352,6 +1522,10 @@
             false;
 
 
+        cooldownWasActive =
+            false;
+
+
         clearLiveDeviceData();
 
         disableAdminControls();
@@ -1398,6 +1572,10 @@
                 )
 
 
+                // ------------------------------------------------
+                // ROOM STATE
+                // ------------------------------------------------
+
                 .on(
                     "postgres_changes",
                     {
@@ -1421,6 +1599,10 @@
                     }
                 )
 
+
+                // ------------------------------------------------
+                // TEMPERATURE
+                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -1470,6 +1652,10 @@
                 )
 
 
+                // ------------------------------------------------
+                // COMMAND STATUS
+                // ------------------------------------------------
+
                 .on(
                     "postgres_changes",
                     {
@@ -1513,10 +1699,22 @@
                             "FAILED"
                         ) {
 
-                            setText(
-                                "command-status",
-                                `${command.command} failed.`
-                            );
+                            // For an ON command, the room_state
+                            // cooldown timer is the useful message.
+                            if (
+                                command.command ===
+                                "ON"
+                            ) {
+
+                                updateCooldownDisplay();
+
+                            } else {
+
+                                setText(
+                                    "command-status",
+                                    `${command.command} failed.`
+                                );
+                            }
                         }
                     }
                 )
@@ -1624,6 +1822,9 @@
                         updateTemperatureDisplay();
 
 
+                        updateCooldownDisplay();
+
+
                         if (
                             currentRoomState
                         ) {
@@ -1698,7 +1899,7 @@
     ) {
 
         console.log(
-            "[RVJ] sendACCommand() called:",
+            "[RVJ] sendACCommand():",
             command
         );
 
@@ -1706,11 +1907,6 @@
         if (
             !masterOnline
         ) {
-
-            console.warn(
-                "[RVJ] Command blocked because Master is offline."
-            );
-
 
             setText(
                 "command-status",
@@ -1728,11 +1924,6 @@
             "CHECKING"
         ) {
 
-            console.warn(
-                "[RVJ] Command blocked because crowd scan is active."
-            );
-
-
             setText(
                 "command-status",
                 "Command blocked: crowd density scan in progress."
@@ -1740,6 +1931,50 @@
 
 
             return;
+        }
+
+
+        // ====================================================
+        // SIMPLE COOLDOWN PROTECTION
+        // ====================================================
+        //
+        // Only ON is blocked.
+        //
+        // No command is inserted.
+        // No command is queued.
+        //
+
+        if (
+            command ===
+            "ON"
+        ) {
+
+            const cooldownRemaining =
+                getCooldownRemainingMs();
+
+
+            if (
+                cooldownRemaining >
+                0
+            ) {
+
+                cooldownWasActive =
+                    true;
+
+
+                setText(
+                    "command-status",
+                    `AC COOLDOWN: ${formatCooldown(cooldownRemaining)} remaining. Please wait.`
+                );
+
+
+                console.log(
+                    "[RVJ] ON blocked by AC cooldown."
+                );
+
+
+                return;
+            }
         }
 
 
@@ -1789,7 +2024,7 @@
 
 
         console.log(
-            "[RVJ] Inserting command into ac_commands:",
+            "[RVJ] Inserting into ac_commands:",
             {
                 room_id:
                     currentRoomId,
@@ -1900,7 +2135,7 @@
             button => {
 
                 console.log(
-                    "[RVJ] Binding command button:",
+                    "[RVJ] Binding:",
                     button.dataset.acCommand
                 );
 
@@ -1921,7 +2156,6 @@
 
                     }
                 );
-
             }
         );
     }
