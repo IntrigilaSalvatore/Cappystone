@@ -21,7 +21,7 @@
     ) {
 
         console.error(
-            "Supabase JS library was not loaded."
+            "[RVJ] Supabase JS library was not loaded."
         );
 
         return;
@@ -33,6 +33,11 @@
             SUPABASE_URL,
             SUPABASE_PUBLISHABLE_KEY
         );
+
+
+    console.log(
+        "[RVJ] dashboard.js loaded."
+    );
 
 
     // ========================================================
@@ -87,7 +92,7 @@
 
 
     // ========================================================
-    // UI
+    // UI HELPERS
     // ========================================================
 
     function getElements(name) {
@@ -208,6 +213,7 @@
 
                     button.disabled =
                         true;
+
                 }
             );
     }
@@ -224,13 +230,14 @@
 
                     button.disabled =
                         false;
+
                 }
             );
     }
 
 
     // ========================================================
-    // CLEAR LIVE DEVICE DATA
+    // CLEAR LIVE DATA
     // ========================================================
 
     function clearLiveDeviceData() {
@@ -362,6 +369,12 @@
 
         masterOnline =
             online;
+
+
+        console.log(
+            "[RVJ] Master online:",
+            masterOnline
+        );
 
 
         if (
@@ -537,15 +550,11 @@
         }
 
 
-        const fresh =
-            isFresh(
+        if (
+            !isFresh(
                 data.crowd_last_scan_at,
                 CROWD_TIMEOUT_MS
-            );
-
-
-        if (
-            !fresh
+            )
         ) {
 
             setText(
@@ -576,9 +585,6 @@
             data.crowd_level ||
             "LOW"
         );
-
-
-        enableAdminControls();
     }
 
 
@@ -637,6 +643,7 @@
                     Number(
                         reading.temperature_c
                     );
+
             }
         );
 
@@ -693,8 +700,6 @@
         }
 
 
-        // Door
-
         setText(
             "door-factor",
             data.door_open
@@ -702,8 +707,6 @@
                 : "NORMAL"
         );
 
-
-        // Crowd
 
         if (
             data.crowd_scan_status ===
@@ -738,8 +741,6 @@
             );
         }
 
-
-        // Weather
 
         if (
             data.weather_last_updated_at &&
@@ -867,25 +868,13 @@
         );
 
 
-        // ----------------------------------------------------
-        // CROWD
-        // ----------------------------------------------------
-
         displayCrowdState(
             data
         );
 
 
-        // ----------------------------------------------------
-        // TEMPERATURE
-        // ----------------------------------------------------
-
         updateTemperatureDisplay();
 
-
-        // ----------------------------------------------------
-        // AC
-        // ----------------------------------------------------
 
         setText(
             "ac-status",
@@ -895,10 +884,6 @@
         );
 
 
-        // ----------------------------------------------------
-        // RFID
-        // ----------------------------------------------------
-
         setText(
             "rfid-status",
             data.rfid_present
@@ -907,20 +892,12 @@
         );
 
 
-        // ----------------------------------------------------
-        // CONTROL MODE
-        // ----------------------------------------------------
-
         setText(
             "control-mode",
             data.ac_control_mode ||
             "RFID"
         );
 
-
-        // ----------------------------------------------------
-        // DOOR
-        // ----------------------------------------------------
 
         setText(
             "door-status",
@@ -929,10 +906,6 @@
                 : "CLOSED"
         );
 
-
-        // ----------------------------------------------------
-        // WEATHER
-        // ----------------------------------------------------
 
         const weatherFresh =
             data.weather_last_updated_at &&
@@ -953,37 +926,14 @@
                     : "NORMAL"
             );
 
-
-            setText(
-                "outdoor-temperature",
-                data.outdoor_temperature_c !==
-                null &&
-                data.outdoor_temperature_c !==
-                undefined
-                    ? `${Number(
-                        data.outdoor_temperature_c
-                    ).toFixed(1)} °C`
-                    : "--"
-            );
-
         } else {
 
             setText(
                 "weather-alert",
                 "UNAVAILABLE"
             );
-
-
-            setText(
-                "outdoor-temperature",
-                "UNAVAILABLE"
-            );
         }
 
-
-        // ----------------------------------------------------
-        // PERFORMANCE
-        // ----------------------------------------------------
 
         setText(
             "performance-score",
@@ -1005,18 +955,10 @@
         );
 
 
-        // ----------------------------------------------------
-        // DEGRADATION
-        // ----------------------------------------------------
-
         displayDegradationState(
             data
         );
 
-
-        // ----------------------------------------------------
-        // LAST UPDATE
-        // ----------------------------------------------------
 
         setText(
             "last-update",
@@ -1029,6 +971,8 @@
                 : "--"
         );
 
+
+        // Do not re-enable during crowd scan.
 
         if (
             data.crowd_scan_status !==
@@ -1083,7 +1027,7 @@
         ) {
 
             console.error(
-                "Temperature query error:",
+                "[RVJ] Temperature query error:",
                 result.error
             );
 
@@ -1117,6 +1061,7 @@
                         reading
                     );
                 }
+
             }
         );
 
@@ -1165,7 +1110,7 @@
         ) {
 
             console.error(
-                "Room state error:",
+                "[RVJ] Room state error:",
                 result.error
             );
 
@@ -1453,10 +1398,6 @@
                 )
 
 
-                // ------------------------------------------------
-                // ROOM STATE
-                // ------------------------------------------------
-
                 .on(
                     "postgres_changes",
                     {
@@ -1480,10 +1421,6 @@
                     }
                 )
 
-
-                // ------------------------------------------------
-                // TEMPERATURE
-                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -1533,10 +1470,6 @@
                 )
 
 
-                // ------------------------------------------------
-                // AC COMMAND STATUS
-                // ------------------------------------------------
-
                 .on(
                     "postgres_changes",
                     {
@@ -1558,20 +1491,20 @@
                             payload.new;
 
 
+                        console.log(
+                            "[RVJ] Command update:",
+                            command
+                        );
+
+
                         if (
                             command.status ===
                             "EXECUTED"
                         ) {
 
-                            const commandName =
-                                getCommandDisplayName(
-                                    command.command
-                                );
-
-
                             setText(
                                 "command-status",
-                                `${commandName} executed successfully.`
+                                `${getCommandDisplayName(command.command)} executed successfully.`
                             );
 
 
@@ -1596,7 +1529,7 @@
                     ) => {
 
                         console.log(
-                            "REALTIME:",
+                            "[RVJ] REALTIME:",
                             status
                         );
 
@@ -1606,7 +1539,7 @@
                         ) {
 
                             console.error(
-                                "REALTIME ERROR:",
+                                "[RVJ] REALTIME ERROR:",
                                 error
                             );
                         }
@@ -1729,11 +1662,6 @@
                 return "Force AC OFF";
 
 
-            case "CLEAR_OVERRIDE":
-
-                return "Clear Override";
-
-
             case "SET_TEMP_LOW":
 
                 return "LOW temperature";
@@ -1747,6 +1675,11 @@
             case "SET_TEMP_HIGH":
 
                 return "HIGH temperature";
+
+
+            case "CLEAR_OVERRIDE":
+
+                return "Clear Override";
 
 
             default:
@@ -1764,9 +1697,20 @@
         command
     ) {
 
+        console.log(
+            "[RVJ] sendACCommand() called:",
+            command
+        );
+
+
         if (
             !masterOnline
         ) {
+
+            console.warn(
+                "[RVJ] Command blocked because Master is offline."
+            );
+
 
             setText(
                 "command-status",
@@ -1783,6 +1727,11 @@
             currentRoomState.crowd_scan_status ===
             "CHECKING"
         ) {
+
+            console.warn(
+                "[RVJ] Command blocked because crowd scan is active."
+            );
+
 
             setText(
                 "command-status",
@@ -1818,7 +1767,7 @@
         ) {
 
             console.error(
-                "Invalid AC command:",
+                "[RVJ] Invalid command:",
                 command
             );
 
@@ -1839,52 +1788,93 @@
         );
 
 
-        const result =
-            await client
-                .from(
-                    "ac_commands"
-                )
-                .insert({
+        console.log(
+            "[RVJ] Inserting command into ac_commands:",
+            {
+                room_id:
+                    currentRoomId,
 
-                    room_id:
-                        currentRoomId,
+                command:
+                    command,
 
-                    command:
-                        command,
+                source:
+                    "ADMIN",
 
-                    source:
-                        "ADMIN",
-
-                    status:
-                        "PENDING"
-
-                });
+                status:
+                    "PENDING"
+            }
+        );
 
 
-        if (
-            result.error
+        try {
+
+            const result =
+                await client
+                    .from(
+                        "ac_commands"
+                    )
+                    .insert({
+                        room_id:
+                            currentRoomId,
+
+                        command:
+                            command,
+
+                        source:
+                            "ADMIN",
+
+                        status:
+                            "PENDING"
+                    });
+
+
+            console.log(
+                "[RVJ] Supabase insert result:",
+                result
+            );
+
+
+            if (
+                result.error
+            ) {
+
+                console.error(
+                    "[RVJ] AC command insert error:",
+                    result.error
+                );
+
+
+                setText(
+                    "command-status",
+                    `ERROR: ${result.error.message}`
+                );
+
+
+                return;
+            }
+
+
+            setText(
+                "command-status",
+                `${displayName} command sent. Waiting for Master...`
+            );
+
+
+        } catch (
+            error
         ) {
 
             console.error(
-                "AC command error:",
-                result.error
+                "[RVJ] Unexpected command error:",
+                error
             );
 
 
             setText(
                 "command-status",
-                `ERROR: ${result.error.message}`
+                `ERROR: ${error.message}`
             );
-
-
-            return;
         }
-
-
-        setText(
-            "command-status",
-            `${displayName} command sent. Waiting for Master...`
-        );
     }
 
 
@@ -1894,23 +1884,46 @@
 
     function setupCommandButtons() {
 
-        document
-            .querySelectorAll(
+        const buttons =
+            document.querySelectorAll(
                 "[data-ac-command]"
-            )
-            .forEach(
-                button => {
-
-                    button.onclick =
-                        async function () {
-
-                            await sendACCommand(
-                                button.dataset.acCommand
-                            );
-
-                        };
-                }
             );
+
+
+        console.log(
+            "[RVJ] Command buttons found:",
+            buttons.length
+        );
+
+
+        buttons.forEach(
+            button => {
+
+                console.log(
+                    "[RVJ] Binding command button:",
+                    button.dataset.acCommand
+                );
+
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        console.log(
+                            "[RVJ] BUTTON CLICK:",
+                            button.dataset.acCommand
+                        );
+
+
+                        sendACCommand(
+                            button.dataset.acCommand
+                        );
+
+                    }
+                );
+
+            }
+        );
     }
 
 
