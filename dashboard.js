@@ -1,4 +1,3 @@
-```javascript
 (function () {
 
     "use strict";
@@ -2723,4 +2722,3 @@
     }
 
 })();
-```
