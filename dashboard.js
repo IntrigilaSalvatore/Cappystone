@@ -64,10 +64,6 @@
         10 * 60 * 1000;
 
 
-    const WEATHER_TIMEOUT_MS =
-        10 * 60 * 1000;
-
-
     const POLL_INTERVAL_MS =
         10000;
 
