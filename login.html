@@ -346,11 +346,14 @@ body.light-mode .toggle-btn{
 
 <form onsubmit="checkCode(event)">
 
+<!-- USERNAME FIELD -->
+<input type="text" id="username" placeholder="Enter Username" required>
+
+<!-- ACCESS CODE FIELD -->
 <input type="password" id="code" placeholder="Enter Access Code" required>
 
 <button type="submit" class="submit-btn">Enter Dashboard</button>
 
-<!-- ADDED NEW ADMIN BUTTON BELOW YOUR SUBMIT BUTTON -->
 <button type="button" class="submit-btn" style="margin-top: 10px; background: #005A92; color: #ffffff;" onclick="registerNewAdmin()">Register New Admin</button>
 
 </form>
@@ -367,10 +370,10 @@ body.light-mode .toggle-btn{
 
 <script>
 
-
-
-const ACCESS_CODE = "admin123";
-
+// Initialize Supabase Client
+const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
 
 // If already logged in, redirect straight to index.html
@@ -382,23 +385,107 @@ if (localStorage.getItem("access_granted") === "true") {
 }
 
 
-
-function checkCode(event) {
+// LOGIN VIA SUPABASE
+async function checkCode(event) {
 
     event.preventDefault();
 
-    const code = document.getElementById("code").value;
+    const username = document.getElementById("username").value.trim();
+    const code = document.getElementById("code").value.trim();
+    const errorDiv = document.getElementById("error");
 
-    if (code === ACCESS_CODE) {
+    if (!supabaseClient) {
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Supabase library failed to load.";
+        return;
+    }
 
-        localStorage.setItem("access_granted", "true");
+    errorDiv.style.color = "#FADA7A";
+    errorDiv.innerText = "Verifying credentials...";
 
-        window.location.href = "index.html";
+    try {
+        const { data, error } = await supabaseClient
+            .from("admin_users")
+            .select("*")
+            .eq("username", username)
+            .eq("access_code", code)
+            .maybeSingle();
 
-    } else {
+        if (error) {
+            console.error("Supabase Error:", error);
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Error checking credentials.";
+        } else if (data) {
+            errorDiv.style.color = "#22c55e";
+            errorDiv.innerText = "Access Granted!";
+            localStorage.setItem("access_granted", "true");
+            localStorage.setItem("current_admin_user", username);
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 800);
+        } else {
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Invalid Username or Access Code";
+        }
+    } catch (err) {
+        console.error("Unexpected Error:", err);
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Connection error.";
+    }
 
-        document.getElementById("error").innerText = "Invalid Access Code";
+}
 
+
+// REGISTER NEW ADMIN IN SUPABASE
+async function registerNewAdmin() {
+
+    const username = document.getElementById("username").value.trim();
+    const code = document.getElementById("code").value.trim();
+    const errorDiv = document.getElementById("error");
+
+    if (!username || !code) {
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Please enter both Username and Access Code.";
+        return;
+    }
+
+    if (!supabaseClient) {
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Supabase library failed to load.";
+        return;
+    }
+
+    errorDiv.style.color = "#FADA7A";
+    errorDiv.innerText = "Registering new admin in Supabase...";
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("admin_users")
+            .insert([
+                { 
+                    username: username, 
+                    access_code: code,
+                    role: "ADMIN"
+                }
+            ]);
+
+        if (error) {
+            console.error("Supabase Insert Error:", error);
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Registration failed: " + error.message;
+        } else {
+            errorDiv.style.color = "#22c55e";
+            errorDiv.innerText = "New Admin registered! Granting access...";
+            localStorage.setItem("access_granted", "true");
+            localStorage.setItem("current_admin_user", username);
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1000);
+        }
+    } catch (err) {
+        console.error("Unexpected Error:", err);
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Failed to register in Supabase.";
     }
 
 }
@@ -442,61 +529,6 @@ function toggleMode() {
 }
 
 
-// ========================================================
-// ADDED SUPABASE CONNECTION & NEW ADMIN REGISTRATION
-// ========================================================
-
-const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
-
-async function registerNewAdmin() {
-    const code = document.getElementById("code").value.trim();
-    const errorDiv = document.getElementById("error");
-
-    if (!code) {
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Please enter an Access Code first.";
-        return;
-    }
-
-    if (!supabaseClient) {
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Supabase library not loaded.";
-        return;
-    }
-
-    errorDiv.style.color = "#FADA7A";
-    errorDiv.innerText = "Connecting to Supabase...";
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("admin_users")
-            .insert([
-                { 
-                    access_code: code, 
-                    role: "ADMIN"
-                }
-            ]);
-
-        if (error) {
-            console.error("Supabase Insert Error:", error);
-            errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Error: " + error.message;
-        } else {
-            errorDiv.style.color = "#22c55e";
-            errorDiv.innerText = "New Admin saved to Supabase! Entering...";
-            localStorage.setItem("access_granted", "true");
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 1000);
-        }
-    } catch (err) {
-        console.error("Unexpected Error:", err);
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Failed to connect to Supabase.";
-    }
-}
 
 </script>
 
