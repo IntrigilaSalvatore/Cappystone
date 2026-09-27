@@ -41,6 +41,14 @@
 
 
     // ========================================================
+    // WEATHER API CONFIGURATION (Angeles City, Pampanga)
+    // ========================================================
+
+    const WEATHER_API_URL =
+        "https://api.open-meteo.com/v1/forecast?latitude=15.145&longitude=120.588&current_weather=true";
+
+
+    // ========================================================
     // FRESHNESS
     // ========================================================
 
@@ -201,6 +209,100 @@
             age >= 0 &&
             age <= timeoutMs
         );
+    }
+
+
+    // ========================================================
+    // WEATHER API FETCH & SYNC
+    // ========================================================
+
+    async function fetchAndDisplayWeather() {
+
+        if (!masterOnline) {
+
+            setText(
+                "weather-alert",
+                "UNAVAILABLE"
+            );
+
+            setText(
+                "outdoor-temperature",
+                "UNAVAILABLE"
+            );
+
+            return;
+        }
+
+        try {
+
+            const response =
+                await fetch(WEATHER_API_URL);
+
+            const data =
+                await response.json();
+
+
+            if (data && data.current_weather) {
+
+                const outdoorTemp =
+                    data.current_weather.temperature;
+
+                const isHotWeather =
+                    outdoorTemp >= 32.0;
+
+
+                // Update Dashboard Elements
+                setText(
+                    "outdoor-temperature",
+                    `${outdoorTemp.toFixed(1)} °C`
+                );
+
+                setText(
+                    "weather-alert",
+                    isHotWeather
+                        ? "HOT WEATHER"
+                        : "NORMAL"
+                );
+
+                setText(
+                    "weather-factor",
+                    isHotWeather
+                        ? "ACTIVE"
+                        : "NORMAL"
+                );
+
+
+                // Sync Weather to Supabase Database
+                if (currentRoomId && client) {
+
+                    await client
+                        .from("room_state")
+                        .update({
+                            outdoor_temperature: outdoorTemp,
+                            hot_weather: isHotWeather,
+                            weather_last_updated_at: new Date().toISOString()
+                        })
+                        .eq("room_id", currentRoomId);
+                }
+            }
+
+        } catch (err) {
+
+            console.error(
+                "[RVJ] Weather API fetch error:",
+                err
+            );
+
+            setText(
+                "weather-alert",
+                "UNAVAILABLE"
+            );
+
+            setText(
+                "outdoor-temperature",
+                "UNAVAILABLE"
+            );
+        }
     }
 
 
@@ -408,6 +510,9 @@
             );
 
 
+            fetchAndDisplayWeather();
+
+
         } else {
 
             setText(
@@ -536,38 +641,40 @@
 
 
         return (
-            `minutes:{String(seconds).padStart(2, "0")}`
+            `${minutes}:${String(seconds).padStart(2, "0")}`
         );
     }
 
 
     function updateCooldownDisplay() {
-    const commandStatus = document.querySelector(
-        '[data-rvj="command-status"]'
-    );
 
-    if (!commandStatus) return;
+        const commandStatus = document.querySelector(
+            '[data-rvj="command-status"]'
+        );
 
-    const remainingMs = getCooldownRemainingMs();
+        if (!commandStatus) return;
 
-    if (remainingMs > 0) {
-        cooldownWasActive = true;
+        const remainingMs = getCooldownRemainingMs();
 
-        commandStatus.textContent =
-            `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. ` +
-            `AC cannot be turned ON yet.`;
+        if (remainingMs > 0) {
 
-        return;
+            cooldownWasActive = true;
+
+            commandStatus.textContent =
+                `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. ` +
+                `AC cannot be turned ON yet.`;
+
+            return;
+        }
+
+        if (cooldownWasActive) {
+
+            cooldownWasActive = false;
+
+            commandStatus.textContent =
+                "AC COOLDOWN COMPLETE. Press ON or present RFID to activate the AC.";
+        }
     }
-
-    // Cooldown just ended
-    if (cooldownWasActive) {
-        cooldownWasActive = false;
-
-        commandStatus.textContent =
-            "AC COOLDOWN COMPLETE. Press ON or present RFID to activate the AC.";
-    }
-}
 
 
     // ========================================================
@@ -920,18 +1027,19 @@
         }
 
         const currentACStatus =
-    String(data.ac_power ?? data.ac_status ?? "")
-        .trim()
-        .toUpperCase();
+            String(data.ac_power ?? data.ac_status ?? "")
+                .trim()
+                .toUpperCase();
 
-if (
-    previousACStatus === "ON" &&
-    currentACStatus === "OFF"
-) {
-    startDashboardCooldown();
-}
+        if (
+            previousACStatus === "ON" &&
+            currentACStatus === "OFF"
+        ) {
 
-previousACStatus = currentACStatus;
+            startDashboardCooldown();
+        }
+
+        previousACStatus = currentACStatus;
 
 
         lastMasterSeenAt =
@@ -985,32 +1093,16 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // COOLDOWN
-        // ----------------------------------------------------
-
         updateCooldownDisplay();
 
-
-        // ----------------------------------------------------
-        // CROWD
-        // ----------------------------------------------------
 
         displayCrowdState(
             data
         );
 
 
-        // ----------------------------------------------------
-        // TEMPERATURE
-        // ----------------------------------------------------
-
         updateTemperatureDisplay();
 
-
-        // ----------------------------------------------------
-        // AC
-        // ----------------------------------------------------
 
         setText(
             "ac-status",
@@ -1020,10 +1112,6 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // RFID
-        // ----------------------------------------------------
-
         setText(
             "rfid-status",
             data.rfid_present
@@ -1032,20 +1120,12 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // CONTROL MODE
-        // ----------------------------------------------------
-
         setText(
             "control-mode",
             data.ac_control_mode ||
             "RFID"
         );
 
-
-        // ----------------------------------------------------
-        // DOOR
-        // ----------------------------------------------------
 
         setText(
             "door-status",
@@ -1055,10 +1135,7 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // WEATHER
-        // ----------------------------------------------------
-
+        // WEATHER ALERT
         const weatherFresh =
             data.weather_last_updated_at &&
             isFresh(
@@ -1087,9 +1164,15 @@ previousACStatus = currentACStatus;
         }
 
 
-        // ----------------------------------------------------
-        // PERFORMANCE
-        // ----------------------------------------------------
+        // OUTDOOR TEMP
+        if (data.outdoor_temperature !== undefined && data.outdoor_temperature !== null) {
+
+            setText(
+                "outdoor-temperature",
+                `${Number(data.outdoor_temperature).toFixed(1)} °C`
+            );
+        }
+
 
         setText(
             "performance-score",
@@ -1111,18 +1194,10 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // DEGRADATION
-        // ----------------------------------------------------
-
         displayDegradationState(
             data
         );
 
-
-        // ----------------------------------------------------
-        // LAST UPDATE
-        // ----------------------------------------------------
 
         setText(
             "last-update",
@@ -1135,13 +1210,6 @@ previousACStatus = currentACStatus;
                 : "--"
         );
 
-
-        // ----------------------------------------------------
-        // Enable commands unless crowd scan is active.
-        //
-        // Cooldown does NOT disable the buttons because the
-        // ON button should be clickable and show the timer.
-        // ----------------------------------------------------
 
         if (
             data.crowd_scan_status !==
@@ -1542,6 +1610,9 @@ previousACStatus = currentACStatus;
         await loadTemperatureReadings();
 
 
+        fetchAndDisplayWeather();
+
+
         subscribeToRealtime();
     }
 
@@ -1567,13 +1638,9 @@ previousACStatus = currentACStatus;
         realtimeChannel =
             client
                 .channel(
-                    `rvj-room-roomId-{Date.now()}`
+                    `rvj-room-${roomId}-${Date.now()}`
                 )
 
-
-                // ------------------------------------------------
-                // ROOM STATE
-                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -1598,10 +1665,6 @@ previousACStatus = currentACStatus;
                     }
                 )
 
-
-                // ------------------------------------------------
-                // TEMPERATURE
-                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -1651,10 +1714,6 @@ previousACStatus = currentACStatus;
                 )
 
 
-                // ------------------------------------------------
-                // COMMAND STATUS
-                // ------------------------------------------------
-
                 .on(
                     "postgres_changes",
                     {
@@ -1698,8 +1757,6 @@ previousACStatus = currentACStatus;
                             "FAILED"
                         ) {
 
-                            // For an ON command, the room_state
-                            // cooldown timer is the useful message.
                             if (
                                 command.command ===
                                 "ON"
@@ -1776,6 +1833,8 @@ previousACStatus = currentACStatus;
                     await loadRoomState();
 
                     await loadTemperatureReadings();
+
+                    await fetchAndDisplayWeather();
 
                 },
                 POLL_INTERVAL_MS
@@ -1933,16 +1992,6 @@ previousACStatus = currentACStatus;
         }
 
 
-        // ====================================================
-        // SIMPLE COOLDOWN PROTECTION
-        // ====================================================
-        //
-        // Only ON is blocked.
-        //
-        // No command is inserted.
-        // No command is queued.
-        //
-
         if (
             command ===
             "ON"
@@ -2022,24 +2071,6 @@ previousACStatus = currentACStatus;
         );
 
 
-        console.log(
-            "[RVJ] Inserting into ac_commands:",
-            {
-                room_id:
-                    currentRoomId,
-
-                command:
-                    command,
-
-                source:
-                    "ADMIN",
-
-                status:
-                    "PENDING"
-            }
-        );
-
-
         try {
 
             const result =
@@ -2060,12 +2091,6 @@ previousACStatus = currentACStatus;
                         status:
                             "PENDING"
                     });
-
-
-            console.log(
-                "[RVJ] Supabase insert result:",
-                result
-            );
 
 
             if (
@@ -2124,30 +2149,12 @@ previousACStatus = currentACStatus;
             );
 
 
-        console.log(
-            "[RVJ] Command buttons found:",
-            buttons.length
-        );
-
-
         buttons.forEach(
             button => {
-
-                console.log(
-                    "[RVJ] Binding:",
-                    button.dataset.acCommand
-                );
-
 
                 button.addEventListener(
                     "click",
                     function () {
-
-                        console.log(
-                            "[RVJ] BUTTON CLICK:",
-                            button.dataset.acCommand
-                        );
-
 
                         sendACCommand(
                             button.dataset.acCommand
@@ -2236,6 +2243,8 @@ previousACStatus = currentACStatus;
 
         loadTemperatureReadings,
 
+        fetchAndDisplayWeather,
+
         sendACCommand,
 
         getMasterStatus:
@@ -2300,4 +2309,3 @@ function updateCooldownDisplay() {
         );
     }
 }
-
