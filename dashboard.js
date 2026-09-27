@@ -1,6 +1,5 @@
 (function () {
 
-```
 "use strict";
 
 
@@ -825,7 +824,7 @@ function displayWeatherObservation(
 
 async function loadLatestWeatherObservation() {
 
-```
+
 console.log("[RVJ] Loading latest weather observation...");
 
 try {
