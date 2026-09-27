@@ -825,101 +825,63 @@ function displayWeatherObservation(
 
 async function loadLatestWeatherObservation() {
 
-    console.log(
-        "[RVJ] Loading latest weather observation..."
-    );
+```
+console.log("[RVJ] Loading latest weather observation...");
 
+try {
 
-    try {
+    const result = await client
+        .from("weather_observations")
+        .select(
+            "id, location, temperature_c, feels_like_c, humidity, condition, observed_at"
+        )
+        .order("observed_at", { ascending: false })
+        .limit(1);
 
-        const result =
-            await client
-                .from(
-                    "weather_observations"
-                )
-                .select(
-                    "id, location, temperature_c, feels_like_c, humidity, condition, observed_at"
-                )
-                .order(
-                    "observed_at",
-                    {
-                        ascending:
-                            false
-                    }
-                )
-                .limit(
-                    1
-                );
-
-
-        if (
-            result.error
-        ) {
-
-            console.error(
-                "[RVJ] Weather query error:",
-                result.error
-            );
-
-
-            displayWeatherUnavailable(
-                "WEATHER ERROR"
-            );
-
-
-            return;
-        }
-
-
-        if (
-            !result.data ||
-            result.data.length === 0
-        ) {
-
-            console.log(
-                "[RVJ] No weather observations found."
-            );
-
-
-            displayWeatherUnavailable(
-                "NO WEATHER DATA"
-            );
-
-
-            return;
-        }
-
-
-        const weather =
-            result.data[0];
-
-
-        console.log(
-            "[RVJ] Latest weather:",
-            weather
-        );
-
-
-        displayWeatherObservation(
-            weather
-        );
-
-
-    } catch (
-        error
-    ) {
+    if (result.error) {
 
         console.error(
-            "[RVJ] Weather load error:",
-            error
+            "[RVJ] Weather table query error:",
+            result.error
         );
 
+        displayWeatherUnavailable("WEATHER ERROR");
 
-        displayWeatherUnavailable(
-            "WEATHER ERROR"
-        );
+        return;
     }
+
+    const data = result.data;
+
+    if (!data || data.length === 0) {
+
+        console.warn("[RVJ] No weather observations found.");
+
+        displayWeatherUnavailable("NO WEATHER DATA");
+
+        return;
+    }
+
+    const weather = data[0];
+
+    console.log(
+        "[RVJ] Latest weather observation:",
+        weather
+    );
+
+    displayWeatherObservation(weather);
+
+} catch (error) {
+
+    console.error(
+        "[RVJ] Weather load error:",
+        error
+    );
+
+    displayWeatherUnavailable("WEATHER ERROR");
 }
+
+}
+
 
 
 // ========================================================
