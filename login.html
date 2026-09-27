@@ -11,8 +11,8 @@
 <title>Admin Access</title>
 
 <!-- Supabase JS Client library -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 
@@ -257,6 +257,15 @@ button.submit-btn:hover{
 }
 
 
+button.submit-btn:disabled{
+
+    opacity:0.7;
+
+    cursor:not-allowed;
+
+}
+
+
 
 .error{
 
@@ -314,11 +323,7 @@ body.light-mode .toggle-btn{
 
 </head>
 
-
-
 <body>
-
-
 
 <div class="fog">
 
@@ -330,120 +335,257 @@ body.light-mode .toggle-btn{
 
 </div>
 
-
-
 <button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
-
-
 
 <div class="box">
 
-
-
 <h2>Admin Access</h2>
-
-
 
 <form onsubmit="checkCode(event)">
 
-<input type="text" id="username" placeholder="Enter Username" required>
+<input
+type="text"
+id="username"
+placeholder="Enter Username"
+required
+autocomplete="username"
 
-<input type="password" id="code" placeholder="Enter Access Code" required>
+>
 
-<button type="submit" class="submit-btn">Enter Dashboard</button>
+<input
+type="password"
+id="code"
+placeholder="Enter Access Code"
+required
+autocomplete="current-password"
+
+>
+
+<button
+ type="submit"
+ class="submit-btn"
+ id="loginButton">
+Enter Dashboard </button>
 
 </form>
 
-
-
 <div id="error" class="error"></div>
-
-
 
 </div>
 
-
-
 <script>
 
-// Initialize Supabase Client
-const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+
+// ============================================================
+// SUPABASE CONFIGURATION
+// ============================================================
+
+const SUPABASE_URL =
+    "https://raphpzlmjjzgwohjgczu.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
 
-// If already logged in, redirect straight to index.html
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
 
-if (localStorage.getItem("access_granted") === "true") {
+
+
+// ============================================================
+// EXISTING LOGIN SESSION CHECK
+// ============================================================
+
+if (
+    localStorage.getItem("access_granted") === "true"
+) {
 
     window.location.href = "index.html";
 
 }
 
 
-// VERIFY USERNAME AND ACCESS CODE AGAINST SUPABASE DATABASE
+
+// ============================================================
+// VERIFY USERNAME + ACCESS CODE
+// ============================================================
+
 async function checkCode(event) {
 
     event.preventDefault();
 
-    const username = document.getElementById("username").value.trim();
-    const code = document.getElementById("code").value.trim();
-    const errorDiv = document.getElementById("error");
 
-    if (!supabaseClient) {
+    const usernameInput =
+        document.getElementById("username");
+
+    const codeInput =
+        document.getElementById("code");
+
+    const errorDiv =
+        document.getElementById("error");
+
+    const loginButton =
+        document.getElementById("loginButton");
+
+
+    const username =
+        usernameInput.value.trim();
+
+    const code =
+        codeInput.value;
+
+
+    errorDiv.innerText = "";
+
+
+    if (!username || !code) {
+
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Supabase library failed to load.";
+
+        errorDiv.innerText =
+            "Please enter your username and access code.";
+
         return;
     }
 
-    errorDiv.style.color = "#FADA7A";
-    errorDiv.innerText = "Verifying credentials...";
+
+    loginButton.disabled = true;
+
+    loginButton.innerText = "Verifying...";
+
 
     try {
-        const { data, error } = await supabaseClient
-            .from("admin_users")
-            .select("*")
-            .eq("username", username)
-            .eq("access_code", code)
-            .maybeSingle();
+
+
+        const { data, error } =
+            await supabaseClient.rpc(
+                "verify_admin_login",
+                {
+                    p_username: username,
+                    p_password: code
+                }
+            );
+
 
         if (error) {
-            console.error("Supabase Error:", error);
+
+            console.error(
+                "Supabase Login Error:",
+                error
+            );
+
             errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Error checking credentials.";
-        } else if (data) {
-            errorDiv.style.color = "#22c55e";
-            errorDiv.innerText = "Access Granted!";
-            localStorage.setItem("access_granted", "true");
-            localStorage.setItem("current_admin_user", username);
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 800);
-        } else {
-            errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Invalid Username or Access Code";
+
+            errorDiv.innerText =
+                "Error checking credentials.";
+
+            return;
         }
+
+
+        if (
+            data &&
+            data.valid === true
+        ) {
+
+
+            errorDiv.style.color = "#22c55e";
+
+            errorDiv.innerText =
+                "Access Granted!";
+
+
+            // Existing dashboard access flag
+            localStorage.setItem(
+                "access_granted",
+                "true"
+            );
+
+
+            // Save currently logged-in user
+            localStorage.setItem(
+                "current_admin_user",
+                data.username
+            );
+
+
+            // Save display name
+            localStorage.setItem(
+                "current_admin_name",
+                data.display_name || data.username
+            );
+
+
+            setTimeout(() => {
+
+                window.location.href =
+                    "index.html";
+
+            }, 800);
+
+
+        } else {
+
+
+            errorDiv.style.color = "#ef4444";
+
+            errorDiv.innerText =
+                "Invalid Username or Access Code";
+
+
+            codeInput.value = "";
+
+            codeInput.focus();
+
+        }
+
+
     } catch (err) {
-        console.error("Unexpected Error:", err);
+
+
+        console.error(
+            "Unexpected Login Error:",
+            err
+        );
+
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Connection error.";
+
+        errorDiv.innerText =
+            "Connection error.";
+
     }
 
+
+    loginButton.disabled = false;
+
+    loginButton.innerText =
+        "Enter Dashboard";
 }
 
 
 
-const toggleBtn = document.getElementById("modeToggle");
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+
+const toggleBtn =
+    document.getElementById("modeToggle");
 
 
 
 // Load saved theme preference on launch
 
-if (localStorage.getItem("theme") === "light") {
+if (
+    localStorage.getItem("theme") === "light"
+) {
 
     document.body.classList.add("light-mode");
 
-    toggleBtn.textContent = "Dark Mode";
+    toggleBtn.textContent =
+        "Dark Mode";
 
 }
 
@@ -453,17 +595,29 @@ function toggleMode() {
 
     document.body.classList.toggle("light-mode");
 
-    if (document.body.classList.contains("light-mode")) {
 
-        toggleBtn.textContent = "Dark Mode";
+    if (
+        document.body.classList.contains("light-mode")
+    ) {
 
-        localStorage.setItem("theme", "light");
+        toggleBtn.textContent =
+            "Dark Mode";
+
+        localStorage.setItem(
+            "theme",
+            "light"
+        );
+
 
     } else {
 
-        toggleBtn.textContent = "Light Mode";
+        toggleBtn.textContent =
+            "Light Mode";
 
-        localStorage.setItem("theme", "dark");
+        localStorage.setItem(
+            "theme",
+            "dark"
+        );
 
     }
 
@@ -472,8 +626,6 @@ function toggleMode() {
 
 
 </script>
-
-
 
 </body>
 
