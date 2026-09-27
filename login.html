@@ -175,6 +175,11 @@ button.submit-btn:hover{
     background:#d9a944;
 }
 
+button.submit-btn:disabled{
+    opacity:0.7;
+    cursor:not-allowed;
+}
+
 /* ERROR */
 .error{
     color:#ef4444;
@@ -225,12 +230,20 @@ Light Mode </button>
 ```
 <h2>Admin Access</h2>
 
-<form onsubmit="checkCode(event)">
+<form onsubmit="checkLogin(event)">
+
+    <input
+        type="text"
+        id="username"
+        placeholder="Enter Username"
+        required
+        autocomplete="username"
+    >
 
     <input
         type="password"
-        id="code"
-        placeholder="Enter Access Code"
+        id="password"
+        placeholder="Enter Password"
         required
         autocomplete="current-password"
     >
@@ -280,15 +293,18 @@ if (
 
 
 /* ============================================================
-   SUPABASE LOGIN
+   SUPABASE USERNAME + PASSWORD LOGIN
    ============================================================ */
 
-async function checkCode(event) {
+async function checkLogin(event) {
 
     event.preventDefault();
 
-    const codeInput =
-        document.getElementById("code");
+    const usernameInput =
+        document.getElementById("username");
+
+    const passwordInput =
+        document.getElementById("password");
 
     const errorElement =
         document.getElementById("error");
@@ -296,14 +312,19 @@ async function checkCode(event) {
     const loginButton =
         document.getElementById("loginButton");
 
-    const code =
-        codeInput.value.trim();
+    const username =
+        usernameInput.value.trim();
+
+    const password =
+        passwordInput.value;
 
     errorElement.textContent = "";
 
-    if (!code) {
+    if (!username || !password) {
+
         errorElement.textContent =
-            "Please enter the access code.";
+            "Please enter your username and password.";
+
         return;
     }
 
@@ -314,9 +335,10 @@ async function checkCode(event) {
 
         const { data, error } =
             await supabaseClient.rpc(
-                "verify_admin_access",
+                "verify_admin_login",
                 {
-                    p_code: code
+                    p_username: username,
+                    p_password: password
                 }
             );
 
@@ -333,15 +355,54 @@ async function checkCode(event) {
             return;
         }
 
-        if (data === true) {
+        /*
+         * The PostgreSQL function returns:
+         *
+         * {
+         *   valid: true,
+         *   user_id: ...,
+         *   username: ...,
+         *   display_name: ...
+         * }
+         *
+         * OR
+         *
+         * {
+         *   valid: false
+         * }
+         */
+
+        if (
+            data &&
+            data.valid === true
+        ) {
 
             /*
-             * Keep the same login flag currently
-             * used by the dashboard.
+             * Keep the existing dashboard
+             * authentication flag.
              */
             localStorage.setItem(
                 "access_granted",
                 "true"
+            );
+
+            /*
+             * Store basic user information
+             * for dashboard display/use.
+             */
+            localStorage.setItem(
+                "admin_user_id",
+                String(data.user_id)
+            );
+
+            localStorage.setItem(
+                "admin_username",
+                data.username
+            );
+
+            localStorage.setItem(
+                "admin_display_name",
+                data.display_name || data.username
             );
 
             window.location.href =
@@ -350,10 +411,10 @@ async function checkCode(event) {
         } else {
 
             errorElement.textContent =
-                "Invalid Access Code.";
+                "Invalid username or password.";
 
-            codeInput.value = "";
-            codeInput.focus();
+            passwordInput.value = "";
+            passwordInput.focus();
         }
 
     } catch (err) {
@@ -384,6 +445,7 @@ const toggleBtn =
 
 
 /* Load saved theme preference */
+
 if (
     localStorage.getItem("theme") === "light"
 ) {
@@ -396,6 +458,8 @@ if (
         "Dark Mode";
 }
 
+
+/* Toggle light/dark mode */
 
 function toggleMode() {
 
