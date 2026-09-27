@@ -1,14 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin Access</title>
-
-<!-- SUPABASE -->
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 
@@ -49,87 +44,44 @@ body.light-mode{
 
 /* ANIMATION */
 .layer1{
-    animation:fogMove1 80s linear infinite;
+animation:fogMove1 80s linear infinite;
 }
-
 .layer2{
-    animation:fogMove2 120s linear infinite;
-    opacity:0.7;
+animation:fogMove2 120s linear infinite;
+opacity:0.7;
 }
-
 .layer3{
-    animation:fogMove3 160s linear infinite;
-    opacity:0.5;
+animation:fogMove3 160s linear infinite;
+opacity:0.5;
 }
 
 @keyframes fogMove1{
-    0%{
-        transform:translateX(0) translateY(0);
-    }
-
-    100%{
-        transform:translateX(-400px) translateY(-150px);
-    }
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-400px) translateY(-150px);}
 }
-
 @keyframes fogMove2{
-    0%{
-        transform:translateX(0) translateY(0);
-    }
-
-    100%{
-        transform:translateX(-300px) translateY(200px);
-    }
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-300px) translateY(200px);}
 }
-
 @keyframes fogMove3{
-    0%{
-        transform:translateX(0) translateY(0);
-    }
-
-    100%{
-        transform:translateX(-500px) translateY(100px);
-    }
+0%{transform:translateX(0) translateY(0);}
+100%{transform:translateX(-500px) translateY(100px);}
 }
 
-/* DARK MODE FOG */
+/* DARK MODE FOG (transparent black) */
 body:not(.light-mode) .fog-layer{
-    background:
-        radial-gradient(
-            circle at 30% 40%,
-            rgba(0,0,0,0.5) 0%,
-            transparent 40%
-        ),
-        radial-gradient(
-            circle at 70% 60%,
-            rgba(0,0,0,0.4) 0%,
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 50% 80%,
-            rgba(0,0,0,0.35) 0%,
-            transparent 40%
-        );
+background:
+    radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0%, transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.4) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(0,0,0,0.35) 0%, transparent 40%);
 }
 
-/* LIGHT MODE FOG */
+/* LIGHT MODE FOG (soft semi-transparent white) */
 body.light-mode .fog-layer{
-    background:
-        radial-gradient(
-            circle at 30% 40%,
-            rgba(255,255,255,0.15) 0%,
-            transparent 40%
-        ),
-        radial-gradient(
-            circle at 70% 60%,
-            rgba(255,255,255,0.12) 0%,
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 50% 80%,
-            rgba(255,255,255,0.1) 0%,
-            transparent 40%
-        );
+background:
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
 }
 
 /* LOGIN BOX */
@@ -175,12 +127,6 @@ button.submit-btn:hover{
     background:#d9a944;
 }
 
-button.submit-btn:disabled{
-    opacity:0.7;
-    cursor:not-allowed;
-}
-
-/* ERROR */
 .error{
     color:#ef4444;
     margin-top:10px;
@@ -208,288 +154,67 @@ body.light-mode .toggle-btn{
 }
 
 </style>
-
 </head>
 
 <body>
 
 <div class="fog">
-    <div class="fog-layer layer1"></div>
-    <div class="fog-layer layer2"></div>
-    <div class="fog-layer layer3"></div>
+<div class="fog-layer layer1"></div>
+<div class="fog-layer layer2"></div>
+<div class="fog-layer layer3"></div>
 </div>
 
-<button
- id="modeToggle"
- class="toggle-btn"
- onclick="toggleMode()">
-Light Mode </button>
+<button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
 
 <div class="box">
 
-```
 <h2>Admin Access</h2>
 
-<form onsubmit="checkLogin(event)">
-
-    <input
-        type="text"
-        id="username"
-        placeholder="Enter Username"
-        required
-        autocomplete="username"
-    >
-
-    <input
-        type="password"
-        id="password"
-        placeholder="Enter Password"
-        required
-        autocomplete="current-password"
-    >
-
-    <button
-        type="submit"
-        class="submit-btn"
-        id="loginButton">
-        Enter Dashboard
-    </button>
-
+<form onsubmit="checkCode(event)">
+<input type="password" id="code" placeholder="Enter Access Code" required>
+<button type="submit" class="submit-btn">Enter Dashboard</button>
 </form>
 
 <div id="error" class="error"></div>
-```
 
 </div>
 
 <script>
 
-/* ============================================================
-   SUPABASE CONFIGURATION
-   ============================================================ */
+const ACCESS_CODE = "admin123";
 
-const SUPABASE_URL =
-    "https://raphpzlmjjzgwohjgczu.supabase.co";
-
-const SUPABASE_PUBLISHABLE_KEY =
-    "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
-
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY
-    );
-
-
-/* ============================================================
-   EXISTING LOGIN SESSION CHECK
-   ============================================================ */
-
-if (
-    localStorage.getItem("access_granted") === "true"
-) {
+// If already logged in, redirect straight to index.html
+if (localStorage.getItem("access_granted") === "true") {
     window.location.href = "index.html";
 }
 
-
-/* ============================================================
-   SUPABASE USERNAME + PASSWORD LOGIN
-   ============================================================ */
-
-async function checkLogin(event) {
-
+function checkCode(event) {
     event.preventDefault();
-
-    const usernameInput =
-        document.getElementById("username");
-
-    const passwordInput =
-        document.getElementById("password");
-
-    const errorElement =
-        document.getElementById("error");
-
-    const loginButton =
-        document.getElementById("loginButton");
-
-    const username =
-        usernameInput.value.trim();
-
-    const password =
-        passwordInput.value;
-
-    errorElement.textContent = "";
-
-    if (!username || !password) {
-
-        errorElement.textContent =
-            "Please enter your username and password.";
-
-        return;
-    }
-
-    loginButton.disabled = true;
-    loginButton.textContent = "Checking...";
-
-    try {
-
-        const { data, error } =
-            await supabaseClient.rpc(
-                "verify_admin_login",
-                {
-                    p_username: username,
-                    p_password: password
-                }
-            );
-
-        if (error) {
-
-            console.error(
-                "SUPABASE LOGIN ERROR:",
-                error
-            );
-
-            errorElement.textContent =
-                "Unable to connect to the authentication service.";
-
-            return;
-        }
-
-        /*
-         * The PostgreSQL function returns:
-         *
-         * {
-         *   valid: true,
-         *   user_id: ...,
-         *   username: ...,
-         *   display_name: ...
-         * }
-         *
-         * OR
-         *
-         * {
-         *   valid: false
-         * }
-         */
-
-        if (
-            data &&
-            data.valid === true
-        ) {
-
-            /*
-             * Keep the existing dashboard
-             * authentication flag.
-             */
-            localStorage.setItem(
-                "access_granted",
-                "true"
-            );
-
-            /*
-             * Store basic user information
-             * for dashboard display/use.
-             */
-            localStorage.setItem(
-                "admin_user_id",
-                String(data.user_id)
-            );
-
-            localStorage.setItem(
-                "admin_username",
-                data.username
-            );
-
-            localStorage.setItem(
-                "admin_display_name",
-                data.display_name || data.username
-            );
-
-            window.location.href =
-                "index.html";
-
-        } else {
-
-            errorElement.textContent =
-                "Invalid username or password.";
-
-            passwordInput.value = "";
-            passwordInput.focus();
-        }
-
-    } catch (err) {
-
-        console.error(
-            "LOGIN ERROR:",
-            err
-        );
-
-        errorElement.textContent =
-            "An unexpected error occurred.";
-
-    } finally {
-
-        loginButton.disabled = false;
-        loginButton.textContent =
-            "Enter Dashboard";
+    const code = document.getElementById("code").value;
+    if (code === ACCESS_CODE) {
+        localStorage.setItem("access_granted", "true");
+        window.location.href = "index.html";
+    } else {
+        document.getElementById("error").innerText = "Invalid Access Code";
     }
 }
 
+const toggleBtn = document.getElementById("modeToggle");
 
-/* ============================================================
-   THEME TOGGLE
-   ============================================================ */
-
-const toggleBtn =
-    document.getElementById("modeToggle");
-
-
-/* Load saved theme preference */
-
-if (
-    localStorage.getItem("theme") === "light"
-) {
-
-    document.body.classList.add(
-        "light-mode"
-    );
-
-    toggleBtn.textContent =
-        "Dark Mode";
+// Load saved theme preference on launch
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+    toggleBtn.textContent = "Dark Mode";
 }
-
-
-/* Toggle light/dark mode */
 
 function toggleMode() {
-
-    document.body.classList.toggle(
-        "light-mode"
-    );
-
-    if (
-        document.body.classList.contains(
-            "light-mode"
-        )
-    ) {
-
-        toggleBtn.textContent =
-            "Dark Mode";
-
-        localStorage.setItem(
-            "theme",
-            "light"
-        );
-
+    document.body.classList.toggle("light-mode");
+    if (document.body.classList.contains("light-mode")) {
+        toggleBtn.textContent = "Dark Mode";
+        localStorage.setItem("theme", "light");
     } else {
-
-        toggleBtn.textContent =
-            "Light Mode";
-
-        localStorage.setItem(
-            "theme",
-            "dark"
-        );
+        toggleBtn.textContent = "Light Mode";
+        localStorage.setItem("theme", "dark");
     }
 }
 
