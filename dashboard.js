@@ -290,11 +290,7 @@
         );
 
 
-        setText(
-            "weather-alert",
-            "UNAVAILABLE"
-        );
-
+  
 
         setText(
             "outdoor-temperature",
@@ -326,11 +322,7 @@
         );
 
 
-        setText(
-            "weather-factor",
-            "UNAVAILABLE"
-        );
-
+      
 
         setText(
             "degradation-factor",
