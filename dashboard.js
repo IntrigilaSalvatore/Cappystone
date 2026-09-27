@@ -68,6 +68,16 @@
         1000;
 
 
+    /*
+     * Weather data is collected by the Edge Function every
+     * 10 minutes, but the dashboard checks for a new row
+     * every 60 seconds so the display updates promptly.
+     */
+
+    const WEATHER_POLL_INTERVAL_MS =
+        60000;
+
+
     // ========================================================
     // STATE
     // ========================================================
@@ -90,11 +100,15 @@
 
     let freshnessTimer = null;
 
+    let weatherTimer = null;
+
     let cooldownWasActive = false;
 
     let dashboardCooldownUntil = null;
-    
+
     let previousACStatus = null;
+
+    let latestWeatherObservation = null;
 
 
     // ========================================================
@@ -243,7 +257,7 @@
 
 
     // ========================================================
-    // CLEAR LIVE DATA
+    // CLEAR LIVE DEVICE DATA
     // ========================================================
 
     function clearLiveDeviceData() {
@@ -290,16 +304,13 @@
         );
 
 
-        setText(
-            "weather-alert",
-            "UNAVAILABLE"
-        );
-
-
-        setText(
-            "outdoor-temperature",
-            "UNAVAILABLE"
-        );
+        /*
+         * DO NOT clear weather-alert here.
+         *
+         * Weather comes from OpenWeather and the
+         * weather_observations table, independently of
+         * the Master Node.
+         */
 
 
         setText(
@@ -477,38 +488,64 @@
     // COOLDOWN
     // ========================================================
 
+    function startDashboardCooldown() {
+
+        dashboardCooldownUntil =
+            Date.now() +
+            (3 * 60 * 1000);
+
+        cooldownWasActive =
+            true;
+
+        updateCooldownDisplay();
+    }
+
+
     function getCooldownRemainingMs() {
 
         if (
-            !currentRoomState ||
-            !currentRoomState.ac_cooldown_until
+            currentRoomState &&
+            currentRoomState.ac_cooldown_until
         ) {
 
-            return 0;
+            const cooldownUntil =
+                new Date(
+                    currentRoomState.ac_cooldown_until
+                ).getTime();
+
+
+            if (
+                !Number.isNaN(
+                    cooldownUntil
+                )
+            ) {
+
+                return Math.max(
+                    0,
+                    cooldownUntil -
+                    Date.now()
+                );
+            }
         }
 
 
-        const cooldownUntil =
-            new Date(
-                currentRoomState.ac_cooldown_until
-            ).getTime();
-
+        /*
+         * Fallback to the local dashboard timer.
+         */
 
         if (
-            Number.isNaN(
-                cooldownUntil
-            )
+            dashboardCooldownUntil !== null
         ) {
 
-            return 0;
+            return Math.max(
+                0,
+                dashboardCooldownUntil -
+                Date.now()
+            );
         }
 
 
-        return Math.max(
-            0,
-            cooldownUntil -
-            Date.now()
-        );
+        return 0;
     }
 
 
@@ -536,38 +573,393 @@
 
 
         return (
-            `minutes:{String(seconds).padStart(2, "0")}`
+            `${minutes}:${String(seconds).padStart(2, "0")}`
         );
     }
 
 
     function updateCooldownDisplay() {
-    const commandStatus = document.querySelector(
-        '[data-rvj="command-status"]'
-    );
 
-    if (!commandStatus) return;
+        const commandStatus =
+            document.querySelector(
+                '[data-rvj="command-status"]'
+            );
 
-    const remainingMs = getCooldownRemainingMs();
 
-    if (remainingMs > 0) {
-        cooldownWasActive = true;
+        if (!commandStatus) {
 
-        commandStatus.textContent =
-            `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. ` +
-            `AC cannot be turned ON yet.`;
+            return;
+        }
 
-        return;
+
+        const remainingMs =
+            getCooldownRemainingMs();
+
+
+        if (
+            remainingMs > 0
+        ) {
+
+            cooldownWasActive =
+                true;
+
+
+            commandStatus.textContent =
+                `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. ` +
+                `AC cannot be turned ON yet.`;
+
+            return;
+        }
+
+
+        if (
+            dashboardCooldownUntil !== null
+        ) {
+
+            dashboardCooldownUntil =
+                null;
+        }
+
+
+        if (
+            cooldownWasActive
+        ) {
+
+            cooldownWasActive =
+                false;
+
+
+            commandStatus.textContent =
+                "AC COOLDOWN COMPLETE. Press ON or present RFID to activate the AC.";
+        }
     }
 
-    // Cooldown just ended
-    if (cooldownWasActive) {
-        cooldownWasActive = false;
 
-        commandStatus.textContent =
-            "AC COOLDOWN COMPLETE. Press ON or present RFID to activate the AC.";
+    // ========================================================
+    // WEATHER
+    // ========================================================
+
+    function setWeatherUnavailable(
+        message
+    ) {
+
+        setText(
+            "weather-alert",
+            message ||
+            "WEATHER UNAVAILABLE"
+        );
+
+
+        getElements(
+            "weather-alert"
+        ).forEach(
+            element => {
+
+                element.title =
+                    "Weather observation unavailable.";
+
+            }
+        );
     }
-}
+
+
+    function displayWeatherObservation(
+        weather
+    ) {
+
+        if (!weather) {
+
+            latestWeatherObservation =
+                null;
+
+            setWeatherUnavailable(
+                "WEATHER NO DATA"
+            );
+
+            return;
+        }
+
+
+        latestWeatherObservation =
+            weather;
+
+
+        if (
+            !weather.observed_at
+        ) {
+
+            setWeatherUnavailable(
+                "WEATHER NO DATA"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Do not display an old observation as though it
+         * were current.
+         */
+
+        if (
+            !isFresh(
+                weather.observed_at,
+                WEATHER_TIMEOUT_MS
+            )
+        ) {
+
+            setText(
+                "weather-alert",
+                "WEATHER DATA STALE"
+            );
+
+
+            getElements(
+                "weather-alert"
+            ).forEach(
+                element => {
+
+                    element.title =
+                        `Last weather observation: ${
+                            new Date(
+                                weather.observed_at
+                            ).toLocaleString(
+                                "en-PH"
+                            )
+                        }`;
+
+                }
+            );
+
+
+            return;
+        }
+
+
+        const temperature =
+            Number(
+                weather.temperature_c
+            );
+
+
+        const feelsLike =
+            Number(
+                weather.feels_like_c
+            );
+
+
+        const humidity =
+            Number(
+                weather.humidity
+            );
+
+
+        const condition =
+            weather.condition ||
+            "Unknown";
+
+
+        // ----------------------------------------------------
+        // KEEP EXISTING DASHBOARD CARD
+        // ----------------------------------------------------
+        //
+        // No panel or layout is added.
+        //
+
+        let displayText =
+            "";
+
+
+        if (
+            Number.isFinite(
+                temperature
+            )
+        ) {
+
+            displayText =
+                temperature.toFixed(1) +
+                "°C";
+        }
+
+
+        if (
+            Number.isFinite(
+                feelsLike
+            )
+        ) {
+
+            displayText +=
+                ` | Feels ${feelsLike.toFixed(1)}°C`;
+        }
+
+
+        if (
+            Number.isFinite(
+                humidity
+            )
+        ) {
+
+            displayText +=
+                ` | ${humidity.toFixed(0)}%`;
+        }
+
+
+        if (
+            condition
+        ) {
+
+            displayText +=
+                ` | ${condition}`;
+        }
+
+
+        if (
+            !displayText
+        ) {
+
+            displayText =
+                "WEATHER NO DATA";
+        }
+
+
+        setText(
+            "weather-alert",
+            displayText
+        );
+
+
+        // ----------------------------------------------------
+        // FULL INFORMATION ON HOVER
+        // ----------------------------------------------------
+
+        getElements(
+            "weather-alert"
+        ).forEach(
+            element => {
+
+                element.title =
+                    `${weather.location || "Weather"}\n` +
+                    `Temperature: ${
+                        Number.isFinite(temperature)
+                            ? temperature.toFixed(1) + "°C"
+                            : "--"
+                    }\n` +
+                    `Feels Like: ${
+                        Number.isFinite(feelsLike)
+                            ? feelsLike.toFixed(1) + "°C"
+                            : "--"
+                    }\n` +
+                    `Humidity: ${
+                        Number.isFinite(humidity)
+                            ? humidity.toFixed(0) + "%"
+                            : "--"
+                    }\n` +
+                    `Condition: ${condition}\n` +
+                    `Observed: ${
+                        new Date(
+                            weather.observed_at
+                        ).toLocaleString(
+                            "en-PH"
+                        )
+                    }`;
+            }
+        );
+    }
+
+
+    async function loadLatestWeatherObservation() {
+
+        console.log(
+            "[RVJ] Loading latest weather observation..."
+        );
+
+
+        try {
+
+            const result =
+                await client
+                    .from(
+                        "weather_observations"
+                    )
+                    .select(
+                        "id, location, temperature_c, feels_like_c, humidity, condition, observed_at"
+                    )
+                    .order(
+                        "observed_at",
+                        {
+                            ascending:
+                                false
+                        }
+                    )
+                    .limit(
+                        1
+                    )
+                    .maybeSingle();
+
+
+            if (
+                result.error
+            ) {
+
+                console.error(
+                    "[RVJ] Weather query error:",
+                    result.error
+                );
+
+
+                setWeatherUnavailable(
+                    "WEATHER ERROR"
+                );
+
+
+                return;
+            }
+
+
+            if (
+                !result.data
+            ) {
+
+                console.log(
+                    "[RVJ] No weather observations found."
+                );
+
+
+                setWeatherUnavailable(
+                    "WEATHER NO DATA"
+                );
+
+
+                return;
+            }
+
+
+            console.log(
+                "[RVJ] Latest weather:",
+                result.data
+            );
+
+
+            displayWeatherObservation(
+                result.data
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "[RVJ] Weather load error:",
+                error
+            );
+
+
+            setWeatherUnavailable(
+                "WEATHER ERROR"
+            );
+        }
+    }
 
 
     // ========================================================
@@ -919,20 +1311,37 @@
             return;
         }
 
+
+        // ----------------------------------------------------
+        // AC OFF TRANSITION
+        // ----------------------------------------------------
+
         const currentACStatus =
-    String(data.ac_power ?? data.ac_status ?? "")
-        .trim()
-        .toUpperCase();
+            String(
+                data.ac_power ??
+                data.ac_status ??
+                ""
+            )
+                .trim()
+                .toUpperCase();
 
-if (
-    previousACStatus === "ON" &&
-    currentACStatus === "OFF"
-) {
-    startDashboardCooldown();
-}
 
-previousACStatus = currentACStatus;
+        if (
+            previousACStatus === "ON" &&
+            currentACStatus === "OFF"
+        ) {
 
+            startDashboardCooldown();
+        }
+
+
+        previousACStatus =
+            currentACStatus;
+
+
+        // ----------------------------------------------------
+        // MASTER LAST SEEN
+        // ----------------------------------------------------
 
         lastMasterSeenAt =
             data.master_last_seen_at;
@@ -1055,36 +1464,17 @@ previousACStatus = currentACStatus;
         );
 
 
-        // ----------------------------------------------------
-        // WEATHER
-        // ----------------------------------------------------
-
-        const weatherFresh =
-            data.weather_last_updated_at &&
-            isFresh(
-                data.weather_last_updated_at,
-                WEATHER_TIMEOUT_MS
-            );
-
-
-        if (
-            weatherFresh
-        ) {
-
-            setText(
-                "weather-alert",
-                data.hot_weather
-                    ? "HOT WEATHER"
-                    : "NORMAL"
-            );
-
-        } else {
-
-            setText(
-                "weather-alert",
-                "UNAVAILABLE"
-            );
-        }
+        /*
+         * IMPORTANT:
+         *
+         * There is intentionally NO weather-alert update here.
+         *
+         * The Weather Alert card is controlled exclusively by
+         * loadLatestWeatherObservation().
+         *
+         * This prevents the 10-second room_state polling from
+         * overwriting the live OpenWeather information.
+         */
 
 
         // ----------------------------------------------------
@@ -1137,10 +1527,7 @@ previousACStatus = currentACStatus;
 
 
         // ----------------------------------------------------
-        // Enable commands unless crowd scan is active.
-        //
-        // Cooldown does NOT disable the buttons because the
-        // ON button should be clickable and show the timer.
+        // ENABLE COMMANDS
         // ----------------------------------------------------
 
         if (
@@ -1521,6 +1908,14 @@ previousACStatus = currentACStatus;
             false;
 
 
+        previousACStatus =
+            null;
+
+
+        dashboardCooldownUntil =
+            null;
+
+
         cooldownWasActive =
             false;
 
@@ -1567,7 +1962,7 @@ previousACStatus = currentACStatus;
         realtimeChannel =
             client
                 .channel(
-                    `rvj-room-roomId-{Date.now()}`
+                    `rvj-room-${roomId}-${Date.now()}`
                 )
 
 
@@ -1698,8 +2093,6 @@ previousACStatus = currentACStatus;
                             "FAILED"
                         ) {
 
-                            // For an ON command, the room_state
-                            // cooldown timer is the useful message.
                             if (
                                 command.command ===
                                 "ON"
@@ -1784,6 +2177,30 @@ previousACStatus = currentACStatus;
 
 
     // ========================================================
+    // WEATHER POLLING
+    // ========================================================
+
+    function startWeatherPolling() {
+
+        if (
+            weatherTimer
+        ) {
+
+            clearInterval(
+                weatherTimer
+            );
+        }
+
+
+        weatherTimer =
+            setInterval(
+                loadLatestWeatherObservation,
+                WEATHER_POLL_INTERVAL_MS
+            );
+    }
+
+
+    // ========================================================
     // FRESHNESS MONITOR
     // ========================================================
 
@@ -1833,6 +2250,12 @@ previousACStatus = currentACStatus;
                             );
                         }
                     }
+
+
+                    /*
+                     * Weather is independent of Master status.
+                     * Its own timer handles refreshes.
+                     */
 
                 },
                 FRESHNESS_INTERVAL_MS
@@ -1936,12 +2359,6 @@ previousACStatus = currentACStatus;
         // ====================================================
         // SIMPLE COOLDOWN PROTECTION
         // ====================================================
-        //
-        // Only ON is blocked.
-        //
-        // No command is inserted.
-        // No command is queued.
-        //
 
         if (
             command ===
@@ -2214,6 +2631,16 @@ previousACStatus = currentACStatus;
         disableAdminControls();
 
 
+        /*
+         * Weather is independent of room selection and
+         * Master Node status.
+         */
+
+        loadLatestWeatherObservation();
+
+        startWeatherPolling();
+
+
         await loadRooms();
 
 
@@ -2235,6 +2662,8 @@ previousACStatus = currentACStatus;
         loadRoomState,
 
         loadTemperatureReadings,
+
+        loadLatestWeatherObservation,
 
         sendACCommand,
 
@@ -2271,33 +2700,3 @@ previousACStatus = currentACStatus;
     }
 
 })();
-
-function startDashboardCooldown() {
-    dashboardCooldownUntil = Date.now() + (3 * 60 * 1000);
-
-    updateCooldownDisplay();
-}
-
-function updateCooldownDisplay() {
-    const remainingMs = dashboardCooldownUntil
-        ? Math.max(0, dashboardCooldownUntil - Date.now())
-        : 0;
-
-    if (remainingMs > 0) {
-        setText(
-            "command-status",
-            `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. Please wait.`
-        );
-        return;
-    }
-
-    if (dashboardCooldownUntil !== null) {
-        dashboardCooldownUntil = null;
-
-        setText(
-            "command-status",
-            "AC COOLDOWN COMPLETE. Press ON or present RFID to activate."
-        );
-    }
-}
-
