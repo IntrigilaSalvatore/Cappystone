@@ -346,15 +346,11 @@ body.light-mode .toggle-btn{
 
 <form onsubmit="checkCode(event)">
 
-<!-- USERNAME FIELD -->
 <input type="text" id="username" placeholder="Enter Username" required>
 
-<!-- ACCESS CODE FIELD -->
 <input type="password" id="code" placeholder="Enter Access Code" required>
 
 <button type="submit" class="submit-btn">Enter Dashboard</button>
-
-<button type="button" class="submit-btn" style="margin-top: 10px; background: #005A92; color: #ffffff;" onclick="registerNewAdmin()">Register New Admin</button>
 
 </form>
 
@@ -385,7 +381,7 @@ if (localStorage.getItem("access_granted") === "true") {
 }
 
 
-// LOGIN VIA SUPABASE
+// VERIFY USERNAME AND ACCESS CODE AGAINST SUPABASE DATABASE
 async function checkCode(event) {
 
     event.preventDefault();
@@ -431,61 +427,6 @@ async function checkCode(event) {
         console.error("Unexpected Error:", err);
         errorDiv.style.color = "#ef4444";
         errorDiv.innerText = "Connection error.";
-    }
-
-}
-
-
-// REGISTER NEW ADMIN IN SUPABASE
-async function registerNewAdmin() {
-
-    const username = document.getElementById("username").value.trim();
-    const code = document.getElementById("code").value.trim();
-    const errorDiv = document.getElementById("error");
-
-    if (!username || !code) {
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Please enter both Username and Access Code.";
-        return;
-    }
-
-    if (!supabaseClient) {
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Supabase library failed to load.";
-        return;
-    }
-
-    errorDiv.style.color = "#FADA7A";
-    errorDiv.innerText = "Registering new admin in Supabase...";
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("admin_users")
-            .insert([
-                { 
-                    username: username, 
-                    access_code: code,
-                    role: "ADMIN"
-                }
-            ]);
-
-        if (error) {
-            console.error("Supabase Insert Error:", error);
-            errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Registration failed: " + error.message;
-        } else {
-            errorDiv.style.color = "#22c55e";
-            errorDiv.innerText = "New Admin registered! Granting access...";
-            localStorage.setItem("access_granted", "true");
-            localStorage.setItem("current_admin_user", username);
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 1000);
-        }
-    } catch (err) {
-        console.error("Unexpected Error:", err);
-        errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Failed to register in Supabase.";
     }
 
 }
