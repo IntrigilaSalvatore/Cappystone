@@ -10,6 +10,8 @@
 
   <title>RVJ Classroom Performance Dashboard</title>
 
+  
+
   <!-- AUTH GUARD SCRIPT: Redirects to login.html if not authenticated -->
 
   <script>
@@ -22,7 +24,11 @@
 
   </script>
 
+
+
   <link rel="stylesheet" href="style.css?v=22" />
+
+
 
   <!-- Supabase JS Client library -->
 
@@ -32,256 +38,287 @@
 
 <body>
 
+
+
 <!-- HEADER SECTION -->
 
   <header class="header">
 
-```
-<div>
+    <div>
 
-  <h1>RVJ Performance Dashboard</h1>
+      <h1>RVJ Performance Dashboard</h1>
 
-  <p>IoT Air Conditioning Performance & System State Monitoring</p>
+      <p>IoT Air Conditioning Performance & System State Monitoring</p>
 
-</div>
+    </div>
 
-<div style="display: flex; align-items: center; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
 
-  <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
+      <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
 
-  <!-- LOGOUT BUTTON AS A MATCHING BADGE LINK -->
-  <a 
-    href="#" 
-    class="status-badge" 
-    style="text-decoration: none; cursor: pointer;"
-    onclick="localStorage.removeItem('access_granted'); window.location.href='login.html'; return false;"
-  >
-    LOGOUT
-  </a>
+      
 
-</div>
-```
+      <!-- LOGOUT BUTTON AS A MATCHING BADGE LINK -->
+
+      <a 
+
+        href="#" 
+
+        class="status-badge" 
+
+        style="text-decoration: none; cursor: pointer;"
+
+        onclick="localStorage.removeItem('access_granted'); window.location.href='login.html'; return false;"
+
+      >
+
+        LOGOUT
+
+      </a>
+
+    </div>
 
   </header>
+
+
 
   <!-- MAIN DASHBOARD CONTENT CONTAINER -->
 
   <main class="dashboard">
 
-```
-<!-- 1. COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
-<section class="panel">
 
-  <h2>System & Room Overview</h2>
 
-  <div class="system-status" data-rvj="system-status">
+    <!-- 1. COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
 
-    Connecting to system services...
+    <section class="panel">
 
-  </div>
+      <h2>System & Room Overview</h2>
 
-  <div class="room-select-group">
+      
 
-    <label class="label" for="room-selector">Select Classroom:</label>
+      <div class="system-status" data-rvj="system-status">
 
-    <select id="room-selector" data-rvj="room-selector">
+        Connecting to system services...
 
-      <option value="">Loading rooms...</option>
+      </div>
 
-    </select>
 
-  </div>
 
-  <div class="room-information">
+      <div class="room-select-group">
 
-    <div>
+        <label class="label" for="room-selector">Select Classroom:</label>
 
-      <span class="label">Room Code</span>
+        <select id="room-selector" data-rvj="room-selector">
 
-      <span class="value" data-rvj="room-code">--</span>
+          <option value="">Loading rooms...</option>
 
-    </div>
+        </select>
 
-    <div>
+      </div>
 
-      <span class="label">Room Name</span>
 
-      <span class="value" data-rvj="room-name">--</span>
 
-    </div>
+      <div class="room-information">
 
-    <div>
+        <div>
 
-      <span class="label">Location</span>
+          <span class="label">Room Code</span>
 
-      <span class="value" data-rvj="room-location">--</span>
+          <span class="value" data-rvj="room-code">--</span>
 
-    </div>
+        </div>
 
-    <div>
+        <div>
 
-      <span class="label">Capacity</span>
+          <span class="label">Room Name</span>
 
-      <span class="value" data-rvj="room-capacity">--</span>
+          <span class="value" data-rvj="room-name">--</span>
 
-    </div>
+        </div>
 
-  </div>
+        <div>
 
-</section>
+          <span class="label">Location</span>
 
-<!-- 2. LIVE TELEMETRY (LEFT COLUMN) -->
-<section class="panel">
+          <span class="value" data-rvj="room-location">--</span>
 
-  <h2>Live Telemetry</h2>
+        </div>
 
-  <div class="cards">
+        <div>
 
-    <div class="card">
+          <span class="label">Capacity</span>
 
-      <span class="card-title">Temperature</span>
+          <span class="value" data-rvj="room-capacity">--</span>
 
-      <span class="card-value" data-rvj="temperature">--</span>
+        </div>
 
-    </div>
+      </div>
 
-    <div class="card">
+    </section>
 
-      <span class="card-title">AC Power</span>
 
-      <span class="card-value" data-rvj="ac-status">OFF</span>
 
-    </div>
+    <!-- 2. LIVE TELEMETRY (LEFT COLUMN) -->
 
-    <div class="card">
+    <section class="panel">
 
-      <span class="card-title">RFID Card</span>
+      <h2>Live Telemetry</h2>
 
-      <span class="card-value" data-rvj="rfid-status">REMOVED</span>
+      <div class="cards">
 
-    </div>
+        <div class="card">
 
-    <div class="card">
+          <span class="card-title">Temperature</span>
 
-      <span class="card-title">Control Mode</span>
+          <span class="card-value" data-rvj="temperature">--</span>
 
-      <span class="card-value" data-rvj="control-mode">RFID</span>
+        </div>
 
-    </div>
+        <div class="card">
 
-    <div class="card">
+          <span class="card-title">AC Power</span>
 
-      <span class="card-title">Door Contact</span>
+          <span class="card-value" data-rvj="ac-status">OFF</span>
 
-      <span class="card-value" data-rvj="door-status">CLOSED</span>
+        </div>
 
-    </div>
+        <div class="card">
 
-    <div class="card">
+          <span class="card-title">RFID Card</span>
 
-      <span class="card-title">Crowd Count</span>
+          <span class="card-value" data-rvj="rfid-status">REMOVED</span>
 
-      <span class="card-value" data-rvj="crowd-count">0</span>
+        </div>
 
-    </div>
+        <div class="card">
 
-    <div class="card">
+          <span class="card-title">Control Mode</span>
 
-      <span class="card-title">Crowd Level</span>
+          <span class="card-value" data-rvj="control-mode">RFID</span>
 
-      <span class="card-value" data-rvj="crowd-alert">NORMAL</span>
+        </div>
 
-    </div>
+        <div class="card">
 
-    <div class="card">
+          <span class="card-title">Door Contact</span>
 
-      <span class="card-title">Weather Alert</span>
+          <span class="card-value" data-rvj="door-status">CLOSED</span>
 
-      <span class="card-value" data-rvj="weather-alert">NORMAL</span>
+        </div>
 
-    </div>
+        <div class="card">
 
-  </div>
+          <span class="card-title">Crowd Count</span>
 
-</section>
+          <span class="card-value" data-rvj="crowd-count">0</span>
 
-<!-- 3. PERFORMANCE PANEL (RIGHT COLUMN - TOP) -->
-<section class="panel">
+        </div>
 
-  <h2>AC Performance Evaluation</h2>
+        <div class="card">
 
-  <div class="performance-container">
+          <span class="card-title">Crowd Level</span>
 
-    <div class="performance-item">
+          <span class="card-value" data-rvj="crowd-alert">NORMAL</span>
 
-      <span class="label">Performance Score</span>
+        </div>
 
-      <span class="large-value" data-rvj="performance-score">--</span>
+        <div class="card">
 
-    </div>
+          <span class="card-title">Weather Alert</span>
 
-    <div class="performance-item">
+          <span class="card-value" data-rvj="weather-alert">NORMAL</span>
 
-      <span class="label">Performance Status</span>
+        </div>
 
-      <span class="large-value" data-rvj="performance-status">UNKNOWN</span>
+      </div>
 
-    </div>
+    </section>
 
-  </div>
 
-  <div class="last-update">
 
-    <span class="label">Last Updated:</span>
+    <!-- 3. PERFORMANCE PANEL (RIGHT COLUMN - TOP) -->
 
-    <span class="value" data-rvj="last-update">--</span>
+    <section class="panel">
 
-  </div>
+      <h2>AC Performance Evaluation</h2>
 
-</section>
+      <div class="performance-container">
 
-<!-- 4. DEGRADATION FACTORS PANEL (RIGHT COLUMN - BOTTOM) -->
-<section class="panel">
+        <div class="performance-item">
 
-  <h2>Degradation Analysis</h2>
+          <span class="label">Performance Score</span>
 
-  <div class="factor-grid">
+          <span class="large-value" data-rvj="performance-score">--</span>
 
-    <div class="factor">
+        </div>
 
-      <span>Door Open Impact:</span>
+        <div class="performance-item">
 
-      <span class="factor-status" data-rvj="door-factor">NORMAL</span>
+          <span class="label">Performance Status</span>
 
-    </div>
+          <span class="large-value" data-rvj="performance-status">UNKNOWN</span>
 
-    <div class="factor">
+        </div>
 
-      <span>Crowd Impact:</span>
+      </div>
 
-      <span class="factor-status" data-rvj="crowd-factor">NORMAL</span>
+      <div class="last-update">
 
-    </div>
+        <span class="label">Last Updated:</span>
 
-    <div class="factor">
+        <span class="value" data-rvj="last-update">--</span>
 
-      <span>Weather Impact:</span>
+      </div>
 
-      <span class="factor-status" data-rvj="weather-factor">NORMAL</span>
+    </section>
 
-    </div>
 
-    <div class="factor">
 
-      <span>Primary Factor:</span>
+    <!-- 4. DEGRADATION FACTORS PANEL (RIGHT COLUMN - BOTTOM) -->
 
-      <span class="factor-status" data-rvj="degradation-factor">NONE</span>
+    <section class="panel">
 
-    </div>
+      <h2>Degradation Analysis</h2>
 
-  </div>
+      <div class="factor-grid">
 
-</section>
+        <div class="factor">
+
+          <span>Door Open Impact:</span>
+
+          <span class="factor-status" data-rvj="door-factor">NORMAL</span>
+
+        </div>
+
+        <div class="factor">
+
+          <span>Crowd Impact:</span>
+
+          <span class="factor-status" data-rvj="crowd-factor">NORMAL</span>
+
+        </div>
+
+        <div class="factor">
+
+          <span>Weather Impact:</span>
+
+          <span class="factor-status" data-rvj="weather-factor">NORMAL</span>
+
+        </div>
+
+        <div class="factor">
+
+          <span>Primary Factor:</span>
+
+          <span class="factor-status" data-rvj="degradation-factor">NONE</span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
 
 <!-- 5. ADMIN AC CONTROLS PANEL (BOTTOM FULL WIDTH) -->
 
@@ -305,31 +342,41 @@
 
     </button>
 
+
+
     <button type="button" data-ac-command="OFF" class="button button-off">
 
       Force AC OFF
 
     </button>
 
+
+
     <!-- Temperature Level Override Controls -->
 
-    <button type="button" data-ac-command="SET_TEMP_LOW" class="button">
+   <button type="button" data-ac-command="SET_TEMP_LOW" class="button">
 
       Low Cool (16°C - 18°C)
 
-    </button>
+   </button>
 
-    <button type="button" data-ac-command="SET_TEMP_MID" class="button">
+
+
+   <button type="button" data-ac-command="SET_TEMP_MID" class="button">
 
       Mid Cool (21°C - 23°C)
 
-    </button>
+   </button>
 
-    <button type="button" data-ac-command="SET_TEMP_HIGH" class="button">
+
+
+   <button type="button" data-ac-command="SET_TEMP_HIGH" class="button">
 
       High Cool (24°C - 26°C)
 
-    </button>
+   </button>
+
+
 
     <!-- Mode Reset -->
 
@@ -350,12 +397,18 @@
   </div>
 
 </section>
-```
+
+
+
+    
 
   </main>
 
-  <script src="dashboard.js?v=26"></script>
+
+
+  <script src="dashboard.js?v=25"></script>
 
 </body>
 
-</html>
+</html> 
+
