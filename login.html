@@ -10,6 +10,8 @@
 
 <title>Admin Access</title>
 
+<!-- Supabase JS Client library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 
 <style>
@@ -348,6 +350,9 @@ body.light-mode .toggle-btn{
 
 <button type="submit" class="submit-btn">Enter Dashboard</button>
 
+<!-- ADDED NEW ADMIN BUTTON BELOW YOUR SUBMIT BUTTON -->
+<button type="button" class="submit-btn" style="margin-top: 10px; background: #005A92; color: #ffffff;" onclick="registerNewAdmin()">Register New Admin</button>
+
 </form>
 
 
@@ -437,6 +442,61 @@ function toggleMode() {
 }
 
 
+// ========================================================
+// ADDED SUPABASE CONNECTION & NEW ADMIN REGISTRATION
+// ========================================================
+
+const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+
+async function registerNewAdmin() {
+    const code = document.getElementById("code").value.trim();
+    const errorDiv = document.getElementById("error");
+
+    if (!code) {
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Please enter an Access Code first.";
+        return;
+    }
+
+    if (!supabaseClient) {
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Supabase library not loaded.";
+        return;
+    }
+
+    errorDiv.style.color = "#FADA7A";
+    errorDiv.innerText = "Connecting to Supabase...";
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("admin_users")
+            .insert([
+                { 
+                    access_code: code, 
+                    role: "ADMIN"
+                }
+            ]);
+
+        if (error) {
+            console.error("Supabase Insert Error:", error);
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Error: " + error.message;
+        } else {
+            errorDiv.style.color = "#22c55e";
+            errorDiv.innerText = "New Admin saved to Supabase! Entering...";
+            localStorage.setItem("access_granted", "true");
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1000);
+        }
+    } catch (err) {
+        console.error("Unexpected Error:", err);
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Failed to connect to Supabase.";
+    }
+}
 
 </script>
 
@@ -444,5 +504,4 @@ function toggleMode() {
 
 </body>
 
-</html> 
-
+</html>
