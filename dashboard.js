@@ -774,126 +774,126 @@
     }
 
 
+   // ========================================================
+    // CROWD (ONLY LOW / MEDIUM / HIGH + BUSY BANNER)
     // ========================================================
-    // CROWD
-    // ========================================================
+
+    let crowdScanWasActive = false;
 
     function displayCrowdState(
         data
     ) {
 
         if (
-            !masterOnline
+            !masterOnline ||
+            !data
         ) {
-
-            setText(
-                "crowd-count",
-                "UNAVAILABLE"
-            );
-
 
             setText(
                 "crowd-alert",
                 "UNAVAILABLE"
             );
-
 
             return;
         }
 
 
         const scanStatus =
-            data.crowd_scan_status ||
-            "READY";
+            String(data.crowd_scan_status || "READY")
+                .trim()
+                .toUpperCase();
 
 
         if (
-            scanStatus ===
-            "CHECKING"
+            scanStatus === "CHECKING"
         ) {
 
+            crowdScanWasActive = true;
+
+            // 1. Top Header Badge
             setText(
-                "crowd-count",
-                "CHECKING"
+                "connection-status",
+                "SCANNING CROWD..."
             );
 
-
-            setText(
-                "crowd-alert",
-                "CHECKING"
-            );
-
-
+            // 2. Top System Overview Banner
             setText(
                 "system-status",
-                "Checking crowd density. Administrator controls are temporarily disabled."
+                "⏳ BUSY: Master Node is scanning classroom crowd density (~4 seconds). Controls will resume momentarily..."
             );
 
+            // 3. Live Telemetry Card & Degradation Factor
+            setText(
+                "crowd-alert",
+                "SCANNING..."
+            );
+
+            setText(
+                "crowd-factor",
+                "SCANNING..."
+            );
+
+            // 4. Bottom Admin Command Output
+            setText(
+                "command-status",
+                "⏳ Master Node is performing a 4-second crowd scan. Admin buttons will unlock momentarily..."
+            );
 
             disableAdminControls();
 
-
             return;
         }
 
 
-        if (
-            !data.crowd_last_scan_at
-        ) {
+        // If scan just finished, restore the normal status messages and unlock buttons
+        if (crowdScanWasActive) {
+
+            crowdScanWasActive = false;
 
             setText(
-                "crowd-count",
-                data.crowd_count ?? "0"
+                "connection-status",
+                "DEVICE ONLINE"
             );
-
 
             setText(
-                "crowd-alert",
-                data.crowd_level || "NORMAL"
+                "system-status",
+                "Master Node is online and reporting."
             );
 
+            if (getCooldownRemainingMs() === 0) {
+                setText(
+                    "command-status",
+                    "Crowd scan complete. Ready for commands."
+                );
+            }
 
-            return;
+            enableAdminControls();
         }
 
 
-        if (
-            !isFresh(
-                data.crowd_last_scan_at,
-                CROWD_TIMEOUT_MS
-            )
-        ) {
-
-            setText(
-                "crowd-count",
-                "DATA STALE"
-            );
+        // Display strictly LOW, MEDIUM, or HIGH
+        const rawLevel =
+            String(data.crowd_level || "LOW")
+                .trim()
+                .toUpperCase();
 
 
-            setText(
-                "crowd-alert",
-                "DATA STALE"
-            );
+        let level = "LOW";
 
-
-            return;
+        if (rawLevel === "HIGH" || data.overcrowded === true) {
+            level = "HIGH";
+        } else if (rawLevel === "MEDIUM" || rawLevel === "MID") {
+            level = "MEDIUM";
+        } else {
+            level = "LOW";
         }
-
-
-        setText(
-            "crowd-count",
-            data.crowd_count ??
-            "0"
-        );
 
 
         setText(
             "crowd-alert",
-            data.crowd_level ||
-            "LOW"
+            level
         );
     }
-
 
     // ========================================================
     // TEMPERATURE (WITH 3-MINUTE LATCH)
