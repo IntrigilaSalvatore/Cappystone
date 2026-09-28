@@ -418,12 +418,6 @@
 
 
         setText(
-            "crowd-count",
-            "UNAVAILABLE"
-        );
-
-
-        setText(
             "crowd-alert",
             "UNAVAILABLE"
         );
