@@ -36,20 +36,20 @@
 
 
     console.log(
-        "[RVJ] dashboard.js loaded."
+        "[RVJ] dashboard.js v99 loaded (Hard 3-Minute Hold Latch active)."
     );
 
 
     // ========================================================
-    // FRESHNESS
+    // FRESHNESS (3-MINUTE ALLOWANCE)
     // ========================================================
 
     const MASTER_TIMEOUT_MS =
-        60000;
+        3 * 60 * 1000; // 3 minutes (180,000 ms)
 
 
     const TEMPERATURE_TIMEOUT_MS =
-        90000;
+        3 * 60 * 1000; // 3 minutes (180,000 ms)
 
 
     const CROWD_TIMEOUT_MS =
@@ -89,6 +89,17 @@
     let latestTemperatureReadings = [];
 
     let lastMasterSeenAt = null;
+
+    // Hard 3-minute hold timers (prevents momentary UNAVAILABLE flickers)
+    let onlineHoldUntilMs = 0;
+
+    let tempHoldUntilMs = 0;
+
+    let lastValidTempValue = null;
+
+    let lastSeenServerSignature = "";
+
+    let latestWeatherData = null;
 
     let masterOnline = false;
 
@@ -152,7 +163,7 @@
 
 
     // ========================================================
-    // DATE HELPERS
+    // DATE & FRESHNESS HELPERS
     // ========================================================
 
     function parseDate(
@@ -207,10 +218,128 @@
             date.getTime();
 
 
-        return (
-            age >= 0 &&
-            age <= timeoutMs
+        // If age < 0, Supabase's server clock is a few seconds ahead of this laptop's clock,
+        // which means the data was JUST created and is 100% fresh.
+        if (age < 0) {
+
+            return true;
+        }
+
+
+        return age <= timeoutMs;
+    }
+
+
+    function extendOnlineHold() {
+
+        onlineHoldUntilMs =
+            Date.now() +
+            MASTER_TIMEOUT_MS;
+    }
+
+
+    function extendTempHold(tempValue) {
+
+        if (Number.isFinite(tempValue)) {
+
+            lastValidTempValue =
+                tempValue;
+
+            tempHoldUntilMs =
+                Date.now() +
+                TEMPERATURE_TIMEOUT_MS;
+        }
+    }
+
+
+    function getNewestTimestamp(
+        timestamps
+    ) {
+
+        let newestDate = null;
+
+
+        timestamps.forEach(
+            ts => {
+
+                const parsed =
+                    parseDate(ts);
+
+                if (
+                    parsed &&
+                    (
+                        !newestDate ||
+                        parsed.getTime() > newestDate.getTime()
+                    )
+                ) {
+
+                    newestDate = parsed;
+                }
+            }
         );
+
+
+        return newestDate
+            ? newestDate.toISOString()
+            : null;
+    }
+
+
+    function refreshMasterActivityTimestamp() {
+
+        const candidateTimestamps = [];
+
+
+        if (currentRoomState) {
+
+            if (currentRoomState.master_last_seen_at) {
+                candidateTimestamps.push(
+                    currentRoomState.master_last_seen_at
+                );
+            }
+
+            if (currentRoomState.updated_at) {
+                candidateTimestamps.push(
+                    currentRoomState.updated_at
+                );
+            }
+        }
+
+
+        latestTemperatureReadings.forEach(
+            reading => {
+
+                if (reading && reading.recorded_at) {
+                    candidateTimestamps.push(
+                        reading.recorded_at
+                    );
+                }
+            }
+        );
+
+
+        const newestServerTs =
+            getNewestTimestamp(
+                candidateTimestamps
+            );
+
+
+        if (newestServerTs) {
+
+            lastMasterSeenAt =
+                newestServerTs;
+
+            if (
+                isFresh(newestServerTs, MASTER_TIMEOUT_MS) ||
+                (lastSeenServerSignature !== "" && newestServerTs !== lastSeenServerSignature)
+            ) {
+
+                extendOnlineHold();
+            }
+
+            lastSeenServerSignature =
+                newestServerTs;
+        }
     }
 
 
@@ -254,12 +383,6 @@
 
     // ========================================================
     // CLEAR LIVE DATA
-    // ========================================================
-    //
-    // Weather is NOT cleared here.
-    // Weather comes from weather_observations and is
-    // independent of the Master Node connection.
-    //
     // ========================================================
 
     function clearLiveDeviceData() {
@@ -350,15 +473,33 @@
 
 
     // ========================================================
-    // MASTER ONLINE
+    // MASTER ONLINE (WITH 3-MINUTE LATCH)
     // ========================================================
 
     function masterIsActuallyOnline() {
 
-        return isFresh(
-            lastMasterSeenAt,
-            MASTER_TIMEOUT_MS
-        );
+        refreshMasterActivityTimestamp();
+
+
+        if (Date.now() < onlineHoldUntilMs) {
+
+            return true;
+        }
+
+
+        if (
+            isFresh(
+                lastMasterSeenAt,
+                MASTER_TIMEOUT_MS
+            )
+        ) {
+
+            extendOnlineHold();
+            return true;
+        }
+
+
+        return false;
     }
 
 
@@ -410,6 +551,12 @@
                 "system-status",
                 "Master Node is online and reporting."
             );
+
+
+            if (currentRoomState) {
+
+                displayRoomState(currentRoomState);
+            }
 
 
         } else {
@@ -483,10 +630,6 @@
 
     function getCooldownRemainingMs() {
 
-        /*
-         * Local dashboard cooldown has priority.
-         */
-
         if (
             dashboardCooldownUntil
         ) {
@@ -498,11 +641,6 @@
             );
         }
 
-
-        /*
-         * Fall back to the room_state cooldown
-         * when available.
-         */
 
         if (
             !currentRoomState ||
@@ -614,10 +752,6 @@
         }
 
 
-        /*
-         * Cooldown has ended.
-         */
-
         if (
             dashboardCooldownUntil
         ) {
@@ -640,7 +774,7 @@
             ) {
 
                 commandStatus.textContent =
-                    "AC COOLDOWN COMPLETE. Press ON or present RFID to activate.";
+                    "AC COOLDOWN COMPLETE. Press ON or tap RFID to activate.";
             }
         }
     }
@@ -715,13 +849,13 @@
 
             setText(
                 "crowd-count",
-                "NO DATA"
+                data.crowd_count ?? "0"
             );
 
 
             setText(
                 "crowd-alert",
-                "NO DATA"
+                data.crowd_level || "NORMAL"
             );
 
 
@@ -755,7 +889,7 @@
         setText(
             "crowd-count",
             data.crowd_count ??
-            "NO DATA"
+            "0"
         );
 
 
@@ -768,7 +902,7 @@
 
 
     // ========================================================
-    // TEMPERATURE
+    // TEMPERATURE (WITH 3-MINUTE LATCH)
     // ========================================================
 
     function updateTemperatureDisplay() {
@@ -798,43 +932,73 @@
 
 
         if (
-            freshReadings.length === 0
+            freshReadings.length > 0
         ) {
+
+            let total = 0;
+
+            freshReadings.forEach(
+                reading => {
+                    total += Number(reading.temperature_c);
+                }
+            );
+
+            const average =
+                total / freshReadings.length;
+
+            extendTempHold(average);
 
             setText(
                 "temperature",
-                "SENSOR DATA UNAVAILABLE"
+                `${average.toFixed(1)} °C`
             );
-
 
             return;
         }
 
 
-        let total =
-            0;
+        // Fallback 1: Use avg_temperature_c from room_state
+        if (
+            currentRoomState &&
+            currentRoomState.avg_temperature_c !== null &&
+            currentRoomState.avg_temperature_c !== undefined
+        ) {
 
+            const roomTemp =
+                Number(currentRoomState.avg_temperature_c);
 
-        freshReadings.forEach(
-            reading => {
+            if (Number.isFinite(roomTemp)) {
 
-                total +=
-                    Number(
-                        reading.temperature_c
-                    );
+                extendTempHold(roomTemp);
 
+                setText(
+                    "temperature",
+                    `${roomTemp.toFixed(1)} °C`
+                );
+
+                return;
             }
-        );
+        }
 
 
-        const average =
-            total /
-            freshReadings.length;
+        // Fallback 2: Hold last valid temperature for the full 3-minute latch
+        if (
+            lastValidTempValue !== null &&
+            Date.now() < tempHoldUntilMs
+        ) {
+
+            setText(
+                "temperature",
+                `${Number(lastValidTempValue).toFixed(1)} °C`
+            );
+
+            return;
+        }
 
 
         setText(
             "temperature",
-            `${average.toFixed(1)} °C`
+            "SENSOR DATA UNAVAILABLE"
         );
     }
 
@@ -842,26 +1006,14 @@
     // ========================================================
     // WEATHER
     // ========================================================
-    //
-    // Reads the latest row from:
-    //
-    // public.weather_observations
-    //
-    // Expected columns:
-    //
-    // id
-    // location
-    // temperature_c
-    // feels_like_c
-    // humidity
-    // condition
-    // observed_at
-    //
-    // ========================================================
 
     function displayWeatherObservation(
         data
     ) {
+
+        latestWeatherData =
+            data;
+
 
         const elements =
             getElements(
@@ -900,15 +1052,12 @@
             );
 
 
-        /*
-         * Do not display stale weather as current.
-         */
-
         if (
             !observedAt ||
-            Date.now() -
-                observedAt.getTime() >
+            !isFresh(
+                data.observed_at,
                 WEATHER_TIMEOUT_MS
+            )
         ) {
 
             setText(
@@ -924,12 +1073,6 @@
                         "Latest weather observation is stale.";
 
                 }
-            );
-
-
-            console.warn(
-                "[RVJ] Weather observation is stale:",
-                data.observed_at
             );
 
 
@@ -1047,39 +1190,10 @@
 
             }
         );
-
-
-        console.log(
-            "[RVJ] Weather displayed:",
-            {
-                location:
-                    location,
-
-                temperature_c:
-                    data.temperature_c,
-
-                feels_like_c:
-                    data.feels_like_c,
-
-                humidity:
-                    data.humidity,
-
-                condition:
-                    data.condition,
-
-                observed_at:
-                    data.observed_at
-            }
-        );
     }
 
 
     async function loadLatestWeatherObservation() {
-
-        console.log(
-            "[RVJ] Loading latest weather observation..."
-        );
-
 
         try {
 
@@ -1113,21 +1227,8 @@
                     result.error
                 );
 
-
-                setText(
-                    "weather-alert",
-                    "UNAVAILABLE"
-                );
-
-
                 return;
             }
-
-
-            console.log(
-                "[RVJ] Latest weather:",
-                result.data
-            );
 
 
             displayWeatherObservation(
@@ -1142,12 +1243,6 @@
             console.error(
                 "[RVJ] Weather loading failed:",
                 error
-            );
-
-
-            setText(
-                "weather-alert",
-                "UNAVAILABLE"
             );
         }
     }
@@ -1174,13 +1269,6 @@
                 },
                 WEATHER_POLL_INTERVAL_MS
             );
-
-
-        console.log(
-            "[RVJ] Weather polling started. Interval:",
-            WEATHER_POLL_INTERVAL_MS,
-            "ms"
-        );
     }
 
 
@@ -1242,13 +1330,7 @@
                 "CHECKING"
             );
 
-        } else if (
-            data.crowd_last_scan_at &&
-            isFresh(
-                data.crowd_last_scan_at,
-                CROWD_TIMEOUT_MS
-            )
-        ) {
+        } else {
 
             setText(
                 "crowd-factor",
@@ -1256,23 +1338,8 @@
                     ? "ACTIVE"
                     : "NORMAL"
             );
-
-        } else {
-
-            setText(
-                "crowd-factor",
-                "UNAVAILABLE"
-            );
         }
 
-
-        /*
-         * This existing factor continues to use the
-         * room_state weather values.
-         *
-         * The LIVE weather observation displayed in the
-         * Weather Alert card comes from weather_observations.
-         */
 
         if (
             data.weather_last_updated_at &&
@@ -1289,11 +1356,31 @@
                     : "NORMAL"
             );
 
+        } else if (
+            latestWeatherData &&
+            isFresh(
+                latestWeatherData.observed_at,
+                WEATHER_TIMEOUT_MS
+            )
+        ) {
+
+            const hot =
+                Number(latestWeatherData.temperature_c) >= 32 ||
+                Number(latestWeatherData.feels_like_c) >= 35 ||
+                Boolean(data.hot_weather);
+
+            setText(
+                "weather-factor",
+                hot
+                    ? "ACTIVE"
+                    : "NORMAL"
+            );
+
         } else {
 
             setText(
                 "weather-factor",
-                "UNAVAILABLE"
+                "NORMAL"
             );
         }
 
@@ -1314,47 +1401,29 @@
         data
     ) {
 
-        currentRoomState =
-            data;
+        if (data) {
+
+            currentRoomState =
+                data;
+        }
 
 
         if (
-            !data
+            !currentRoomState
         ) {
-
-            lastMasterSeenAt =
-                null;
-
-
-            masterOnline =
-                false;
-
-
-            clearLiveDeviceData();
-
-            disableAdminControls();
-
-
-            setText(
-                "connection-status",
-                "DEVICE OFFLINE"
-            );
-
-
-            setStatus(
-                "connection-status",
-                "offline"
-            );
-
 
             return;
         }
 
 
+        const activeData =
+            currentRoomState;
+
+
         const currentACStatus =
             String(
-                data.ac_power ??
-                data.ac_status ??
+                activeData.ac_power ??
+                activeData.ac_status ??
                 ""
             )
                 .trim()
@@ -1362,8 +1431,8 @@
 
 
         if (
-            previousACStatus === "ON" &&
-            currentACStatus === "OFF"
+            (previousACStatus === "ON" || previousACStatus === "TRUE") &&
+            (currentACStatus === "OFF" || currentACStatus === "FALSE")
         ) {
 
             startDashboardCooldown();
@@ -1372,10 +1441,6 @@
 
         previousACStatus =
             currentACStatus;
-
-
-        lastMasterSeenAt =
-            data.master_last_seen_at;
 
 
         masterOnline =
@@ -1425,102 +1490,62 @@
         );
 
 
-        // ----------------------------------------------------
-        // COOLDOWN
-        // ----------------------------------------------------
+        setText(
+            "system-status",
+            "Master Node is online and reporting."
+        );
+
 
         updateCooldownDisplay();
 
 
-        // ----------------------------------------------------
-        // CROWD
-        // ----------------------------------------------------
-
         displayCrowdState(
-            data
+            activeData
         );
 
-
-        // ----------------------------------------------------
-        // TEMPERATURE
-        // ----------------------------------------------------
 
         updateTemperatureDisplay();
 
 
-        // ----------------------------------------------------
-        // AC
-        // ----------------------------------------------------
-
         setText(
             "ac-status",
-            data.ac_power
+            activeData.ac_power
                 ? "ON"
                 : "OFF"
         );
 
 
-        // ----------------------------------------------------
-        // RFID
-        // ----------------------------------------------------
-
         setText(
             "rfid-status",
-            data.rfid_present
+            activeData.rfid_present
                 ? "PRESENT"
                 : "REMOVED"
         );
 
 
-        // ----------------------------------------------------
-        // CONTROL MODE
-        // ----------------------------------------------------
-
         setText(
             "control-mode",
-            data.ac_control_mode ||
+            activeData.ac_control_mode ||
             "RFID"
         );
 
 
-        // ----------------------------------------------------
-        // DOOR
-        // ----------------------------------------------------
-
         setText(
             "door-status",
-            data.door_open
+            activeData.door_open
                 ? "OPEN"
                 : "CLOSED"
         );
 
 
-        // ----------------------------------------------------
-        // WEATHER
-        // ----------------------------------------------------
-        //
-        // IMPORTANT:
-        // The old room_state weather overwrite has been
-        // removed.
-        //
-        // weather-alert is now controlled by
-        // displayWeatherObservation().
-        //
-        // ----------------------------------------------------
-
-
-        // ----------------------------------------------------
-        // PERFORMANCE
-        // ----------------------------------------------------
-
         setText(
             "performance-score",
-            data.performance_score !==
+            activeData.performance_score !==
             null &&
-            data.performance_score !==
+            activeData.performance_score !==
             undefined
                 ? Number(
-                    data.performance_score
+                    activeData.performance_score
                 ).toFixed(0)
                 : "NO DATA"
         );
@@ -1528,29 +1553,27 @@
 
         setText(
             "performance-status",
-            data.performance_status ||
+            activeData.performance_status ||
             "NO DATA"
         );
 
 
-        // ----------------------------------------------------
-        // DEGRADATION
-        // ----------------------------------------------------
-
         displayDegradationState(
-            data
+            activeData
         );
 
 
-        // ----------------------------------------------------
-        // LAST UPDATE
-        // ----------------------------------------------------
+        const latestUpdateTs =
+            lastMasterSeenAt ||
+            activeData.updated_at ||
+            activeData.master_last_seen_at;
+
 
         setText(
             "last-update",
-            data.updated_at
+            latestUpdateTs
                 ? new Date(
-                    data.updated_at
+                    latestUpdateTs
                 ).toLocaleString(
                     "en-PH"
                 )
@@ -1558,15 +1581,8 @@
         );
 
 
-        // ----------------------------------------------------
-        // Enable commands unless crowd scan is active.
-        //
-        // Cooldown does NOT disable the buttons because the
-        // ON button should be clickable and show the timer.
-        // ----------------------------------------------------
-
         if (
-            data.crowd_scan_status !==
+            activeData.crowd_scan_status !==
             "CHECKING"
         ) {
 
@@ -1623,10 +1639,6 @@
             );
 
 
-            latestTemperatureReadings =
-                [];
-
-
             updateTemperatureDisplay();
 
 
@@ -1663,7 +1675,22 @@
             );
 
 
-        updateTemperatureDisplay();
+        updateMasterStatus();
+
+
+        if (
+            masterOnline &&
+            currentRoomState
+        ) {
+
+            displayRoomState(
+                currentRoomState
+            );
+
+        } else {
+
+            updateTemperatureDisplay();
+        }
     }
 
 
@@ -1697,15 +1724,18 @@
 
 
         if (
-            result.error
+            result.error ||
+            !result.data
         ) {
 
-            console.error(
-                "[RVJ] Room state error:",
-                result.error
-            );
+            if (result.error) {
+                console.error(
+                    "[RVJ] Room state error:",
+                    result.error
+                );
+            }
 
-
+            // Do NOT wipe existing UI if a single network poll returns empty
             return;
         }
 
@@ -1941,6 +1971,22 @@
             null;
 
 
+        onlineHoldUntilMs =
+            0;
+
+
+        tempHoldUntilMs =
+            0;
+
+
+        lastValidTempValue =
+            null;
+
+
+        lastSeenServerSignature =
+            "";
+
+
         masterOnline =
             false;
 
@@ -1968,10 +2014,10 @@
         );
 
 
-        await loadRoomState();
-
-
         await loadTemperatureReadings();
+
+
+        await loadRoomState();
 
 
         subscribeToRealtime();
@@ -2003,10 +2049,6 @@
                 )
 
 
-                // ------------------------------------------------
-                // ROOM STATE
-                // ------------------------------------------------
-
                 .on(
                     "postgres_changes",
                     {
@@ -2024,16 +2066,14 @@
                     },
                     payload => {
 
+                        extendOnlineHold();
+
                         displayRoomState(
                             payload.new
                         );
                     }
                 )
 
-
-                // ------------------------------------------------
-                // TEMPERATURE
-                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -2051,6 +2091,8 @@
                             `room_id=eq.${roomId}`
                     },
                     payload => {
+
+                        extendOnlineHold();
 
                         const index =
                             latestTemperatureReadings.findIndex(
@@ -2078,14 +2120,12 @@
                         }
 
 
+                        updateMasterStatus();
+
                         updateTemperatureDisplay();
                     }
                 )
 
-
-                // ------------------------------------------------
-                // COMMAND STATUS
-                // ------------------------------------------------
 
                 .on(
                     "postgres_changes",
@@ -2104,14 +2144,10 @@
                     },
                     payload => {
 
+                        extendOnlineHold();
+
                         const command =
                             payload.new;
-
-
-                        console.log(
-                            "[RVJ] Command update:",
-                            command
-                        );
 
 
                         if (
@@ -2149,29 +2185,7 @@
                 )
 
 
-                .subscribe(
-                    (
-                        status,
-                        error
-                    ) => {
-
-                        console.log(
-                            "[RVJ] REALTIME:",
-                            status
-                        );
-
-
-                        if (
-                            error
-                        ) {
-
-                            console.error(
-                                "[RVJ] REALTIME ERROR:",
-                                error
-                            );
-                        }
-                    }
-                );
+                .subscribe();
     }
 
 
@@ -2203,9 +2217,9 @@
                     }
 
 
-                    await loadRoomState();
-
                     await loadTemperatureReadings();
+
+                    await loadRoomState();
 
                 },
                 POLL_INTERVAL_MS
@@ -2327,12 +2341,6 @@
         command
     ) {
 
-        console.log(
-            "[RVJ] sendACCommand():",
-            command
-        );
-
-
         if (
             !masterOnline
         ) {
@@ -2363,16 +2371,6 @@
         }
 
 
-        // ====================================================
-        // SIMPLE COOLDOWN PROTECTION
-        // ====================================================
-        //
-        // Only ON is blocked.
-        //
-        // No command is inserted.
-        // No command is queued.
-        //
-
         if (
             command ===
             "ON"
@@ -2394,11 +2392,6 @@
                 setText(
                     "command-status",
                     `AC COOLDOWN: ${formatCooldown(cooldownRemaining)} remaining. Please wait.`
-                );
-
-
-                console.log(
-                    "[RVJ] ON blocked by AC cooldown."
                 );
 
 
@@ -2430,12 +2423,6 @@
             )
         ) {
 
-            console.error(
-                "[RVJ] Invalid command:",
-                command
-            );
-
-
             return;
         }
 
@@ -2449,24 +2436,6 @@
         setText(
             "command-status",
             `Sending ${displayName}...`
-        );
-
-
-        console.log(
-            "[RVJ] Inserting into ac_commands:",
-            {
-                room_id:
-                    currentRoomId,
-
-                command:
-                    command,
-
-                source:
-                    "ADMIN",
-
-                status:
-                    "PENDING"
-            }
         );
 
 
@@ -2492,21 +2461,9 @@
                     });
 
 
-            console.log(
-                "[RVJ] Supabase insert result:",
-                result
-            );
-
-
             if (
                 result.error
             ) {
-
-                console.error(
-                    "[RVJ] AC command insert error:",
-                    result.error
-                );
-
 
                 setText(
                     "command-status",
@@ -2528,12 +2485,6 @@
             error
         ) {
 
-            console.error(
-                "[RVJ] Unexpected command error:",
-                error
-            );
-
-
             setText(
                 "command-status",
                 `ERROR: ${error.message}`
@@ -2554,30 +2505,12 @@
             );
 
 
-        console.log(
-            "[RVJ] Command buttons found:",
-            buttons.length
-        );
-
-
         buttons.forEach(
             button => {
-
-                console.log(
-                    "[RVJ] Binding:",
-                    button.dataset.acCommand
-                );
-
 
                 button.addEventListener(
                     "click",
                     function () {
-
-                        console.log(
-                            "[RVJ] BUTTON CLICK:",
-                            button.dataset.acCommand
-                        );
-
 
                         sendACCommand(
                             button.dataset.acCommand
@@ -2623,40 +2556,17 @@
 
     async function start() {
 
-        console.log(
-            "======================================"
-        );
-
-
-        console.log(
-            "RVJ DASHBOARD START"
-        );
-
-
-        console.log(
-            "======================================"
-        );
-
-
         setupCommandButtons();
 
 
         disableAdminControls();
 
 
-        /*
-         * Load weather independently from the Master Node.
-         */
-
         await loadLatestWeatherObservation();
 
 
         startWeatherPolling();
 
-
-        /*
-         * Load classrooms and normal device data.
-         */
 
         await loadRooms();
 
@@ -2665,11 +2575,6 @@
 
 
         startFreshnessMonitor();
-
-
-        console.log(
-            "[RVJ] Dashboard startup complete."
-        );
     }
 
 
