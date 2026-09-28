@@ -1411,16 +1411,61 @@
 
 
     // ========================================================
-    // DEGRADATION ANALYSIS (LOW / HIGH + PRIMARY IMPACT RANKING)
+    // DEGRADATION (DAYTIME BURNING-HOT WEATHER RULE)
     // ========================================================
+
+    function isBurningHotSunnyWeather(weather) {
+
+        if (
+            !weather ||
+            !isFresh(
+                weather.observed_at,
+                WEATHER_TIMEOUT_MS
+            )
+        ) {
+
+            return false;
+        }
+
+        // 1. Must be daytime in the Philippines (6:00 AM to 5:30 PM)
+        const now = new Date();
+        const hour = now.getHours() + (now.getMinutes() / 60);
+        const isDaytime = (hour >= 6.0 && hour <= 17.5);
+
+        if (!isDaytime) {
+            return false;
+        }
+
+        // 2. Must not be raining or stormy
+        const condition = String(weather.condition || "").toLowerCase();
+        if (
+            condition.includes("rain") ||
+            condition.includes("storm") ||
+            condition.includes("drizzle") ||
+            condition.includes("thunder")
+        ) {
+            return false;
+        }
+
+        // 3. Scorching heat allowance:
+        //    Actual air temp >= 34.0°C OR Feels Like >= 39.0°C
+        const tempC = Number(weather.temperature_c);
+        const feelsC = Number(weather.feels_like_c);
+
+        const isScorching =
+            (Number.isFinite(tempC) && tempC >= 34.0) ||
+            (Number.isFinite(feelsC) && feelsC >= 39.0);
+
+        return isScorching;
+    }
+
 
     function displayDegradationState(
         data
     ) {
 
         if (
-            !masterOnline ||
-            !data
+            !masterOnline
         ) {
 
             setText(
@@ -1447,189 +1492,71 @@
         }
 
 
-        // ----------------------------------------------------
-        // 1. DOOR OPEN IMPACT (LOW vs HIGH + Severity Score)
-        // ----------------------------------------------------
-        const isDoorHigh =
-            Boolean(data.door_open);
+        // 1. Door Factor
+        const doorActive = Boolean(data.door_open);
 
         setText(
             "door-factor",
-            isDoorHigh
-                ? "HIGH"
-                : "LOW"
+            doorActive
+                ? "ACTIVE"
+                : "NORMAL"
         );
 
-        let doorSeverity = 0;
 
-        if (isDoorHigh) {
-            // Calculate thermal gap across sensors if available
-            const temps =
-                latestTemperatureReadings
-                    .filter(r => isFresh(r.recorded_at, TEMPERATURE_TIMEOUT_MS))
-                    .map(r => Number(r.temperature_c))
-                    .filter(n => Number.isFinite(n));
-
-            const spread =
-                temps.length >= 2
-                    ? (Math.max(...temps) - Math.min(...temps))
-                    : 1.5;
-
-            // Open door warm-air infiltration has the highest base thermal penalty (1.0+)
-            doorSeverity =
-                1.0 + Math.max(0, (spread - 1.5) * 0.4);
-        }
-
-
-        // ----------------------------------------------------
-        // 2. CROWD DENSITY IMPACT (LOW vs HIGH + Severity Score)
-        // ----------------------------------------------------
-        const rawCrowdLevel =
-            String(data.crowd_level || "LOW")
-                .trim()
-                .toUpperCase();
-
-        const isCrowdHigh =
-            rawCrowdLevel === "HIGH" ||
-            Boolean(data.overcrowded) ||
-            Number(data.crowd_count || 0) > 40;
+        // 2. Crowd Factor
+        let crowdActive = false;
 
         if (
-            String(data.crowd_scan_status || "").toUpperCase() === "CHECKING"
+            data.crowd_scan_status ===
+            "CHECKING"
         ) {
 
             setText(
                 "crowd-factor",
-                "SCANNING..."
+                "CHECKING"
             );
 
         } else {
 
+            crowdActive = Boolean(data.overcrowded);
+
             setText(
                 "crowd-factor",
-                isCrowdHigh
-                    ? "HIGH"
-                    : "LOW"
+                crowdActive
+                    ? "ACTIVE"
+                    : "NORMAL"
             );
         }
 
-        let crowdSeverity = 0;
 
-        if (isCrowdHigh) {
-            const extraDevices =
-                Math.max(0, Number(data.crowd_count || 41) - 40);
-
-            // Occupant metabolic heat load severity (base 0.85 + 0.02 per extra device above 40)
-            crowdSeverity =
-                0.85 + (extraDevices * 0.02);
-        }
-
-
-        // ----------------------------------------------------
-        // 3. OUTDOOR WEATHER IMPACT (LOW vs HIGH + Severity Score)
-        // ----------------------------------------------------
-        let isWeatherHigh =
-            Boolean(data.hot_weather);
-
-        let outdoorTemp =
-            Number(data.outdoor_temperature_c || 0);
-
-        let feelsLikeTemp =
-            outdoorTemp;
-
-        if (
-            latestWeatherData &&
-            isFresh(
-                latestWeatherData.observed_at,
-                WEATHER_TIMEOUT_MS
-            )
-        ) {
-
-            outdoorTemp =
-                Number(latestWeatherData.temperature_c || 0);
-
-            feelsLikeTemp =
-                Number(latestWeatherData.feels_like_c || outdoorTemp);
-
-            if (
-                outdoorTemp >= 32.0 ||
-                feelsLikeTemp >= 35.0
-            ) {
-                isWeatherHigh = true;
-            }
-        }
+        // 3. Weather Factor (Daytime >= 34°C temp or >= 39°C feels_like)
+        const weatherActive =
+            isBurningHotSunnyWeather(latestWeatherData);
 
         setText(
             "weather-factor",
-            isWeatherHigh
-                ? "HIGH"
-                : "LOW"
+            weatherActive
+                ? "ACTIVE"
+                : "NORMAL"
         );
 
-        let weatherSeverity = 0;
 
-        if (isWeatherHigh) {
-            const degreesOver =
-                Math.max(
-                    0,
-                    feelsLikeTemp - 35.0,
-                    outdoorTemp - 32.0
-                );
+        // 4. Primary Degradation Factor (auto-clears if weather is no longer active)
+        let primaryFactor = "NONE";
 
-            // Envelope conductive heat gain severity (base 0.70 + 0.08 per °C above threshold)
-            weatherSeverity =
-                0.70 + (degreesOver * 0.08);
+        if (doorActive) {
+            primaryFactor = "DOOR / WINDOW OPEN";
+        } else if (crowdActive) {
+            primaryFactor = "OVERCROWDING";
+        } else if (weatherActive) {
+            primaryFactor = "EXTREME OUTDOOR HEAT";
         }
 
-
-        // ----------------------------------------------------
-        // 4. PRIMARY IMPACT (Predominant Factor or NONE)
-        // ----------------------------------------------------
-        const highFactors = [];
-
-        if (isDoorHigh) {
-            highFactors.push({
-                name: "DOOR OPEN",
-                severity: doorSeverity
-            });
-        }
-
-        if (isCrowdHigh) {
-            highFactors.push({
-                name: "CROWD DENSITY",
-                severity: crowdSeverity
-            });
-        }
-
-        if (isWeatherHigh) {
-            highFactors.push({
-                name: "OUTDOOR WEATHER",
-                severity: weatherSeverity
-            });
-        }
-
-        if (highFactors.length === 0) {
-
-            // All 3 factors are LOW
-            setText(
-                "degradation-factor",
-                "NONE"
-            );
-
-        } else {
-
-            // Sort descending by severity score so the strongest impact wins
-            highFactors.sort(
-                (a, b) => b.severity - a.severity
-            );
-
-            setText(
-                "degradation-factor",
-                highFactors[0].name
-            );
-        }
+        setText(
+            "degradation-factor",
+            primaryFactor
+        );
     }
-
 
     // ========================================================
     // DISPLAY ROOM STATE
