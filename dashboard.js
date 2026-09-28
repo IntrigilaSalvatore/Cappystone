@@ -904,7 +904,7 @@
                 "UNAVAILABLE"
             );
 
-
+            evaluateCoolingPerformance(currentRoomState);
             return;
         }
 
@@ -1261,16 +1261,12 @@
 
 
 // ========================================================
-    // AC COOLING PERFORMANCE FORMULA (OPTIMAL vs POOR)
+    // AC COOLING PERFORMANCE FORMULA (AC OFF / OPTIMAL / POOR)
     // ========================================================
     //
-    // Uses all available fresh thermometers (1, 2, or 3 nodes):
-    //   T_avg    = average of active sensors
-    //   T_spread = max(sensor) - min(sensor)
-    //   T_eff    = T_avg + (0.5 * T_spread)
-    //
-    // If T_eff <= 26.0°C -> OPTIMAL
-    // If T_eff >  26.0°C -> POOR
+    // 1. If Master is offline        -> UNAVAILABLE
+    // 2. If AC Power is OFF          -> AC OFF
+    // 3. If AC is ON + Temp Present  -> OPTIMAL (<= 26.0°C) or POOR (> 26.0°C)
     //
 
     const OPTIMAL_EFFECTIVE_TEMP_MAX_C = 26.0;
@@ -1292,6 +1288,37 @@
         }
 
 
+        const stateData =
+            data || currentRoomState;
+
+
+        // Check if the AC is currently turned ON
+        const isAcOn =
+            Boolean(
+                stateData &&
+                (
+                    stateData.ac_power === true ||
+                    String(stateData.ac_power).toUpperCase() === "TRUE" ||
+                    String(stateData.ac_status).toUpperCase() === "ON"
+                )
+            );
+
+
+        // If AC is OFF, do not grade performance — show "AC OFF"
+        if (
+            !isAcOn
+        ) {
+
+            setText(
+                "performance-status",
+                "AC OFF"
+            );
+
+            return;
+        }
+
+
+        // Collect all fresh thermometer readings (works with 1, 2, or 3 active nodes)
         const freshReadings =
             latestTemperatureReadings.filter(
                 reading =>
@@ -1311,18 +1338,19 @@
             );
 
 
-        // Fallback if individual readings list is empty but room_state has avg_temperature_c
+        // Fallback to room_state average or 3-minute held temperature if needed
         if (
             temps.length === 0 &&
-            data &&
-            data.avg_temperature_c !== null &&
-            data.avg_temperature_c !== undefined &&
-            Number.isFinite(Number(data.avg_temperature_c))
+            stateData &&
+            stateData.avg_temperature_c !== null &&
+            stateData.avg_temperature_c !== undefined &&
+            Number.isFinite(Number(stateData.avg_temperature_c))
         ) {
 
             temps = [
-                Number(data.avg_temperature_c)
+                Number(stateData.avg_temperature_c)
             ];
+
         } else if (
             temps.length === 0 &&
             lastValidTempValue !== null &&
@@ -1335,13 +1363,14 @@
         }
 
 
+        // AC is ON, but waiting for at least 1 thermometer reading
         if (
             temps.length === 0
         ) {
 
             setText(
                 "performance-status",
-                "UNAVAILABLE"
+                "WAITING FOR DATA"
             );
 
             return;
@@ -1366,7 +1395,6 @@
         const tempSpread =
             maxTemp - minTemp;
 
-        // Effective thermal index combines mean room temp + spatial imbalance across sensors
         const effectiveTemp =
             avgTemp + (0.5 * tempSpread);
 
