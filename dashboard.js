@@ -1260,11 +1260,22 @@
     }
 
 
+// ========================================================
+    // AC COOLING PERFORMANCE FORMULA (OPTIMAL vs POOR)
     // ========================================================
-    // DEGRADATION
-    // ========================================================
+    //
+    // Uses all available fresh thermometers (1, 2, or 3 nodes):
+    //   T_avg    = average of active sensors
+    //   T_spread = max(sensor) - min(sensor)
+    //   T_eff    = T_avg + (0.5 * T_spread)
+    //
+    // If T_eff <= 26.0°C -> OPTIMAL
+    // If T_eff >  26.0°C -> POOR
+    //
 
-    function displayDegradationState(
+    const OPTIMAL_EFFECTIVE_TEMP_MAX_C = 26.0;
+
+    function evaluateCoolingPerformance(
         data
     ) {
 
@@ -1273,78 +1284,232 @@
         ) {
 
             setText(
-                "door-factor",
+                "performance-status",
                 "UNAVAILABLE"
             );
 
+            return;
+        }
+
+
+        const freshReadings =
+            latestTemperatureReadings.filter(
+                reading =>
+                    isFresh(
+                        reading.recorded_at,
+                        TEMPERATURE_TIMEOUT_MS
+                    ) &&
+                    Number.isFinite(
+                        Number(reading.temperature_c)
+                    )
+            );
+
+
+        let temps =
+            freshReadings.map(
+                r => Number(r.temperature_c)
+            );
+
+
+        // Fallback if individual readings list is empty but room_state has avg_temperature_c
+        if (
+            temps.length === 0 &&
+            data &&
+            data.avg_temperature_c !== null &&
+            data.avg_temperature_c !== undefined &&
+            Number.isFinite(Number(data.avg_temperature_c))
+        ) {
+
+            temps = [
+                Number(data.avg_temperature_c)
+            ];
+        } else if (
+            temps.length === 0 &&
+            lastValidTempValue !== null &&
+            Date.now() < tempHoldUntilMs
+        ) {
+
+            temps = [
+                Number(lastValidTempValue)
+            ];
+        }
+
+
+        if (
+            temps.length === 0
+        ) {
+
+            setText(
+                "performance-status",
+                "UNAVAILABLE"
+            );
+
+            return;
+        }
+
+
+        const sum =
+            temps.reduce(
+                (acc, val) => acc + val,
+                0
+            );
+
+        const avgTemp =
+            sum / temps.length;
+
+        const maxTemp =
+            Math.max(...temps);
+
+        const minTemp =
+            Math.min(...temps);
+
+        const tempSpread =
+            maxTemp - minTemp;
+
+        // Effective thermal index combines mean room temp + spatial imbalance across sensors
+        const effectiveTemp =
+            avgTemp + (0.5 * tempSpread);
+
+        const status =
+            effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C
+                ? "OPTIMAL"
+                : "POOR";
+
+        setText(
+            "performance-status",
+            status
+        );
+    }
+
+
+    // ========================================================
+    // DEGRADATION ANALYSIS (LOW / HIGH + PRIMARY IMPACT RANKING)
+    // ========================================================
+
+    function displayDegradationState(
+        data
+    ) {
+
+        if (
+            !masterOnline ||
+            !data
+        ) {
+
+            setText(
+                "door-factor",
+                "UNAVAILABLE"
+            );
 
             setText(
                 "crowd-factor",
                 "UNAVAILABLE"
             );
 
-
             setText(
                 "weather-factor",
                 "UNAVAILABLE"
             );
-
 
             setText(
                 "degradation-factor",
                 "UNAVAILABLE"
             );
 
-
             return;
         }
 
 
+        // ----------------------------------------------------
+        // 1. DOOR OPEN IMPACT (LOW vs HIGH + Severity Score)
+        // ----------------------------------------------------
+        const isDoorHigh =
+            Boolean(data.door_open);
+
         setText(
             "door-factor",
-            data.door_open
-                ? "ACTIVE"
-                : "NORMAL"
+            isDoorHigh
+                ? "HIGH"
+                : "LOW"
         );
 
+        let doorSeverity = 0;
+
+        if (isDoorHigh) {
+            // Calculate thermal gap across sensors if available
+            const temps =
+                latestTemperatureReadings
+                    .filter(r => isFresh(r.recorded_at, TEMPERATURE_TIMEOUT_MS))
+                    .map(r => Number(r.temperature_c))
+                    .filter(n => Number.isFinite(n));
+
+            const spread =
+                temps.length >= 2
+                    ? (Math.max(...temps) - Math.min(...temps))
+                    : 1.5;
+
+            // Open door warm-air infiltration has the highest base thermal penalty (1.0+)
+            doorSeverity =
+                1.0 + Math.max(0, (spread - 1.5) * 0.4);
+        }
+
+
+        // ----------------------------------------------------
+        // 2. CROWD DENSITY IMPACT (LOW vs HIGH + Severity Score)
+        // ----------------------------------------------------
+        const rawCrowdLevel =
+            String(data.crowd_level || "LOW")
+                .trim()
+                .toUpperCase();
+
+        const isCrowdHigh =
+            rawCrowdLevel === "HIGH" ||
+            Boolean(data.overcrowded) ||
+            Number(data.crowd_count || 0) > 40;
 
         if (
-            data.crowd_scan_status ===
-            "CHECKING"
+            String(data.crowd_scan_status || "").toUpperCase() === "CHECKING"
         ) {
 
             setText(
                 "crowd-factor",
-                "CHECKING"
+                "SCANNING..."
             );
 
         } else {
 
             setText(
                 "crowd-factor",
-                data.overcrowded
-                    ? "ACTIVE"
-                    : "NORMAL"
+                isCrowdHigh
+                    ? "HIGH"
+                    : "LOW"
             );
         }
 
+        let crowdSeverity = 0;
+
+        if (isCrowdHigh) {
+            const extraDevices =
+                Math.max(0, Number(data.crowd_count || 41) - 40);
+
+            // Occupant metabolic heat load severity (base 0.85 + 0.02 per extra device above 40)
+            crowdSeverity =
+                0.85 + (extraDevices * 0.02);
+        }
+
+
+        // ----------------------------------------------------
+        // 3. OUTDOOR WEATHER IMPACT (LOW vs HIGH + Severity Score)
+        // ----------------------------------------------------
+        let isWeatherHigh =
+            Boolean(data.hot_weather);
+
+        let outdoorTemp =
+            Number(data.outdoor_temperature_c || 0);
+
+        let feelsLikeTemp =
+            outdoorTemp;
 
         if (
-            data.weather_last_updated_at &&
-            isFresh(
-                data.weather_last_updated_at,
-                WEATHER_TIMEOUT_MS
-            )
-        ) {
-
-            setText(
-                "weather-factor",
-                data.hot_weather
-                    ? "ACTIVE"
-                    : "NORMAL"
-            );
-
-        } else if (
             latestWeatherData &&
             isFresh(
                 latestWeatherData.observed_at,
@@ -1352,32 +1517,89 @@
             )
         ) {
 
-            const hot =
-                Number(latestWeatherData.temperature_c) >= 32 ||
-                Number(latestWeatherData.feels_like_c) >= 35 ||
-                Boolean(data.hot_weather);
+            outdoorTemp =
+                Number(latestWeatherData.temperature_c || 0);
 
+            feelsLikeTemp =
+                Number(latestWeatherData.feels_like_c || outdoorTemp);
+
+            if (
+                outdoorTemp >= 32.0 ||
+                feelsLikeTemp >= 35.0
+            ) {
+                isWeatherHigh = true;
+            }
+        }
+
+        setText(
+            "weather-factor",
+            isWeatherHigh
+                ? "HIGH"
+                : "LOW"
+        );
+
+        let weatherSeverity = 0;
+
+        if (isWeatherHigh) {
+            const degreesOver =
+                Math.max(
+                    0,
+                    feelsLikeTemp - 35.0,
+                    outdoorTemp - 32.0
+                );
+
+            // Envelope conductive heat gain severity (base 0.70 + 0.08 per °C above threshold)
+            weatherSeverity =
+                0.70 + (degreesOver * 0.08);
+        }
+
+
+        // ----------------------------------------------------
+        // 4. PRIMARY IMPACT (Predominant Factor or NONE)
+        // ----------------------------------------------------
+        const highFactors = [];
+
+        if (isDoorHigh) {
+            highFactors.push({
+                name: "DOOR OPEN",
+                severity: doorSeverity
+            });
+        }
+
+        if (isCrowdHigh) {
+            highFactors.push({
+                name: "CROWD DENSITY",
+                severity: crowdSeverity
+            });
+        }
+
+        if (isWeatherHigh) {
+            highFactors.push({
+                name: "OUTDOOR WEATHER",
+                severity: weatherSeverity
+            });
+        }
+
+        if (highFactors.length === 0) {
+
+            // All 3 factors are LOW
             setText(
-                "weather-factor",
-                hot
-                    ? "ACTIVE"
-                    : "NORMAL"
+                "degradation-factor",
+                "NONE"
             );
 
         } else {
 
+            // Sort descending by severity score so the strongest impact wins
+            highFactors.sort(
+                (a, b) => b.severity - a.severity
+            );
+
             setText(
-                "weather-factor",
-                "NORMAL"
+                "degradation-factor",
+                highFactors[0].name
             );
         }
-
-
-        setText(
-            "degradation-factor",
-            data.degradation_factor ||
-            "NONE"
-        );
     }
 
 
@@ -1526,23 +1748,8 @@
         );
 
 
-        setText(
-            "performance-score",
-            activeData.performance_score !==
-            null &&
-            activeData.performance_score !==
-            undefined
-                ? Number(
-                    activeData.performance_score
-                ).toFixed(0)
-                : "NO DATA"
-        );
-
-
-        setText(
-            "performance-status",
-            activeData.performance_status ||
-            "NO DATA"
+        evaluateCoolingPerformance(
+            activeData
         );
 
 
