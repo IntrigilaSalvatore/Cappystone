@@ -609,12 +609,6 @@
             "--"
         );
 
-
-        setText(
-            "room-capacity",
-            room.capacity ??
-            "--"
-        );
     }
 
 
