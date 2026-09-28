@@ -1411,7 +1411,7 @@
 
 
     // ========================================================
-    // DEGRADATION (DAYTIME BURNING-HOT WEATHER RULE)
+    // DEGRADATION (DISPLAYS "LOW" / "HIGH")
     // ========================================================
 
     function isBurningHotSunnyWeather(weather) {
@@ -1447,16 +1447,15 @@
             return false;
         }
 
-        // 3. Scorching heat allowance:
+        // 3. Scorching heat threshold:
         //    Actual air temp >= 34.0°C OR Feels Like >= 39.0°C
         const tempC = Number(weather.temperature_c);
         const feelsC = Number(weather.feels_like_c);
 
-        const isScorching =
+        return (
             (Number.isFinite(tempC) && tempC >= 34.0) ||
-            (Number.isFinite(feelsC) && feelsC >= 39.0);
-
-        return isScorching;
+            (Number.isFinite(feelsC) && feelsC >= 39.0)
+        );
     }
 
 
@@ -1492,18 +1491,18 @@
         }
 
 
-        // 1. Door Factor
+        // 1. Door/Window Open Impact: LOW or HIGH
         const doorActive = Boolean(data.door_open);
 
         setText(
             "door-factor",
             doorActive
-                ? "ACTIVE"
-                : "NORMAL"
+                ? "HIGH"
+                : "LOW"
         );
 
 
-        // 2. Crowd Factor
+        // 2. Crowd Impact: LOW or HIGH (or CHECKING)
         let crowdActive = false;
 
         if (
@@ -1523,25 +1522,25 @@
             setText(
                 "crowd-factor",
                 crowdActive
-                    ? "ACTIVE"
-                    : "NORMAL"
+                    ? "HIGH"
+                    : "LOW"
             );
         }
 
 
-        // 3. Weather Factor (Daytime >= 34°C temp or >= 39°C feels_like)
+        // 3. Weather Impact: LOW or HIGH
         const weatherActive =
             isBurningHotSunnyWeather(latestWeatherData);
 
         setText(
             "weather-factor",
             weatherActive
-                ? "ACTIVE"
-                : "NORMAL"
+                ? "HIGH"
+                : "LOW"
         );
 
 
-        // 4. Primary Degradation Factor (auto-clears if weather is no longer active)
+        // 4. Primary Degradation Factor
         let primaryFactor = "NONE";
 
         if (doorActive) {
@@ -1549,7 +1548,7 @@
         } else if (crowdActive) {
             primaryFactor = "OVERCROWDING";
         } else if (weatherActive) {
-            primaryFactor = "EXTREME OUTDOOR HEAT";
+            primaryFactor = "HIGH OUTDOOR HEAT";
         }
 
         setText(
