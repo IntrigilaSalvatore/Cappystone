@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=37" />
+  <link rel="stylesheet" href="style.css?v=39" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -108,17 +108,17 @@
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
       <span class="status-badge" id="userRoleBadge">ROLE: --</span>
 
-      <!-- FACULTY REPORT ISSUE BUTTON -->
+      <!-- FACULTY REPORT ISSUE BUTTON (Only visible for FACULTY role) -->
       <button 
         id="btnReportIssue" 
         class="status-badge" 
-        style="background: #f59e0b; color: white; border: none; cursor: pointer;"
+        style="display: none; background: #f59e0b; color: white; border: none; cursor: pointer;"
         onclick="openReportModal()"
       >
         ⚠️ REPORT ISSUE
       </button>
 
-      <!-- ADMIN ENVELOPE NOTIFICATION BUTTON -->
+      <!-- ADMIN ENVELOPE NOTIFICATION BUTTON (Only visible for ADMIN role) -->
       <button 
         id="btnAdminEnvelope" 
         class="envelope-btn" 
@@ -388,7 +388,7 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=37"></script>
+  <script src="dashboard.js?v=39"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -411,11 +411,15 @@
 
     document.getElementById("userRoleBadge").innerText = `${role}: ${username}`;
 
+    // ROLE-BASED UI INITIALIZATION
     if (role === "ADMIN") {
       document.getElementById("adminNav").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
+      document.getElementById("btnReportIssue").style.display = "none"; // Hide report button for Admin
       loadAdminReportCount();
       subscribeToIssueReports();
+    } else {
+      document.getElementById("btnReportIssue").style.display = "inline-block"; // Show report button ONLY for Faculty
     }
 
     function switchTab(tab) {
