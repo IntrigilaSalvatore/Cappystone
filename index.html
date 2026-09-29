@@ -225,8 +225,8 @@
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const role = localStorage.getItem("user_role") || "FACULTY";
-    const username = localStorage.getItem("current_user") || "User";
+    const role = (localStorage.getItem("user_role") || "FACULTY").toUpperCase();
+    const username = localStorage.getItem("current_user") || localStorage.getItem("current_admin_user") || localStorage.getItem("professor_name") || "User";
 
     document.getElementById("userRoleBadge").innerText = `${role}: ${username}`;
 
