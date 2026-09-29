@@ -456,8 +456,6 @@ Light Mode
 </div>
 
 <script>
-
-
 // ============================================================
 // SUPABASE CONFIGURATION
 // ============================================================
@@ -468,23 +466,38 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
-
 const supabaseClient =
     window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
     );
 
+// Session duration: 30 minutes (in milliseconds)
+const SESSION_DURATION_MS = 30 * 60 * 1000;
+
 
 // ============================================================
-// CHECK EXISTING LOGIN
+// CHECK EXISTING SESSION
 // ============================================================
 
-if (
-    localStorage.getItem("access_granted") === "true"
-) {
+function hasValidSession() {
+    const granted = localStorage.getItem("access_granted") === "true";
+    const expiresAt = Number(localStorage.getItem("session_expires_at") || 0);
+    const user = localStorage.getItem("current_admin_user");
 
-    window.location.href = "index.html";
+    if (granted && user && Date.now() < expiresAt) {
+        return true;
+    }
+
+    // Clear expired or incomplete session data
+    localStorage.removeItem("access_granted");
+    localStorage.removeItem("current_admin_user");
+    localStorage.removeItem("session_expires_at");
+    return false;
+}
+
+if (hasValidSession()) {
+    window.location.replace("index.html");
 }
 
 
@@ -496,80 +509,28 @@ async function checkCode(event) {
 
     event.preventDefault();
 
+    const usernameInput = document.getElementById("username");
+    const codeInput = document.getElementById("code");
+    const errorDiv = document.getElementById("error");
+    const loginButton = document.getElementById("loginButton");
 
-    // --------------------------------------------------------
-    // GET ELEMENTS
-    // --------------------------------------------------------
-
-    const usernameInput =
-        document.getElementById("username");
-
-    const codeInput =
-        document.getElementById("code");
-
-    const errorDiv =
-        document.getElementById("error");
-
-    const loginButton =
-        document.getElementById("loginButton");
-
-
-    // --------------------------------------------------------
-    // GET VALUES
-    // --------------------------------------------------------
-
-    const username =
-        usernameInput.value.trim();
-
-    const code =
-        codeInput.value;
-
-
-    // --------------------------------------------------------
-    // CLEAR MESSAGE
-    // --------------------------------------------------------
+    const username = usernameInput.value.trim();
+    const code = codeInput.value;
 
     errorDiv.innerText = "";
 
-
-    // --------------------------------------------------------
-    // VALIDATE INPUT
-    // --------------------------------------------------------
-
     if (!username || !code) {
-
         errorDiv.style.color = "#ef4444";
-
-        errorDiv.innerText =
-            "Please enter your username and access code.";
-
+        errorDiv.innerText = "Please enter your username and access code.";
         return;
     }
 
-
-    // --------------------------------------------------------
-    // DISABLE BUTTON
-    // --------------------------------------------------------
-
     loginButton.disabled = true;
-
-    loginButton.innerText =
-        "Verifying...";
-
-
-    errorDiv.style.color =
-        "#FADA7A";
-
-    errorDiv.innerText =
-        "Verifying credentials...";
-
+    loginButton.innerText = "Verifying...";
+    errorDiv.style.color = "#FADA7A";
+    errorDiv.innerText = "Verifying credentials...";
 
     try {
-
-
-        // ----------------------------------------------------
-        // CALL SUPABASE FUNCTION
-        // ----------------------------------------------------
 
         const { data, error } =
             await supabaseClient.rpc(
@@ -580,154 +541,50 @@ async function checkCode(event) {
                 }
             );
 
-
-        // ----------------------------------------------------
-        // CONSOLE DEBUG INFORMATION
-        // ----------------------------------------------------
-
-        console.log(
-            "LOGIN RESULT:",
-            data
-        );
-
-        console.log(
-            "LOGIN ERROR:",
-            error
-        );
-
-
-        // ----------------------------------------------------
-        // SUPABASE ERROR
-        // ----------------------------------------------------
-
         if (error) {
-
-            console.error(
-                "SUPABASE LOGIN ERROR:",
-                error
-            );
-
-
-            errorDiv.style.color =
-                "#ef4444";
-
-
-            errorDiv.innerText =
-                "Supabase Error: " +
-                error.message;
-
-
+            console.error("SUPABASE LOGIN ERROR:", error);
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Supabase Error: " + error.message;
             return;
         }
 
-
-        // ----------------------------------------------------
-        // VALID LOGIN
-        // ----------------------------------------------------
-
         if (data === true) {
 
-
-            errorDiv.style.color =
-                "#22c55e";
-
-
-            errorDiv.innerText =
-                "Access Granted!";
-
+            errorDiv.style.color = "#22c55e";
+            errorDiv.innerText = "Access Granted!";
 
             // ------------------------------------------------
-            // STORE LOGIN SESSION
+            // CREATE ADMIN SESSION (30-MINUTE EXPIRY)
             // ------------------------------------------------
+            const expiresAt = Date.now() + SESSION_DURATION_MS;
 
-            localStorage.setItem(
-                "access_granted",
-                "true"
-            );
-
-
-            // ------------------------------------------------
-            // STORE CURRENT ADMIN USER
-            // ------------------------------------------------
-
-            localStorage.setItem(
-                "current_admin_user",
-                username
-            );
-
-
-            // ------------------------------------------------
-            // REDIRECT TO DASHBOARD
-            // ------------------------------------------------
+            localStorage.setItem("access_granted", "true");
+            localStorage.setItem("current_admin_user", username);
+            localStorage.setItem("session_expires_at", String(expiresAt));
 
             setTimeout(() => {
-
-                window.location.href =
-                    "index.html";
-
-            }, 800);
-
+                window.location.replace("index.html");
+            }, 600);
 
         } else {
 
-
-            // ------------------------------------------------
-            // INVALID LOGIN
-            // ------------------------------------------------
-
-            errorDiv.style.color =
-                "#ef4444";
-
-
-            errorDiv.innerText =
-                "Invalid Username or Access Code";
-
-
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Invalid Username or Access Code";
             codeInput.value = "";
-
             codeInput.focus();
-
         }
-
 
     } catch (err) {
 
-
-        // ----------------------------------------------------
-        // UNEXPECTED ERROR
-        // ----------------------------------------------------
-
-        console.error(
-            "UNEXPECTED LOGIN ERROR:",
-            err
-        );
-
-
-        errorDiv.style.color =
-            "#ef4444";
-
-
-        errorDiv.innerText =
-            "Connection Error: " +
-            (
-                err.message ||
-                "Unknown error"
-            );
-
+        console.error("UNEXPECTED LOGIN ERROR:", err);
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Connection Error: " + (err.message || "Unknown error");
 
     } finally {
 
-
-        // ----------------------------------------------------
-        // RESTORE BUTTON
-        // ----------------------------------------------------
-
         loginButton.disabled = false;
-
-        loginButton.innerText =
-            "Enter Dashboard";
+        loginButton.innerText = "Enter Dashboard";
     }
-
 }
 
 
@@ -735,72 +592,25 @@ async function checkCode(event) {
 // THEME TOGGLE
 // ============================================================
 
-const toggleBtn =
-    document.getElementById("modeToggle");
+const toggleBtn = document.getElementById("modeToggle");
 
-
-// ============================================================
-// LOAD SAVED THEME
-// ============================================================
-
-if (
-    localStorage.getItem("theme") === "light"
-) {
-
-    document.body.classList.add(
-        "light-mode"
-    );
-
-    toggleBtn.textContent =
-        "Dark Mode";
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+    toggleBtn.textContent = "Dark Mode";
 }
-
-
-// ============================================================
-// TOGGLE LIGHT / DARK MODE
-// ============================================================
 
 function toggleMode() {
+    document.body.classList.toggle("light-mode");
 
-    document.body.classList.toggle(
-        "light-mode"
-    );
-
-
-    if (
-        document.body.classList.contains(
-            "light-mode"
-        )
-    ) {
-
-        toggleBtn.textContent =
-            "Dark Mode";
-
-
-        localStorage.setItem(
-            "theme",
-            "light"
-        );
-
-
+    if (document.body.classList.contains("light-mode")) {
+        toggleBtn.textContent = "Dark Mode";
+        localStorage.setItem("theme", "light");
     } else {
-
-
-        toggleBtn.textContent =
-            "Light Mode";
-
-
-        localStorage.setItem(
-            "theme",
-            "dark"
-        );
-
+        toggleBtn.textContent = "Light Mode";
+        localStorage.setItem("theme", "dark");
     }
-
 }
-
 </script>
-
 </body>
 
 </html>
