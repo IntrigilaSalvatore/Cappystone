@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=32" />
+  <link rel="stylesheet" href="style.css?v=33" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -204,10 +204,10 @@
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
-            <th style="padding: 10px;">Username</th>
-            <th style="padding: 10px;">Role</th>
-            <th style="padding: 10px;">Account Status</th>
-            <th style="padding: 10px;">Access Control Actions</th>
+            <th style="padding: 12px 10px; width: 25%;">Username</th>
+            <th style="padding: 12px 10px; width: 20%;">Role</th>
+            <th style="padding: 12px 10px; width: 20%;">Account Status</th>
+            <th style="padding: 12px 10px; width: 35%;">Access Control Actions</th>
           </tr>
         </thead>
         <tbody id="userAccountsTableBody">
@@ -218,7 +218,7 @@
 
   </div>
 
-  <script src="dashboard.js?v=32"></script>
+  <script src="dashboard.js?v=33"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -392,32 +392,36 @@
         const isSelf = account.username === currentLoggedInUser;
 
         return `
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px; font-weight: bold;">
-              ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b;">(You)</span>' : ''}
+          <tr style="border-bottom: 1px solid #e2e8f0; height: 50px;">
+            <td style="padding: 10px; font-weight: bold; vertical-align: middle;">
+              ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b; font-weight: normal;">(You)</span>' : ''}
             </td>
-            <td style="padding: 10px;">${account.role}</td>
-            <td style="padding: 10px; font-weight: bold; color: ${isActive ? '#22c55e' : '#ef4444'};">
-              ${isActive ? 'ACTIVE' : 'DISABLED'}
+            <td style="padding: 10px; vertical-align: middle; color: #334155;">${account.role}</td>
+            <td style="padding: 10px; vertical-align: middle;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; background: ${isActive ? '#dcfce7' : '#fee2e2'}; color: ${isActive ? '#15803d' : '#b91c1c'};">
+                ${isActive ? 'ACTIVE' : 'DISABLED'}
+              </span>
             </td>
-            <td style="padding: 10px; display: flex; gap: 8px;">
-              <!-- DISABLE / ENABLE BUTTON -->
-              <button 
-                onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
-                ${isSelf ? 'disabled' : ''} 
-                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#f59e0b' : '#22c55e'}; color: white;"
-              >
-                ${isActive ? 'Disable Access' : 'Enable Access'}
-              </button>
+            <td style="padding: 10px; vertical-align: middle;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <!-- DISABLE / ENABLE BUTTON (Fixed 120px Width) -->
+                <button 
+                  onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
+                  ${isSelf ? 'disabled' : ''} 
+                  style="width: 120px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#f59e0b' : '#22c55e'}; color: white;"
+                >
+                  ${isActive ? 'Disable Access' : 'Enable Access'}
+                </button>
 
-              <!-- DELETE ACCOUNT BUTTON -->
-              <button 
-                onclick="deleteAccount(${account.id}, '${account.username}')" 
-                ${isSelf ? 'disabled' : ''} 
-                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: #ef4444; color: white; opacity: ${isSelf ? '0.5' : '1'};"
-              >
-                Delete
-              </button>
+                <!-- DELETE ACCOUNT BUTTON -->
+                <button 
+                  onclick="deleteAccount(${account.id}, '${account.username}')" 
+                  ${isSelf ? 'disabled' : ''} 
+                  style="width: 80px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: #ef4444; color: white; opacity: ${isSelf ? '0.5' : '1'};"
+                >
+                  Delete
+                </button>
+              </div>
             </td>
           </tr>
         `;
