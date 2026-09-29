@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=30" />
+  <link rel="stylesheet" href="style.css?v=31" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -173,9 +173,11 @@
 
   </div>
 
-  <!-- TAB 3: ACCOUNT MANAGEMENT (ADMIN ONLY) -->
+  <!-- TAB 3: ACCOUNT MANAGEMENT & DISABLE ACCESS (ADMIN ONLY) -->
   <div id="tabUsers" style="display: none; padding: 20px; width: min(1400px, calc(100% - 20px)); margin: auto;">
-    <section class="panel">
+    
+    <!-- CONTAINER 1: CREATE NEW ACCOUNT -->
+    <section class="panel" style="margin-bottom: 20px;">
       <h2>Create New Account (Admin / Faculty)</h2>
       <form onsubmit="createNewUser(event)" style="display: grid; gap: 10px; max-width: 400px; margin-top: 15px;">
         <label class="label">New Username:</label>
@@ -194,9 +196,29 @@
         <div id="userCreateOutput" class="label" style="margin-top: 5px;"></div>
       </form>
     </section>
+
+    <!-- CONTAINER 2: MANAGED USER ACCOUNTS & DISABLE ACCESS -->
+    <section class="panel">
+      <h2>Registered System Accounts</h2>
+      <p style="font-size: 13px; color: #64748b;">Administrators can enable or disable faculty and admin user access at any time.</p>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+        <thead>
+          <tr style="background: #005A92; color: white; text-align: left;">
+            <th style="padding: 10px;">Username</th>
+            <th style="padding: 10px;">Role</th>
+            <th style="padding: 10px;">Account Status</th>
+            <th style="padding: 10px;">Access Control</th>
+          </tr>
+        </thead>
+        <tbody id="userAccountsTableBody">
+          <tr><td colspan="4" style="padding: 15px; text-align: center;">Loading accounts...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
   </div>
 
-  <script src="dashboard.js?v=30"></script>
+  <script src="dashboard.js?v=31"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -220,6 +242,9 @@
       if (tab === "logs") {
         loadAccessLogs();
         loadACControlLogs();
+      }
+      if (tab === "users") {
+        loadUserAccounts();
       }
     }
 
@@ -346,6 +371,62 @@
       }
     }
 
+    async function loadUserAccounts() {
+      const tbody = document.getElementById("userAccountsTableBody");
+      tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center;">Fetching accounts...</td></tr>';
+
+      const { data, error } = await window.supabaseClient
+        .from("user_accounts")
+        .select("id, username, role, is_active")
+        .order("created_at", { ascending: true });
+
+      if (error || !data) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: red;">Failed to load accounts.</td></tr>';
+        return;
+      }
+
+      const currentLoggedInUser = localStorage.getItem("current_user");
+
+      tbody.innerHTML = data.map(account => {
+        const isActive = account.is_active !== false;
+        const isSelf = account.username === currentLoggedInUser;
+
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px; font-weight: bold;">
+              ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b;">(You)</span>' : ''}
+            </td>
+            <td style="padding: 10px;">${account.role}</td>
+            <td style="padding: 10px; font-weight: bold; color: ${isActive ? '#22c55e' : '#ef4444'};">
+              ${isActive ? 'ACTIVE' : 'DISABLED'}
+            </td>
+            <td style="padding: 10px;">
+              <button 
+                onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
+                ${isSelf ? 'disabled' : ''} 
+                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#ef4444' : '#22c55e'}; color: white;"
+              >
+                ${isActive ? 'Disable Access' : 'Enable Access'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function toggleAccountStatus(accountId, newStatus) {
+      const { error } = await window.supabaseClient
+        .from("user_accounts")
+        .update({ is_active: newStatus })
+        .eq("id", accountId);
+
+      if (error) {
+        alert("Error updating account status: " + error.message);
+      } else {
+        loadUserAccounts();
+      }
+    }
+
     async function createNewUser(e) {
       e.preventDefault();
       const u = document.getElementById("newUsername").value.trim();
@@ -358,7 +439,8 @@
       const { error } = await window.supabaseClient.from("user_accounts").insert({
         username: u,
         password: p,
-        role: r
+        role: r,
+        is_active: true
       });
 
       if (error) {
@@ -369,6 +451,9 @@
         output.innerText = `Account '${u}' (${r}) created successfully!`;
         document.getElementById("newUsername").value = "";
         document.getElementById("newPassword").value = "";
+        if (document.getElementById("tabUsers").style.display === "block") {
+          loadUserAccounts();
+        }
       }
     }
   </script>
