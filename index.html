@@ -1,397 +1,2779 @@
-<!DOCTYPE html>
+(function () {
 
-<html lang="en">
+    "use strict";
 
-<head>
 
-  <meta charset="UTF-8" />
+    // ========================================================
+    // SUPABASE
+    // ========================================================
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    const SUPABASE_URL =
+        "https://raphpzlmjjzgwohjgczu.supabase.co";
 
-  <title>RVJ Classroom Performance Dashboard</title>
 
-  
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
-  <!-- AUTH GUARD SCRIPT: Redirects to login.html if not authenticated -->
 
-<script>
-  // 1. Clear any old persistent localStorage login flags
-  localStorage.removeItem("access_granted");
-  localStorage.removeItem("current_admin_user");
+    if (
+        !window.supabase ||
+        typeof window.supabase.createClient !== "function"
+    ) {
 
-  // 2. Require an active tab session (auto-logs out when tab/browser closes)
-  if (sessionStorage.getItem("access_granted") !== "true") {
-    window.location.href = "login.html";
-  }
+        console.error(
+            "[RVJ] Supabase JS library was not loaded."
+        );
 
-  // 3. Global logout function (if you have a Logout button with onclick="logout()")
-  function logout() {
-    sessionStorage.removeItem("access_granted");
-    sessionStorage.removeItem("current_admin_user");
-    window.location.href = "login.html";
-  }
-</script>
+        return;
+    }
 
 
-  <link rel="stylesheet" href="style.css?v=22" />
+    const client =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
 
 
+    console.log(
+        "[RVJ] dashboard.js v99 loaded (Hard 3-Minute Hold Latch active)."
+    );
 
-  <!-- Supabase JS Client library -->
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    // ========================================================
+    // FRESHNESS (3-MINUTE ALLOWANCE)
+    // ========================================================
 
-</head>
+    const MASTER_TIMEOUT_MS =
+        3 * 60 * 1000; // 3 minutes (180,000 ms)
 
-<body>
 
+    const TEMPERATURE_TIMEOUT_MS =
+        3 * 60 * 1000; // 3 minutes (180,000 ms)
 
 
-<!-- HEADER SECTION -->
+    const CROWD_TIMEOUT_MS =
+        10 * 60 * 1000;
 
-  <header class="header">
 
-    <div>
+    const WEATHER_TIMEOUT_MS =
+        10 * 60 * 1000;
 
-      <h1>RVJ Performance Dashboard</h1>
 
-      <p>IoT Air Conditioning Performance & System State Monitoring</p>
+    const POLL_INTERVAL_MS =
+        10000;
 
-    </div>
 
-    <div style="display: flex; align-items: center; gap: 10px;">
+    const WEATHER_POLL_INTERVAL_MS =
+        60000;
 
-      <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
 
-      
+    const FRESHNESS_INTERVAL_MS =
+        1000;
 
-      <!-- LOGOUT BUTTON AS A MATCHING BADGE LINK -->
 
-      <a 
+    const DASHBOARD_COOLDOWN_MS =
+        3 * 60 * 1000;
 
-        href="#" 
 
-        class="status-badge" 
+    // ========================================================
+    // STATE
+    // ========================================================
 
-        style="text-decoration: none; cursor: pointer;"
+    let rooms = [];
 
-        onclick="localStorage.removeItem('access_granted'); window.location.href='login.html'; return false;"
+    let currentRoomId = null;
 
-      >
+    let currentRoomState = null;
 
-        LOGOUT
+    let latestTemperatureReadings = [];
 
-      </a>
+    let lastMasterSeenAt = null;
 
-    </div>
+    // Hard 3-minute hold timers (prevents momentary UNAVAILABLE flickers)
+    let onlineHoldUntilMs = 0;
 
-  </header>
+    let tempHoldUntilMs = 0;
 
+    let lastValidTempValue = null;
 
+    let lastSeenServerSignature = "";
 
-  <!-- MAIN DASHBOARD CONTENT CONTAINER -->
+    let latestWeatherData = null;
 
-  <main class="dashboard">
+    let masterOnline = false;
 
+    let realtimeChannel = null;
 
+    let pollTimer = null;
 
-    <!-- 1. COMBINED SYSTEM OVERVIEW & ROOM SELECTOR PANEL -->
+    let weatherPollTimer = null;
 
-    <section class="panel">
+    let freshnessTimer = null;
 
-      <h2>System & Room Overview</h2>
+    let cooldownWasActive = false;
 
-      
+    let dashboardCooldownUntil = null;
 
-      <div class="system-status" data-rvj="system-status">
+    let previousACStatus = null;
 
-        Connecting to system services...
 
-      </div>
+    // ========================================================
+    // UI HELPERS
+    // ========================================================
 
+    function getElements(name) {
 
+        return document.querySelectorAll(
+            `[data-rvj="${name}"]`
+        );
+    }
 
-      <div class="room-select-group">
 
-        <label class="label" for="room-selector">Select Classroom:</label>
+    function setText(
+        name,
+        value
+    ) {
 
-        <select id="room-selector" data-rvj="room-selector">
+        getElements(name).forEach(
+            element => {
 
-          <option value="">Loading rooms...</option>
+                element.textContent =
+                    value;
 
-        </select>
+            }
+        );
+    }
 
-      </div>
 
+    function setStatus(
+        name,
+        value
+    ) {
 
+        getElements(name).forEach(
+            element => {
 
-      <div class="room-information">
+                element.dataset.status =
+                    value;
 
-        <div>
+            }
+        );
+    }
 
-          <span class="label">Room Code</span>
 
-          <span class="value" data-rvj="room-code">--</span>
+    // ========================================================
+    // DATE & FRESHNESS HELPERS
+    // ========================================================
 
-        </div>
+    function parseDate(
+        value
+    ) {
 
-        <div>
+        if (!value) {
 
-          <span class="label">Room Name</span>
+            return null;
+        }
 
-          <span class="value" data-rvj="room-name">--</span>
 
-        </div>
+        const date =
+            new Date(
+                value
+            );
 
-        <div>
 
-          <span class="label">Location</span>
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
 
-          <span class="value" data-rvj="room-location">--</span>
+            return null;
+        }
 
-        </div>
-        
-      </div>
 
-    </section>
+        return date;
+    }
 
 
+    function isFresh(
+        timestamp,
+        timeoutMs
+    ) {
 
-    <!-- 2. LIVE TELEMETRY (LEFT COLUMN) -->
+        const date =
+            parseDate(
+                timestamp
+            );
 
-    <section class="panel">
 
-      <h2>Live Telemetry</h2>
+        if (!date) {
 
-      <div class="cards">
+            return false;
+        }
 
-        <div class="card">
 
-          <span class="card-title">Temperature</span>
+        const age =
+            Date.now() -
+            date.getTime();
 
-          <span class="card-value" data-rvj="temperature">--</span>
 
-        </div>
+        // If age < 0, Supabase's server clock is a few seconds ahead of this laptop's clock,
+        // which means the data was JUST created and is 100% fresh.
+        if (age < 0) {
 
-        <div class="card">
+            return true;
+        }
 
-          <span class="card-title">AC Power</span>
 
-          <span class="card-value" data-rvj="ac-status">OFF</span>
+        return age <= timeoutMs;
+    }
 
-        </div>
 
-        <div class="card">
+    function extendOnlineHold() {
 
-          <span class="card-title">RFID Card</span>
+        onlineHoldUntilMs =
+            Date.now() +
+            MASTER_TIMEOUT_MS;
+    }
 
-          <span class="card-value" data-rvj="rfid-status">REMOVED</span>
 
-        </div>
+    function extendTempHold(tempValue) {
 
-        <div class="card">
+        if (Number.isFinite(tempValue)) {
 
-          <span class="card-title">Control Mode</span>
+            lastValidTempValue =
+                tempValue;
 
-          <span class="card-value" data-rvj="control-mode">RFID</span>
+            tempHoldUntilMs =
+                Date.now() +
+                TEMPERATURE_TIMEOUT_MS;
+        }
+    }
 
-        </div>
 
-        <div class="card">
+    function getNewestTimestamp(
+        timestamps
+    ) {
 
-          <span class="card-title">Door/Window</span>
+        let newestDate = null;
 
-          <span class="card-value" data-rvj="door-status">CLOSED</span>
 
-        </div>
+        timestamps.forEach(
+            ts => {
 
-        <div class="card">
+                const parsed =
+                    parseDate(ts);
 
-          <span class="card-title">Crowd Level</span>
+                if (
+                    parsed &&
+                    (
+                        !newestDate ||
+                        parsed.getTime() > newestDate.getTime()
+                    )
+                ) {
 
-          <span class="card-value" data-rvj="crowd-alert">NORMAL</span>
+                    newestDate = parsed;
+                }
+            }
+        );
 
-        </div>
 
-        <div class="card">
+        return newestDate
+            ? newestDate.toISOString()
+            : null;
+    }
 
-          <span class="card-title">Weather Alert</span>
 
-          <span class="card-value" data-rvj="weather-alert">NORMAL</span>
+    function refreshMasterActivityTimestamp() {
 
-        </div>
+        const candidateTimestamps = [];
 
-      </div>
 
-    </section>
+        if (currentRoomState) {
 
+            if (currentRoomState.master_last_seen_at) {
+                candidateTimestamps.push(
+                    currentRoomState.master_last_seen_at
+                );
+            }
 
+            if (currentRoomState.updated_at) {
+                candidateTimestamps.push(
+                    currentRoomState.updated_at
+                );
+            }
+        }
 
-    <!-- 3. PERFORMANCE PANEL (RIGHT COLUMN - TOP) -->
 
-    <section class="panel">
+        latestTemperatureReadings.forEach(
+            reading => {
 
-      <h2>AC Performance Evaluation</h2>
+                if (reading && reading.recorded_at) {
+                    candidateTimestamps.push(
+                        reading.recorded_at
+                    );
+                }
+            }
+        );
 
-      <div class="performance-container">
 
-        <div class="performance-item">
+        const newestServerTs =
+            getNewestTimestamp(
+                candidateTimestamps
+            );
 
-          <span class="label">Performance Status</span>
 
-          <span class="large-value" data-rvj="performance-status">AC OFF</span>
+        if (newestServerTs) {
 
-        </div>
+            lastMasterSeenAt =
+                newestServerTs;
 
-      </div>
+            if (
+                isFresh(newestServerTs, MASTER_TIMEOUT_MS) ||
+                (lastSeenServerSignature !== "" && newestServerTs !== lastSeenServerSignature)
+            ) {
 
-      <div class="last-update">
+                extendOnlineHold();
+            }
 
-        <span class="label">Last Updated:</span>
+            lastSeenServerSignature =
+                newestServerTs;
+        }
+    }
 
-        <span class="value" data-rvj="last-update">--</span>
 
-      </div>
+    // ========================================================
+    // ADMIN CONTROLS
+    // ========================================================
 
-    </section>
+    function disableAdminControls() {
 
+        document
+            .querySelectorAll(
+                "[data-ac-command]"
+            )
+            .forEach(
+                button => {
 
+                    button.disabled =
+                        true;
 
-    <!-- 4. DEGRADATION FACTORS PANEL (RIGHT COLUMN - BOTTOM) -->
+                }
+            );
+    }
 
-    <section class="panel">
 
-      <h2>Degradation Analysis</h2>
+    function enableAdminControls() {
 
-      <div class="factor-grid">
+        document
+            .querySelectorAll(
+                "[data-ac-command]"
+            )
+            .forEach(
+                button => {
 
-        <div class="factor">
+                    button.disabled =
+                        false;
 
-          <span>Door/Window Open Impact:</span>
+                }
+            );
+    }
 
-          <span class="factor-status" data-rvj="door-factor">LOW</span>
 
-        </div>
+    // ========================================================
+    // CLEAR LIVE DATA
+    // ========================================================
 
-        <div class="factor">
+    function clearLiveDeviceData() {
 
-          <span>Crowd Impact:</span>
+        setText(
+            "temperature",
+            "UNAVAILABLE"
+        );
 
-          <span class="factor-status" data-rvj="crowd-factor">LOW</span>
 
-        </div>
+        setText(
+            "ac-status",
+            "UNAVAILABLE"
+        );
 
-        <div class="factor">
 
-          <span>Weather Impact:</span>
+        setText(
+            "rfid-status",
+            "UNAVAILABLE"
+        );
 
-          <span class="factor-status" data-rvj="weather-factor">LOW</span>
 
-        </div>
+        setText(
+            "control-mode",
+            "UNAVAILABLE"
+        );
 
-        <div class="factor">
 
-          <span>Primary Factor:</span>
+        setText(
+            "door-status",
+            "UNAVAILABLE"
+        );
 
-          <span class="factor-status" data-rvj="degradation-factor">NONE</span>
 
-        </div>
+        setText(
+            "crowd-alert",
+            "UNAVAILABLE"
+        );
 
-      </div>
 
-    </section>
+        setText(
+            "performance-score",
+            "UNAVAILABLE"
+        );
 
 
+        setText(
+            "performance-status",
+            "UNAVAILABLE"
+        );
 
-<!-- 5. ADMIN AC CONTROLS PANEL (BOTTOM FULL WIDTH) -->
 
-<section class="panel">
+        setText(
+            "door-factor",
+            "UNAVAILABLE"
+        );
 
-  <h2>Manual Admin Controls</h2>
 
-  <div class="warning">
+        setText(
+            "crowd-factor",
+            "UNAVAILABLE"
+        );
 
-    Overriding mode from administrative controls will force remote power state.
 
-  </div>
+        setText(
+            "weather-factor",
+            "UNAVAILABLE"
+        );
 
-  <div class="admin-controls">
 
-    <!-- Power Controls -->
+        setText(
+            "degradation-factor",
+            "UNAVAILABLE"
+        );
 
-    <button type="button" data-ac-command="ON" class="button button-on">
 
-      Force AC ON
+        setText(
+            "last-update",
+            "UNAVAILABLE"
+        );
+    }
 
-    </button>
 
+    // ========================================================
+    // MASTER ONLINE (WITH 3-MINUTE LATCH)
+    // ========================================================
 
+    function masterIsActuallyOnline() {
 
-    <button type="button" data-ac-command="OFF" class="button button-off">
+        refreshMasterActivityTimestamp();
 
-      Force AC OFF
 
-    </button>
+        if (Date.now() < onlineHoldUntilMs) {
 
+            return true;
+        }
 
 
-    <!-- Temperature Level Override Controls -->
+        if (
+            isFresh(
+                lastMasterSeenAt,
+                MASTER_TIMEOUT_MS
+            )
+        ) {
 
-   <button type="button" data-ac-command="SET_TEMP_LOW" class="button">
+            extendOnlineHold();
+            return true;
+        }
 
-      Low Cool (16°C - 18°C)
 
-   </button>
+        return false;
+    }
 
 
+    function updateMasterStatus() {
 
-   <button type="button" data-ac-command="SET_TEMP_MID" class="button">
+        const online =
+            masterIsActuallyOnline();
 
-      Mid Cool (21°C - 23°C)
 
-   </button>
+        if (
+            online ===
+            masterOnline
+        ) {
 
+            return;
+        }
 
 
-   <button type="button" data-ac-command="SET_TEMP_HIGH" class="button">
+        masterOnline =
+            online;
 
-      High Cool (24°C - 26°C)
 
-   </button>
+        console.log(
+            "[RVJ] Master online:",
+            masterOnline
+        );
 
 
+        if (
+            masterOnline
+        ) {
 
-    <!-- Mode Reset -->
+            setText(
+                "connection-status",
+                "DEVICE ONLINE"
+            );
 
-    <button type="button" data-ac-command="CLEAR_OVERRIDE" class="button">
 
-      Clear Override
+            setStatus(
+                "connection-status",
+                "connected"
+            );
 
-    </button>
 
-  </div>
+            enableAdminControls();
 
-  <div class="command-result">
 
-    <span class="label">Command Output:</span>
+            setText(
+                "system-status",
+                "Master Node is online and reporting."
+            );
 
-    <span class="value" data-rvj="command-status">Idle</span>
 
-  </div>
+            if (currentRoomState) {
 
-</section>
+                displayRoomState(currentRoomState);
+            }
 
 
+        } else {
 
-    
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
 
-  </main>
 
+            setStatus(
+                "connection-status",
+                "offline"
+            );
 
 
-  <script src="dashboard.js?v=26"></script>
+            disableAdminControls();
 
-</body>
 
-</html> 
+            clearLiveDeviceData();
+
+
+            setText(
+                "system-status",
+                "Master Node is offline or its Internet connection is unavailable."
+            );
+        }
+    }
+
+
+    // ========================================================
+    // ROOM
+    // ========================================================
+
+    function displayRoom(
+        room
+    ) {
+
+        setText(
+            "room-code",
+            room.room_code ||
+            "--"
+        );
+
+
+        setText(
+            "room-name",
+            room.room_name ||
+            "--"
+        );
+
+
+        setText(
+            "room-location",
+            room.location ||
+            "--"
+        );
+
+    }
+
+
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
+
+    function getCooldownRemainingMs() {
+
+        if (
+            dashboardCooldownUntil
+        ) {
+
+            return Math.max(
+                0,
+                dashboardCooldownUntil -
+                Date.now()
+            );
+        }
+
+
+        if (
+            !currentRoomState ||
+            !currentRoomState.ac_cooldown_until
+        ) {
+
+            return 0;
+        }
+
+
+        const cooldownUntil =
+            new Date(
+                currentRoomState.ac_cooldown_until
+            ).getTime();
+
+
+        if (
+            Number.isNaN(
+                cooldownUntil
+            )
+        ) {
+
+            return 0;
+        }
+
+
+        return Math.max(
+            0,
+            cooldownUntil -
+            Date.now()
+        );
+    }
+
+
+    function formatCooldown(
+        milliseconds
+    ) {
+
+        const totalSeconds =
+            Math.ceil(
+                milliseconds /
+                1000
+            );
+
+
+        const minutes =
+            Math.floor(
+                totalSeconds /
+                60
+            );
+
+
+        const seconds =
+            totalSeconds %
+            60;
+
+
+        return (
+            `minutes:{String(seconds).padStart(2, "0")}`
+        );
+    }
+
+
+    function startDashboardCooldown() {
+
+        dashboardCooldownUntil =
+            Date.now() +
+            DASHBOARD_COOLDOWN_MS;
+
+
+        cooldownWasActive =
+            true;
+
+
+        updateCooldownDisplay();
+    }
+
+
+    function updateCooldownDisplay() {
+
+        const commandStatus =
+            document.querySelector(
+                '[data-rvj="command-status"]'
+            );
+
+
+        const remainingMs =
+            getCooldownRemainingMs();
+
+
+        if (
+            remainingMs > 0
+        ) {
+
+            cooldownWasActive =
+                true;
+
+
+            if (
+                commandStatus
+            ) {
+
+                commandStatus.textContent =
+                    `AC COOLDOWN: ${formatCooldown(remainingMs)} remaining. AC cannot be turned ON yet.`;
+            }
+
+
+            return;
+        }
+
+
+        if (
+            dashboardCooldownUntil
+        ) {
+
+            dashboardCooldownUntil =
+                null;
+        }
+
+
+        if (
+            cooldownWasActive
+        ) {
+
+            cooldownWasActive =
+                false;
+
+
+            if (
+                commandStatus
+            ) {
+
+                commandStatus.textContent =
+                    "AC COOLDOWN COMPLETE. Press ON or tap RFID to activate.";
+            }
+        }
+    }
+
+
+   // ========================================================
+    // CROWD (ONLY LOW / MEDIUM / HIGH + BUSY BANNER)
+    // ========================================================
+
+    let crowdScanWasActive = false;
+
+    function displayCrowdState(
+        data
+    ) {
+
+        if (
+            !masterOnline ||
+            !data
+        ) {
+
+            setText(
+                "crowd-alert",
+                "UNAVAILABLE"
+            );
+
+            return;
+        }
+
+
+        const scanStatus =
+            String(data.crowd_scan_status || "READY")
+                .trim()
+                .toUpperCase();
+
+
+        if (
+            scanStatus === "CHECKING"
+        ) {
+
+            crowdScanWasActive = true;
+
+            // 1. Top Header Badge
+            setText(
+                "connection-status",
+                "SCANNING CROWD..."
+            );
+
+            // 2. Top System Overview Banner
+            setText(
+                "system-status",
+                "⏳ BUSY: Master Node is scanning classroom crowd density (~4 seconds). Controls will resume momentarily..."
+            );
+
+            // 3. Live Telemetry Card & Degradation Factor
+            setText(
+                "crowd-alert",
+                "SCANNING..."
+            );
+
+            setText(
+                "crowd-factor",
+                "SCANNING..."
+            );
+
+            // 4. Bottom Admin Command Output
+            setText(
+                "command-status",
+                "⏳ Master Node is performing a 4-second crowd scan. Admin buttons will unlock momentarily..."
+            );
+
+            disableAdminControls();
+
+            return;
+        }
+
+
+        // If scan just finished, restore the normal status messages and unlock buttons
+        if (crowdScanWasActive) {
+
+            crowdScanWasActive = false;
+
+            setText(
+                "connection-status",
+                "DEVICE ONLINE"
+            );
+
+            setText(
+                "system-status",
+                "Master Node is online and reporting."
+            );
+
+            if (getCooldownRemainingMs() === 0) {
+                setText(
+                    "command-status",
+                    "Crowd scan complete. Ready for commands."
+                );
+            }
+
+            enableAdminControls();
+        }
+
+
+        // Display strictly LOW, MEDIUM, or HIGH
+        const rawLevel =
+            String(data.crowd_level || "LOW")
+                .trim()
+                .toUpperCase();
+
+
+        let level = "LOW";
+
+        if (rawLevel === "HIGH" || data.overcrowded === true) {
+            level = "HIGH";
+        } else if (rawLevel === "MEDIUM" || rawLevel === "MID") {
+            level = "MEDIUM";
+        } else {
+            level = "LOW";
+        }
+
+
+        setText(
+            "crowd-alert",
+            level
+        );
+    }
+
+    // ========================================================
+    // TEMPERATURE (WITH 3-MINUTE LATCH)
+    // ========================================================
+
+    function updateTemperatureDisplay() {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "temperature",
+                "UNAVAILABLE"
+            );
+
+            evaluateCoolingPerformance(currentRoomState);
+            return;
+        }
+
+
+        const freshReadings =
+            latestTemperatureReadings.filter(
+                reading =>
+                    isFresh(
+                        reading.recorded_at,
+                        TEMPERATURE_TIMEOUT_MS
+                    )
+            );
+
+
+        if (
+            freshReadings.length > 0
+        ) {
+
+            let total = 0;
+
+            freshReadings.forEach(
+                reading => {
+                    total += Number(reading.temperature_c);
+                }
+            );
+
+            const average =
+                total / freshReadings.length;
+
+            extendTempHold(average);
+
+            setText(
+                "temperature",
+                `${average.toFixed(1)} °C`
+            );
+
+            return;
+        }
+
+
+        // Fallback 1: Use avg_temperature_c from room_state
+        if (
+            currentRoomState &&
+            currentRoomState.avg_temperature_c !== null &&
+            currentRoomState.avg_temperature_c !== undefined
+        ) {
+
+            const roomTemp =
+                Number(currentRoomState.avg_temperature_c);
+
+            if (Number.isFinite(roomTemp)) {
+
+                extendTempHold(roomTemp);
+
+                setText(
+                    "temperature",
+                    `${roomTemp.toFixed(1)} °C`
+                );
+
+                return;
+            }
+        }
+
+
+        // Fallback 2: Hold last valid temperature for the full 3-minute latch
+        if (
+            lastValidTempValue !== null &&
+            Date.now() < tempHoldUntilMs
+        ) {
+
+            setText(
+                "temperature",
+                `${Number(lastValidTempValue).toFixed(1)} °C`
+            );
+
+            return;
+        }
+
+
+        setText(
+            "temperature",
+            "SENSOR DATA UNAVAILABLE"
+        );
+    }
+
+
+    // ========================================================
+    // WEATHER
+    // ========================================================
+
+    function displayWeatherObservation(
+        data
+    ) {
+
+        latestWeatherData =
+            data;
+
+
+        const elements =
+            getElements(
+                "weather-alert"
+            );
+
+
+        if (
+            !data
+        ) {
+
+            setText(
+                "weather-alert",
+                "UNAVAILABLE"
+            );
+
+
+            elements.forEach(
+                element => {
+
+                    element.removeAttribute(
+                        "title"
+                    );
+
+                }
+            );
+
+
+            return;
+        }
+
+
+        const observedAt =
+            parseDate(
+                data.observed_at
+            );
+
+
+        if (
+            !observedAt ||
+            !isFresh(
+                data.observed_at,
+                WEATHER_TIMEOUT_MS
+            )
+        ) {
+
+            setText(
+                "weather-alert",
+                "UNAVAILABLE"
+            );
+
+
+            elements.forEach(
+                element => {
+
+                    element.title =
+                        "Latest weather observation is stale.";
+
+                }
+            );
+
+
+            return;
+        }
+
+
+        const temperature =
+            Number(
+                data.temperature_c
+            );
+
+
+        const feelsLike =
+            Number(
+                data.feels_like_c
+            );
+
+
+        const humidity =
+            Number(
+                data.humidity
+            );
+
+
+        const condition =
+            data.condition
+                ? String(
+                    data.condition
+                )
+                : "UNKNOWN";
+
+
+        const parts = [];
+
+
+        if (
+            Number.isFinite(
+                temperature
+            )
+        ) {
+
+            parts.push(
+                `${temperature.toFixed(1)}°C`
+            );
+        }
+
+
+        if (
+            Number.isFinite(
+                feelsLike
+            )
+        ) {
+
+            parts.push(
+                `Feels ${feelsLike.toFixed(1)}°C`
+            );
+        }
+
+
+        if (
+            Number.isFinite(
+                humidity
+            )
+        ) {
+
+            parts.push(
+                `${humidity.toFixed(0)}%`
+            );
+        }
+
+
+        if (
+            condition
+        ) {
+
+            parts.push(
+                condition
+            );
+        }
+
+
+        const displayValue =
+            parts.length > 0
+                ? parts.join(" | ")
+                : "UNAVAILABLE";
+
+
+        setText(
+            "weather-alert",
+            displayValue
+        );
+
+
+        const location =
+            data.location
+                ? String(
+                    data.location
+                )
+                : "Unknown location";
+
+
+        const observedText =
+            observedAt.toLocaleString(
+                "en-PH"
+            );
+
+
+        elements.forEach(
+            element => {
+
+                element.title =
+                    `Location: ${location}\n` +
+                    `Observed: ${observedText}`;
+
+            }
+        );
+    }
+
+
+    async function loadLatestWeatherObservation() {
+
+        try {
+
+            const result =
+                await client
+                    .from(
+                        "weather_observations"
+                    )
+                    .select(
+                        "id, location, temperature_c, feels_like_c, humidity, condition, observed_at"
+                    )
+                    .order(
+                        "observed_at",
+                        {
+                            ascending:
+                                false
+                        }
+                    )
+                    .limit(
+                        1
+                    )
+                    .maybeSingle();
+
+
+            if (
+                result.error
+            ) {
+
+                console.error(
+                    "[RVJ] Weather query error:",
+                    result.error
+                );
+
+                return;
+            }
+
+
+            displayWeatherObservation(
+                result.data
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            console.error(
+                "[RVJ] Weather loading failed:",
+                error
+            );
+        }
+    }
+
+
+    function startWeatherPolling() {
+
+        if (
+            weatherPollTimer
+        ) {
+
+            clearInterval(
+                weatherPollTimer
+            );
+        }
+
+
+        weatherPollTimer =
+            setInterval(
+                function () {
+
+                    loadLatestWeatherObservation();
+
+                },
+                WEATHER_POLL_INTERVAL_MS
+            );
+    }
+
+
+// ========================================================
+    // AC COOLING PERFORMANCE FORMULA (AC OFF / OPTIMAL / POOR)
+    // ========================================================
+    //
+    // 1. If Master is offline        -> UNAVAILABLE
+    // 2. If AC Power is OFF          -> AC OFF
+    // 3. If AC is ON + Temp Present  -> OPTIMAL (<= 26.0°C) or POOR (> 26.0°C)
+    //
+
+    const OPTIMAL_EFFECTIVE_TEMP_MAX_C = 26.0;
+
+    function evaluateCoolingPerformance(
+        data
+    ) {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "performance-status",
+                "UNAVAILABLE"
+            );
+
+            return;
+        }
+
+
+        const stateData =
+            data || currentRoomState;
+
+
+        // Check if the AC is currently turned ON
+        const isAcOn =
+            Boolean(
+                stateData &&
+                (
+                    stateData.ac_power === true ||
+                    String(stateData.ac_power).toUpperCase() === "TRUE" ||
+                    String(stateData.ac_status).toUpperCase() === "ON"
+                )
+            );
+
+
+        // If AC is OFF, do not grade performance — show "AC OFF"
+        if (
+            !isAcOn
+        ) {
+
+            setText(
+                "performance-status",
+                "AC OFF"
+            );
+
+            return;
+        }
+
+
+        // Collect all fresh thermometer readings (works with 1, 2, or 3 active nodes)
+        const freshReadings =
+            latestTemperatureReadings.filter(
+                reading =>
+                    isFresh(
+                        reading.recorded_at,
+                        TEMPERATURE_TIMEOUT_MS
+                    ) &&
+                    Number.isFinite(
+                        Number(reading.temperature_c)
+                    )
+            );
+
+
+        let temps =
+            freshReadings.map(
+                r => Number(r.temperature_c)
+            );
+
+
+        // Fallback to room_state average or 3-minute held temperature if needed
+        if (
+            temps.length === 0 &&
+            stateData &&
+            stateData.avg_temperature_c !== null &&
+            stateData.avg_temperature_c !== undefined &&
+            Number.isFinite(Number(stateData.avg_temperature_c))
+        ) {
+
+            temps = [
+                Number(stateData.avg_temperature_c)
+            ];
+
+        } else if (
+            temps.length === 0 &&
+            lastValidTempValue !== null &&
+            Date.now() < tempHoldUntilMs
+        ) {
+
+            temps = [
+                Number(lastValidTempValue)
+            ];
+        }
+
+
+        // AC is ON, but waiting for at least 1 thermometer reading
+        if (
+            temps.length === 0
+        ) {
+
+            setText(
+                "performance-status",
+                "WAITING FOR DATA"
+            );
+
+            return;
+        }
+
+
+        const sum =
+            temps.reduce(
+                (acc, val) => acc + val,
+                0
+            );
+
+        const avgTemp =
+            sum / temps.length;
+
+        const maxTemp =
+            Math.max(...temps);
+
+        const minTemp =
+            Math.min(...temps);
+
+        const tempSpread =
+            maxTemp - minTemp;
+
+        const effectiveTemp =
+            avgTemp + (0.5 * tempSpread);
+
+        const status =
+            effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C
+                ? "OPTIMAL"
+                : "POOR";
+
+        setText(
+            "performance-status",
+            status
+        );
+    }
+
+
+    // ========================================================
+    // DEGRADATION (DISPLAYS "LOW" / "HIGH")
+    // ========================================================
+
+    function isBurningHotSunnyWeather(weather) {
+
+        if (
+            !weather ||
+            !isFresh(
+                weather.observed_at,
+                WEATHER_TIMEOUT_MS
+            )
+        ) {
+
+            return false;
+        }
+
+        // 1. Must be daytime in the Philippines (6:00 AM to 5:30 PM)
+        const now = new Date();
+        const hour = now.getHours() + (now.getMinutes() / 60);
+        const isDaytime = (hour >= 6.0 && hour <= 17.5);
+
+        if (!isDaytime) {
+            return false;
+        }
+
+        // 2. Must not be raining or stormy
+        const condition = String(weather.condition || "").toLowerCase();
+        if (
+            condition.includes("rain") ||
+            condition.includes("storm") ||
+            condition.includes("drizzle") ||
+            condition.includes("thunder")
+        ) {
+            return false;
+        }
+
+        // 3. Scorching heat threshold:
+        //    Actual air temp >= 34.0°C OR Feels Like >= 39.0°C
+        const tempC = Number(weather.temperature_c);
+        const feelsC = Number(weather.feels_like_c);
+
+        return (
+            (Number.isFinite(tempC) && tempC >= 34.0) ||
+            (Number.isFinite(feelsC) && feelsC >= 39.0)
+        );
+    }
+
+
+    function displayDegradationState(
+        data
+    ) {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "door-factor",
+                "UNAVAILABLE"
+            );
+
+            setText(
+                "crowd-factor",
+                "UNAVAILABLE"
+            );
+
+            setText(
+                "weather-factor",
+                "UNAVAILABLE"
+            );
+
+            setText(
+                "degradation-factor",
+                "UNAVAILABLE"
+            );
+
+            return;
+        }
+
+
+        // 1. Door/Window Open Impact: LOW or HIGH
+        const doorActive = Boolean(data.door_open);
+
+        setText(
+            "door-factor",
+            doorActive
+                ? "HIGH"
+                : "LOW"
+        );
+
+
+        // 2. Crowd Impact: LOW or HIGH (or CHECKING)
+        let crowdActive = false;
+
+        if (
+            data.crowd_scan_status ===
+            "CHECKING"
+        ) {
+
+            setText(
+                "crowd-factor",
+                "CHECKING"
+            );
+
+        } else {
+
+            crowdActive = Boolean(data.overcrowded);
+
+            setText(
+                "crowd-factor",
+                crowdActive
+                    ? "HIGH"
+                    : "LOW"
+            );
+        }
+
+
+        // 3. Weather Impact: LOW or HIGH
+        const weatherActive =
+            isBurningHotSunnyWeather(latestWeatherData);
+
+        setText(
+            "weather-factor",
+            weatherActive
+                ? "HIGH"
+                : "LOW"
+        );
+
+
+        // 4. Primary Degradation Factor
+        let primaryFactor = "NONE";
+
+        if (doorActive) {
+            primaryFactor = "DOOR / WINDOW OPEN";
+        } else if (crowdActive) {
+            primaryFactor = "OVERCROWDING";
+        } else if (weatherActive) {
+            primaryFactor = "HIGH OUTDOOR HEAT";
+        }
+
+        setText(
+            "degradation-factor",
+            primaryFactor
+        );
+    }
+
+    // ========================================================
+    // DISPLAY ROOM STATE
+    // ========================================================
+
+    function displayRoomState(
+        data
+    ) {
+
+        if (data) {
+
+            currentRoomState =
+                data;
+        }
+
+
+        if (
+            !currentRoomState
+        ) {
+
+            return;
+        }
+
+
+        const activeData =
+            currentRoomState;
+
+
+        const currentACStatus =
+            String(
+                activeData.ac_power ??
+                activeData.ac_status ??
+                ""
+            )
+                .trim()
+                .toUpperCase();
+
+
+        if (
+            (previousACStatus === "ON" || previousACStatus === "TRUE") &&
+            (currentACStatus === "OFF" || currentACStatus === "FALSE")
+        ) {
+
+            startDashboardCooldown();
+        }
+
+
+        previousACStatus =
+            currentACStatus;
+
+
+        masterOnline =
+            masterIsActuallyOnline();
+
+
+        if (
+            !masterOnline
+        ) {
+
+            clearLiveDeviceData();
+
+            disableAdminControls();
+
+
+            setText(
+                "connection-status",
+                "DEVICE OFFLINE"
+            );
+
+
+            setStatus(
+                "connection-status",
+                "offline"
+            );
+
+
+            setText(
+                "system-status",
+                "Master Node is offline or its Internet connection is unavailable."
+            );
+
+
+            return;
+        }
+
+
+        setText(
+            "connection-status",
+            "DEVICE ONLINE"
+        );
+
+
+        setStatus(
+            "connection-status",
+            "connected"
+        );
+
+
+        setText(
+            "system-status",
+            "Master Node is online and reporting."
+        );
+
+
+        updateCooldownDisplay();
+
+
+        displayCrowdState(
+            activeData
+        );
+
+
+        updateTemperatureDisplay();
+
+
+        setText(
+            "ac-status",
+            activeData.ac_power
+                ? "ON"
+                : "OFF"
+        );
+
+
+        setText(
+            "rfid-status",
+            activeData.rfid_present
+                ? "PRESENT"
+                : "REMOVED"
+        );
+
+
+        setText(
+            "control-mode",
+            activeData.ac_control_mode ||
+            "RFID"
+        );
+
+
+        setText(
+            "door-status",
+            activeData.door_open
+                ? "OPEN"
+                : "CLOSED"
+        );
+
+
+        evaluateCoolingPerformance(
+            activeData
+        );
+
+
+        displayDegradationState(
+            activeData
+        );
+
+
+        const latestUpdateTs =
+            lastMasterSeenAt ||
+            activeData.updated_at ||
+            activeData.master_last_seen_at;
+
+
+        setText(
+            "last-update",
+            latestUpdateTs
+                ? new Date(
+                    latestUpdateTs
+                ).toLocaleString(
+                    "en-PH"
+                )
+                : "--"
+        );
+
+
+        if (
+            activeData.crowd_scan_status !==
+            "CHECKING"
+        ) {
+
+            enableAdminControls();
+        }
+    }
+
+
+    // ========================================================
+    // TEMPERATURE READINGS
+    // ========================================================
+
+    async function loadTemperatureReadings() {
+
+        if (
+            !currentRoomId
+        ) {
+
+            return;
+        }
+
+
+        const result =
+            await client
+                .from(
+                    "temperature_readings"
+                )
+                .select(
+                    "id, device_id, temperature_c, recorded_at"
+                )
+                .eq(
+                    "room_id",
+                    currentRoomId
+                )
+                .order(
+                    "recorded_at",
+                    {
+                        ascending:
+                            false
+                    }
+                )
+                .limit(
+                    20
+                );
+
+
+        if (
+            result.error
+        ) {
+
+            console.error(
+                "[RVJ] Temperature query error:",
+                result.error
+            );
+
+
+            updateTemperatureDisplay();
+
+
+            return;
+        }
+
+
+        const newestByDevice =
+            new Map();
+
+
+        (result.data || []).forEach(
+            reading => {
+
+                if (
+                    !newestByDevice.has(
+                        reading.device_id
+                    )
+                ) {
+
+                    newestByDevice.set(
+                        reading.device_id,
+                        reading
+                    );
+                }
+
+            }
+        );
+
+
+        latestTemperatureReadings =
+            Array.from(
+                newestByDevice.values()
+            );
+
+
+        updateMasterStatus();
+
+
+        if (
+            masterOnline &&
+            currentRoomState
+        ) {
+
+            displayRoomState(
+                currentRoomState
+            );
+
+        } else {
+
+            updateTemperatureDisplay();
+        }
+    }
+
+
+    // ========================================================
+    // ROOM STATE
+    // ========================================================
+
+    async function loadRoomState() {
+
+        if (
+            !currentRoomId
+        ) {
+
+            return;
+        }
+
+
+        const result =
+            await client
+                .from(
+                    "room_state"
+                )
+                .select(
+                    "*"
+                )
+                .eq(
+                    "room_id",
+                    currentRoomId
+                )
+                .maybeSingle();
+
+
+        if (
+            result.error ||
+            !result.data
+        ) {
+
+            if (result.error) {
+                console.error(
+                    "[RVJ] Room state error:",
+                    result.error
+                );
+            }
+
+            // Do NOT wipe existing UI if a single network poll returns empty
+            return;
+        }
+
+
+        displayRoomState(
+            result.data
+        );
+    }
+
+
+    // ========================================================
+    // ROOMS
+    // ========================================================
+
+    async function loadRooms() {
+
+        const result =
+            await client
+                .from(
+                    "rooms"
+                )
+                .select(
+                    "*"
+                )
+                .eq(
+                    "active",
+                    true
+                )
+                .order(
+                    "room_code"
+                );
+
+
+        if (
+            result.error
+        ) {
+
+            showError(
+                result.error.message
+            );
+
+
+            return false;
+        }
+
+
+        rooms =
+            result.data ||
+            [];
+
+
+        if (
+            rooms.length === 0
+        ) {
+
+            showError(
+                "No active classrooms found."
+            );
+
+
+            return false;
+        }
+
+
+        setupRoomSelector();
+
+
+        const savedRoom =
+            localStorage.getItem(
+                "rvj_selected_room"
+            );
+
+
+        const savedExists =
+            rooms.some(
+                room =>
+                    String(
+                        room.id
+                    ) ===
+                    String(
+                        savedRoom
+                    )
+            );
+
+
+        await selectRoom(
+            savedExists
+                ? Number(savedRoom)
+                : Number(rooms[0].id)
+        );
+
+
+        return true;
+    }
+
+
+    // ========================================================
+    // ROOM SELECTOR
+    // ========================================================
+
+    function setupRoomSelector() {
+
+        getElements(
+            "room-selector"
+        ).forEach(
+            selector => {
+
+                selector.innerHTML =
+                    "";
+
+
+                rooms.forEach(
+                    room => {
+
+                        const option =
+                            document.createElement(
+                                "option"
+                            );
+
+
+                        option.value =
+                            room.id;
+
+
+                        option.textContent =
+                            `${room.room_code} - ${room.room_name}`;
+
+
+                        selector.appendChild(
+                            option
+                        );
+                    }
+                );
+
+
+                selector.onchange =
+                    async function () {
+
+                        await selectRoom(
+                            Number(
+                                selector.value
+                            )
+                        );
+                    };
+            }
+        );
+    }
+
+
+    // ========================================================
+    // SELECT ROOM
+    // ========================================================
+
+    async function selectRoom(
+        roomId
+    ) {
+
+        const room =
+            rooms.find(
+                item =>
+                    Number(
+                        item.id
+                    ) ===
+                    Number(
+                        roomId
+                    )
+            );
+
+
+        if (
+            !room
+        ) {
+
+            return;
+        }
+
+
+        currentRoomId =
+            Number(
+                room.id
+            );
+
+
+        localStorage.setItem(
+            "rvj_selected_room",
+            String(
+                room.id
+            )
+        );
+
+
+        getElements(
+            "room-selector"
+        ).forEach(
+            selector => {
+
+                selector.value =
+                    String(
+                        room.id
+                    );
+            }
+        );
+
+
+        displayRoom(
+            room
+        );
+
+
+        if (
+            realtimeChannel
+        ) {
+
+            await client.removeChannel(
+                realtimeChannel
+            );
+
+
+            realtimeChannel =
+                null;
+        }
+
+
+        currentRoomState =
+            null;
+
+
+        latestTemperatureReadings =
+            [];
+
+
+        lastMasterSeenAt =
+            null;
+
+
+        onlineHoldUntilMs =
+            0;
+
+
+        tempHoldUntilMs =
+            0;
+
+
+        lastValidTempValue =
+            null;
+
+
+        lastSeenServerSignature =
+            "";
+
+
+        masterOnline =
+            false;
+
+
+        cooldownWasActive =
+            false;
+
+
+        dashboardCooldownUntil =
+            null;
+
+
+        previousACStatus =
+            null;
+
+
+        clearLiveDeviceData();
+
+        disableAdminControls();
+
+
+        setText(
+            "connection-status",
+            "CONNECTING"
+        );
+
+
+        await loadTemperatureReadings();
+
+
+        await loadRoomState();
+
+
+        subscribeToRealtime();
+    }
+
+
+    // ========================================================
+    // REALTIME
+    // ========================================================
+
+    function subscribeToRealtime() {
+
+        if (
+            !currentRoomId
+        ) {
+
+            return;
+        }
+
+
+        const roomId =
+            currentRoomId;
+
+
+        realtimeChannel =
+            client
+                .channel(
+                    `rvj-room-roomId-{Date.now()}`
+                )
+
+
+                .on(
+                    "postgres_changes",
+                    {
+                        event:
+                            "UPDATE",
+
+                        schema:
+                            "public",
+
+                        table:
+                            "room_state",
+
+                        filter:
+                            `room_id=eq.${roomId}`
+                    },
+                    payload => {
+
+                        extendOnlineHold();
+
+                        displayRoomState(
+                            payload.new
+                        );
+                    }
+                )
+
+
+                .on(
+                    "postgres_changes",
+                    {
+                        event:
+                            "INSERT",
+
+                        schema:
+                            "public",
+
+                        table:
+                            "temperature_readings",
+
+                        filter:
+                            `room_id=eq.${roomId}`
+                    },
+                    payload => {
+
+                        extendOnlineHold();
+
+                        const index =
+                            latestTemperatureReadings.findIndex(
+                                reading =>
+                                    reading.device_id ===
+                                    payload.new.device_id
+                            );
+
+
+                        if (
+                            index ===
+                            -1
+                        ) {
+
+                            latestTemperatureReadings.push(
+                                payload.new
+                            );
+
+                        } else {
+
+                            latestTemperatureReadings[
+                                index
+                            ] =
+                                payload.new;
+                        }
+
+
+                        updateMasterStatus();
+
+                        updateTemperatureDisplay();
+                    }
+                )
+
+
+                .on(
+                    "postgres_changes",
+                    {
+                        event:
+                            "UPDATE",
+
+                        schema:
+                            "public",
+
+                        table:
+                            "ac_commands",
+
+                        filter:
+                            `room_id=eq.${roomId}`
+                    },
+                    payload => {
+
+                        extendOnlineHold();
+
+                        const command =
+                            payload.new;
+
+
+                        if (
+                            command.status ===
+                            "EXECUTED"
+                        ) {
+
+                            setText(
+                                "command-status",
+                                `${getCommandDisplayName(command.command)} executed successfully.`
+                            );
+
+
+                        } else if (
+                            command.status ===
+                            "FAILED"
+                        ) {
+
+                            if (
+                                command.command ===
+                                "ON"
+                            ) {
+
+                                updateCooldownDisplay();
+
+                            } else {
+
+                                setText(
+                                    "command-status",
+                                    `${command.command} failed.`
+                                );
+                            }
+                        }
+                    }
+                )
+
+
+                .subscribe();
+    }
+
+
+    // ========================================================
+    // DATABASE POLLING
+    // ========================================================
+
+    function startDatabasePolling() {
+
+        if (
+            pollTimer
+        ) {
+
+            clearInterval(
+                pollTimer
+            );
+        }
+
+
+        pollTimer =
+            setInterval(
+                async function () {
+
+                    if (
+                        !currentRoomId
+                    ) {
+
+                        return;
+                    }
+
+
+                    await loadTemperatureReadings();
+
+                    await loadRoomState();
+
+                },
+                POLL_INTERVAL_MS
+            );
+    }
+
+
+    // ========================================================
+    // FRESHNESS MONITOR
+    // ========================================================
+
+    function startFreshnessMonitor() {
+
+        if (
+            freshnessTimer
+        ) {
+
+            clearInterval(
+                freshnessTimer
+            );
+        }
+
+
+        freshnessTimer =
+            setInterval(
+                function () {
+
+                    if (
+                        !currentRoomId
+                    ) {
+
+                        return;
+                    }
+
+
+                    updateMasterStatus();
+
+
+                    if (
+                        masterOnline
+                    ) {
+
+                        updateTemperatureDisplay();
+
+
+                        updateCooldownDisplay();
+
+
+                        if (
+                            currentRoomState
+                        ) {
+
+                            displayCrowdState(
+                                currentRoomState
+                            );
+                        }
+                    }
+
+                },
+                FRESHNESS_INTERVAL_MS
+            );
+    }
+
+
+    // ========================================================
+    // COMMAND DISPLAY NAME
+    // ========================================================
+
+    function getCommandDisplayName(
+        command
+    ) {
+
+        switch (
+            command
+        ) {
+
+            case "ON":
+
+                return "Force AC ON";
+
+
+            case "OFF":
+
+                return "Force AC OFF";
+
+
+            case "SET_TEMP_LOW":
+
+                return "LOW temperature";
+
+
+            case "SET_TEMP_MID":
+
+                return "MEDIUM temperature";
+
+
+            case "SET_TEMP_HIGH":
+
+                return "HIGH temperature";
+
+
+            case "CLEAR_OVERRIDE":
+
+                return "Clear Override";
+
+
+            default:
+
+                return command;
+        }
+    }
+
+
+    // ========================================================
+    // SEND AC COMMAND
+    // ========================================================
+
+    async function sendACCommand(
+        command
+    ) {
+
+        if (
+            !masterOnline
+        ) {
+
+            setText(
+                "command-status",
+                "Command blocked: Master Node is offline."
+            );
+
+
+            return;
+        }
+
+
+        if (
+            currentRoomState &&
+            currentRoomState.crowd_scan_status ===
+            "CHECKING"
+        ) {
+
+            setText(
+                "command-status",
+                "Command blocked: crowd density scan in progress."
+            );
+
+
+            return;
+        }
+
+
+        if (
+            command ===
+            "ON"
+        ) {
+
+            const cooldownRemaining =
+                getCooldownRemainingMs();
+
+
+            if (
+                cooldownRemaining >
+                0
+            ) {
+
+                cooldownWasActive =
+                    true;
+
+
+                setText(
+                    "command-status",
+                    `AC COOLDOWN: ${formatCooldown(cooldownRemaining)} remaining. Please wait.`
+                );
+
+
+                return;
+            }
+        }
+
+
+        const validCommands = [
+
+            "ON",
+
+            "OFF",
+
+            "SET_TEMP_LOW",
+
+            "SET_TEMP_MID",
+
+            "SET_TEMP_HIGH",
+
+            "CLEAR_OVERRIDE"
+
+        ];
+
+
+        if (
+            !validCommands.includes(
+                command
+            )
+        ) {
+
+            return;
+        }
+
+
+        const displayName =
+            getCommandDisplayName(
+                command
+            );
+
+
+        setText(
+            "command-status",
+            `Sending ${displayName}...`
+        );
+
+
+        try {
+
+            const result =
+                await client
+                    .from(
+                        "ac_commands"
+                    )
+                    .insert({
+                        room_id:
+                            currentRoomId,
+
+                        command:
+                            command,
+
+                        source:
+                            "ADMIN",
+
+                        status:
+                            "PENDING"
+                    });
+
+
+            if (
+                result.error
+            ) {
+
+                setText(
+                    "command-status",
+                    `ERROR: ${result.error.message}`
+                );
+
+
+                return;
+            }
+
+
+            setText(
+                "command-status",
+                `${displayName} command sent. Waiting for Master...`
+            );
+
+
+        } catch (
+            error
+        ) {
+
+            setText(
+                "command-status",
+                `ERROR: ${error.message}`
+            );
+        }
+    }
+
+
+    // ========================================================
+    // COMMAND BUTTONS
+    // ========================================================
+
+    function setupCommandButtons() {
+
+        const buttons =
+            document.querySelectorAll(
+                "[data-ac-command]"
+            );
+
+
+        buttons.forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        sendACCommand(
+                            button.dataset.acCommand
+                        );
+
+                    }
+                );
+            }
+        );
+    }
+
+
+    // ========================================================
+    // ERROR
+    // ========================================================
+
+    function showError(
+        message
+    ) {
+
+        console.error(
+            "[RVJ Dashboard]",
+            message
+        );
+
+
+        setText(
+            "system-status",
+            message
+        );
+
+
+        setText(
+            "connection-status",
+            "ERROR"
+        );
+    }
+
+
+    // ========================================================
+    // START
+    // ========================================================
+
+    async function start() {
+
+        setupCommandButtons();
+
+
+        disableAdminControls();
+
+
+        await loadLatestWeatherObservation();
+
+
+        startWeatherPolling();
+
+
+        await loadRooms();
+
+
+        startDatabasePolling();
+
+
+        startFreshnessMonitor();
+    }
+
+
+    // ========================================================
+    // PUBLIC API
+    // ========================================================
+
+    window.RVJDashboard = {
+
+        loadRooms,
+
+        loadRoomState,
+
+        loadTemperatureReadings,
+
+        loadLatestWeatherObservation,
+
+        sendACCommand,
+
+        getMasterStatus:
+            function () {
+
+                return masterOnline;
+            }
+
+    };
+
+
+    // ========================================================
+    // DOM READY
+    // ========================================================
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            start,
+            {
+                once:
+                    true
+            }
+        );
+
+    } else {
+
+        start();
+    }
+
+})();
 
