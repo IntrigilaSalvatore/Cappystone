@@ -583,14 +583,11 @@ const supabaseClient =
 
 
 // ============================================================
-// CHECK EXISTING LOGIN (SESSION STORAGE AUTO-LOGOUT ON TAB CLOSE)
+// CHECK EXISTING LOGIN
 // ============================================================
 
-localStorage.removeItem("access_granted");
-localStorage.removeItem("current_admin_user");
-
 if (
-    sessionStorage.getItem("access_granted") === "true"
+    localStorage.getItem("access_granted") === "true"
 ) {
 
     window.location.href = "index.html";
@@ -684,23 +681,23 @@ function checkFaculty(event) {
 
     errorDiv.innerText = "Access Granted!";
 
-    // Store login session in sessionStorage (logs out when tab/browser closes)
-    sessionStorage.setItem(
+    // Store login in localStorage (matches original behavior)
+    localStorage.setItem(
         "access_granted",
         "true"
     );
 
-    sessionStorage.setItem(
+    localStorage.setItem(
         "user_role",
         "faculty"
     );
 
-    sessionStorage.setItem(
+    localStorage.setItem(
         "professor_name",
         professorName
     );
 
-    sessionStorage.setItem(
+    localStorage.setItem(
         "current_admin_user",
         professorName
     );
@@ -863,15 +860,15 @@ async function checkCode(event) {
 
 
             // ------------------------------------------------
-            // STORE LOGIN SESSION (AUTO-LOGOUT ON TAB CLOSE)
+            // STORE LOGIN SESSION
             // ------------------------------------------------
 
-            sessionStorage.setItem(
+            localStorage.setItem(
                 "access_granted",
                 "true"
             );
 
-            sessionStorage.setItem(
+            localStorage.setItem(
                 "user_role",
                 "admin"
             );
@@ -881,7 +878,7 @@ async function checkCode(event) {
             // STORE CURRENT ADMIN USER
             // ------------------------------------------------
 
-            sessionStorage.setItem(
+            localStorage.setItem(
                 "current_admin_user",
                 username
             );
