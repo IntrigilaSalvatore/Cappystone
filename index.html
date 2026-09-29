@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=29" />
+  <link rel="stylesheet" href="style.css?v=30" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -152,16 +152,16 @@
       </table>
     </section>
 
-    <!-- CONTAINER 2: AIRCON POWER & OVERRIDE CONTROL LOGS -->
+    <!-- CONTAINER 2: COMBINED AIRCON POWER & CONTROL LOGS (WEB & RFID) -->
     <section class="panel">
       <h2>Aircon Power & Control History</h2>
-      <p style="font-size: 13px; color: #64748b;">Tracks who turned the aircon ON/OFF or changed temperature settings in real-time.</p>
+      <p style="font-size: 13px; color: #64748b;">Tracks who turned the aircon ON/OFF via web commands or physical RFID card taps.</p>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
             <th style="padding: 10px;">User / Source</th>
-            <th style="padding: 10px;">Command</th>
-            <th style="padding: 10px;">Execution Status</th>
+            <th style="padding: 10px;">Command / Action</th>
+            <th style="padding: 10px;">Status</th>
             <th style="padding: 10px;">Timestamp</th>
           </tr>
         </thead>
@@ -196,7 +196,7 @@
     </section>
   </div>
 
-  <script src="dashboard.js?v=29"></script>
+  <script src="dashboard.js?v=30"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -271,42 +271,79 @@
       const tbody = document.getElementById("acLogsTableBody");
       tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center;">Fetching aircon control logs...</td></tr>';
 
-      const { data, error } = await window.supabaseClient
-        .from("ac_commands")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(30);
+      try {
+        const [cmdRes, rfidRes] = await Promise.all([
+          window.supabaseClient.from("ac_commands").select("*").order("created_at", { ascending: false }).limit(20),
+          window.supabaseClient.from("rfid_events").select("*").order("created_at", { ascending: false }).limit(20)
+        ]);
 
-      if (error || !data) {
-        tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: red;">Failed to load aircon logs.</td></tr>';
-        return;
+        const commands = cmdRes.data || [];
+        const rfidEvents = rfidRes.data || [];
+
+        const formattedCommands = commands.map(cmd => ({
+          source: cmd.source || 'ADMIN',
+          command: cmd.command,
+          status: cmd.status || 'EXECUTED',
+          type: 'WEB OVERRIDE',
+          timestamp: new Date(cmd.created_at)
+        }));
+
+        const formattedRfid = rfidEvents.map(evt => {
+          const action = String(evt.action || evt.event_type || 'CARD TAP').toUpperCase();
+          let cmdDisplay = action;
+          
+          if (action.includes("TAP") || action.includes("PRESENT") || action.includes("INSERT")) {
+            cmdDisplay = "AC ON (RFID CARD)";
+          } else if (action.includes("REMOVE") || action.includes("EXIT") || action.includes("OFF")) {
+            cmdDisplay = "AC OFF (RFID CARD)";
+          }
+
+          return {
+            source: evt.user_name || evt.faculty_name || evt.card_uid || 'RFID CARD',
+            command: cmdDisplay,
+            status: 'EXECUTED',
+            type: 'PHYSICAL RFID',
+            timestamp: new Date(evt.created_at || evt.timestamp)
+          };
+        });
+
+        const combinedLogs = [...formattedCommands, ...formattedRfid]
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 30);
+
+        if (combinedLogs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity logged.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = combinedLogs.map(log => {
+          let actionBadgeColor = "#1e40af"; 
+          if (log.command.includes("ON")) actionBadgeColor = "#22c55e"; 
+          if (log.command.includes("OFF")) actionBadgeColor = "#ef4444"; 
+
+          return `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold;">
+                ${log.source} 
+                <span style="font-size: 11px; color: #64748b; font-weight: normal;">(${log.type})</span>
+              </td>
+              <td style="padding: 10px;">
+                <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: ${actionBadgeColor}; color: white; font-weight: bold; font-size: 12px;">
+                  ${log.command}
+                </span>
+              </td>
+              <td style="padding: 10px; font-weight: bold; color: ${log.status === 'EXECUTED' ? '#22c55e' : log.status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
+                ${log.status}
+              </td>
+              <td style="padding: 10px;">${log.timestamp.toLocaleString("en-PH")}</td>
+            </tr>
+          `;
+        }).join("");
+
+      } catch (err) {
+        console.error("Failed to load aircon logs:", err);
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: red;">Error processing logs.</td></tr>';
       }
-
-      if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon commands logged.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = data.map(cmd => {
-        let actionBadgeColor = "#1e40af"; 
-        if (cmd.command === "ON") actionBadgeColor = "#22c55e"; 
-        if (cmd.command === "OFF") actionBadgeColor = "#ef4444"; 
-
-        return `
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px; font-weight: bold;">${cmd.source || 'ADMIN'}</td>
-            <td style="padding: 10px;">
-              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: ${actionBadgeColor}; color: white; font-weight: bold; font-size: 12px;">
-                ${cmd.command}
-              </span>
-            </td>
-            <td style="padding: 10px; font-weight: bold; color: ${cmd.status === 'EXECUTED' ? '#22c55e' : cmd.status === 'PENDING' ? '#f59e0b' : '#ef4444'};">
-              ${cmd.status}
-            </td>
-            <td style="padding: 10px;">${new Date(cmd.created_at).toLocaleString("en-PH")}</td>
-          </tr>
-        `;
-      }).join("");
     }
 
     async function createNewUser(e) {
