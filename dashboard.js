@@ -13,7 +13,7 @@
     }
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-    console.log("[RVJ] dashboard.js loaded (Dual-Role & Hard 3-Minute Hold Latch active).");
+    console.log("[RVJ] dashboard.js loaded (User attribution & Hard 3-Minute Hold Latch active).");
 
     // ========================================================
     // CONSTANTS & TIMEOUTS
@@ -96,7 +96,7 @@
         const date = parseDate(timestamp);
         if (!date) return false;
         const age = Date.now() - date.getTime();
-        if (age < 0) return true; // Server clock slightly ahead
+        if (age < 0) return true;
         return age <= timeoutMs;
     }
 
@@ -806,7 +806,7 @@
     }
 
     // ========================================================
-    // SEND COMMAND FUNCTION
+    // SEND COMMAND FUNCTION (Attaches Logged-In Username)
     // ========================================================
     async function sendACCommand(command) {
         if (!masterOnline) {
@@ -835,11 +835,11 @@
         setText("command-status", `Sending ${displayName}...`);
 
         try {
-            const user = localStorage.getItem("current_user") || "ADMIN";
+            const activeUser = localStorage.getItem("current_user") || "ADMIN";
             const result = await client.from("ac_commands").insert({
                 room_id: currentRoomId,
                 command: command,
-                source: user,
+                source: activeUser, // Records user responsible for action
                 status: "PENDING"
             });
 
