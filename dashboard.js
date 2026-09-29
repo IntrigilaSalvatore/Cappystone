@@ -23,7 +23,7 @@
     const WEATHER_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours (always show latest weather)
     const POLL_INTERVAL_MS = 10000;               // 10 seconds
     const WEATHER_POLL_INTERVAL_MS = 60000;        // 60 seconds
-    const FRESHNESS_INTERVAL_MS = 1000;           // 1 second
+    const FRESHNESS_INTERVAL_MS = 1000;            // 1 second
     const DASHBOARD_COOLDOWN_MS = 3 * 60 * 1000;  // 3 minutes
     const OPTIMAL_EFFECTIVE_TEMP_MAX_C = 26.0;
     const AC_EVALUATION_DELAY_MS = 10 * 60 * 1000; // 10 minutes at OPTIMAL before grading
@@ -73,6 +73,11 @@
         getElements(name).forEach(element => {
             element.dataset.status = value;
         });
+    }
+
+    function showError(message) {
+        console.error("[RVJ Error]:", message);
+        setText("system-status", `Error: ${message}`);
     }
 
     function getCommandDisplayName(command) {
@@ -129,8 +134,6 @@
     function refreshMasterActivityTimestamp() {
         const candidateTimestamps = [];
 
-        // Only count actual temperature readings so room_state/weather updates
-        // cannot falsely keep the badge on DEVICE ONLINE
         latestTemperatureReadings.forEach(reading => {
             if (reading && reading.recorded_at) {
                 candidateTimestamps.push(reading.recorded_at);
@@ -170,6 +173,7 @@
     function clearLiveDeviceData() {
         setText("temperature", "UNAVAILABLE");
     }
+
     // ========================================================
     // MASTER ONLINE MONITOR
     // ========================================================
@@ -416,11 +420,6 @@
     // ========================================================
     // COOLING PERFORMANCE EVALUATION
     // ========================================================
-    const AC_EVALUATION_DELAY_MS = 10 * 60 * 1000; // 10 minutes at OPTIMAL before grading
-    const MIN_COOLING_DROP_C = 0.5;
-    let acTurnedOnAtMs = 0;
-    let acBaselineTempC = null;
-
     function evaluateCoolingPerformance(data) {
         const stateData = data || currentRoomState;
         const isAcOn = Boolean(
@@ -431,7 +430,6 @@
             )
         );
 
-        // 1. When AC is OFF, show AC OFF and reset timer
         if (!isAcOn) {
             acTurnedOnAtMs = 0;
             acBaselineTempC = null;
@@ -454,7 +452,6 @@
             ? (temps.reduce((acc, val) => acc + val, 0) / temps.length)
             : NaN;
 
-        // 2. Start the 10-minute warm-up timer when AC turns ON
         if (acTurnedOnAtMs === 0) {
             acTurnedOnAtMs = Date.now();
         }
@@ -462,7 +459,6 @@
             acBaselineTempC = avgTemp;
         }
 
-        // 3. Always show OPTIMAL during the first 10 minutes of AC runtime
         if (Date.now() - acTurnedOnAtMs < AC_EVALUATION_DELAY_MS) {
             setText("performance-status", "OPTIMAL");
             return;
@@ -473,7 +469,6 @@
             return;
         }
 
-        // 4. After 10 minutes, evaluate actual cooling drop
         const maxTemp = Math.max(...temps);
         const minTemp = Math.min(...temps);
         const tempSpread = maxTemp - minTemp;
@@ -737,7 +732,6 @@
                 "postgres_changes",
                 { event: "UPDATE", schema: "public", table: "room_state", filter: `room_id=eq.${roomId}` },
                 payload => {
-        
                     displayRoomState(payload.new);
                 }
             )
@@ -760,7 +754,6 @@
                 "postgres_changes",
                 { event: "*", schema: "public", table: "ac_commands", filter: `room_id=eq.${roomId}` },
                 payload => {
-                    
                     const command = payload.new;
                     if (!command) return;
 
@@ -839,7 +832,7 @@
             const result = await client.from("ac_commands").insert({
                 room_id: currentRoomId,
                 command: command,
-                source: activeUser, // Records user responsible for action
+                source: activeUser,
                 status: "PENDING"
             });
 
@@ -855,55 +848,21 @@
     }
 
     // ========================================================
-    // BUTTON LISTENERS
+    // BUTTON LISTENERS & INITIALIZATION
     // ========================================================
-    function setupCommandButtons() {
+    document.addEventListener("DOMContentLoaded", async () => {
         document.querySelectorAll("[data-ac-command]").forEach(button => {
-            button.addEventListener("click", function () {
-                sendACCommand(button.dataset.acCommand);
+            button.addEventListener("click", () => {
+                const command = button.getAttribute("data-ac-command");
+                sendACCommand(command);
             });
         });
-    }
 
-    function showError(message) {
-        console.error("[RVJ Dashboard]", message);
-        setText("system-status", message);
-        setText("connection-status", "ERROR");
-    }
-
-    // ========================================================
-    // STARTUP ENTRYPOINT
-    // ========================================================
-    async function start() {
-        setupCommandButtons();
-        disableAdminControls();
-        await loadLatestWeatherObservation();
-        startWeatherPolling();
         await loadRooms();
+        await loadLatestWeatherObservation();
         startDatabasePolling();
+        startWeatherPolling();
         startFreshnessMonitor();
-    }
+    });
 
-    // ========================================================
-    // PUBLIC API
-    // ========================================================
-    window.RVJDashboard = {
-        loadRooms,
-        loadRoomState,
-        loadTemperatureReadings,
-        loadLatestWeatherObservation,
-        sendACCommand,
-        getMasterStatus: function () {
-            return masterOnline;
-        }
-    };
-
-    // ========================================================
-    // DOM READY LISTENER
-    // ========================================================
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", start, { once: true });
-    } else {
-        start();
-    }
 })();
