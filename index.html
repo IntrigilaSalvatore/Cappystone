@@ -118,6 +118,16 @@
         ⚠️ REPORT ISSUE
       </button>
 
+      <!-- FACULTY VIEW SUBMITTED REPORTS BUTTON -->
+      <button 
+        id="btnViewMyReports" 
+        class="status-badge" 
+        style="display: none; background: #005A92; color: white; border: none; cursor: pointer;"
+        onclick="openFacultyReportsModal()"
+      >
+        📋 My Reports
+      </button>
+
       <!-- ADMIN ENVELOPE NOTIFICATION BUTTON -->
       <button 
         id="btnAdminEnvelope" 
@@ -364,25 +374,50 @@
     </div>
   </div>
 
-  <!-- MODAL 2: ADMIN ENVELOPE REPORTS VIEW -->
+  <!-- MODAL 2: ADMIN ENVELOPE REPORTS VIEW & STATUS MANAGEMENT -->
   <div id="adminReportsModal" class="modal-overlay">
-    <div class="modal-box" style="width: min(700px, 95%); max-height: 80vh; overflow-y: auto;">
+    <div class="modal-box" style="width: min(850px, 95%); max-height: 85vh; overflow-y: auto;">
       <button class="modal-close" onclick="closeAdminReportsModal()">✕</button>
-      <h3 style="margin-top: 0; color: #005A92;">✉️ Received Faculty Reports</h3>
-      <p style="font-size: 13px; color: #64748b;">List of all maintenance issues submitted by faculty members.</p>
+      <h3 style="margin-top: 0; color: #005A92;">✉️ Received Faculty Reports & Status Management</h3>
+      <p style="font-size: 13px; color: #64748b;">Manage maintenance issues reported by faculty and update their progress/feedback.</p>
       
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
-            <th style="padding: 10px; width: 6%;">#</th>
-            <th style="padding: 10px; width: 20%;">Faculty</th>
-            <th style="padding: 10px; width: 25%;">Category</th>
-            <th style="padding: 10px; width: 29%;">Message</th>
+            <th style="padding: 10px; width: 5%;">#</th>
+            <th style="padding: 10px; width: 15%;">Faculty</th>
+            <th style="padding: 10px; width: 20%;">Category & Issue</th>
+            <th style="padding: 10px; width: 25%;">Status & Feedback</th>
             <th style="padding: 10px; width: 20%;">Timestamp</th>
+            <th style="padding: 10px; width: 15%;">Action</th>
           </tr>
         </thead>
         <tbody id="adminReportsTableBody">
-          <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading reports...</td></tr>
+          <tr><td colspan="6" style="padding: 15px; text-align: center;">Loading reports...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL 3: FACULTY VIEW SUBMITTED REPORTS & FEEDBACK -->
+  <div id="facultyReportsModal" class="modal-overlay">
+    <div class="modal-box" style="width: min(750px, 95%); max-height: 80vh; overflow-y: auto;">
+      <button class="modal-close" onclick="closeFacultyReportsModal()">✕</button>
+      <h3 style="margin-top: 0; color: #005A92;">📋 My Submitted Reports & Admin Feedback</h3>
+      <p style="font-size: 13px; color: #64748b;">Track the progress of your aircon maintenance requests.</p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">
+        <thead>
+          <tr style="background: #005A92; color: white; text-align: left;">
+            <th style="padding: 10px; width: 8%;">#</th>
+            <th style="padding: 10px; width: 25%;">Category</th>
+            <th style="padding: 10px; width: 27%;">Message</th>
+            <th style="padding: 10px; width: 20%;">Status</th>
+            <th style="padding: 10px; width: 20%;">Admin Feedback</th>
+          </tr>
+        </thead>
+        <tbody id="facultyReportsTableBody">
+          <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading your reports...</td></tr>
         </tbody>
       </table>
     </div>
@@ -416,12 +451,14 @@
       document.getElementById("adminNav").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
       document.getElementById("btnReportIssue").style.display = "none";
+      document.getElementById("btnViewMyReports").style.display = "none";
       loadAdminReportCount();
       subscribeToIssueReports();
     } else {
       document.getElementById("adminNav").style.display = "none";
       document.getElementById("btnAdminEnvelope").style.display = "none";
       document.getElementById("btnReportIssue").style.display = "inline-block";
+      document.getElementById("btnViewMyReports").style.display = "inline-block";
     }
 
     function switchTab(tab) {
@@ -791,7 +828,7 @@
       }
     }
 
-    // 5. ADMIN ENVELOPE NOTIFICATION LOGIC
+    // 5. ADMIN ENVELOPE NOTIFICATION & STATUS MANAGEMENT LOGIC
     function openAdminReportsModal() {
       document.getElementById("adminReportsModal").style.display = "flex";
       loadAdminReports();
@@ -815,7 +852,7 @@
 
     async function loadAdminReports() {
       const tbody = document.getElementById("adminReportsTableBody");
-      tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching reports...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="padding: 15px; text-align: center;">Fetching reports...</td></tr>';
 
       const { data, error } = await window.supabaseClient
         .from("issue_reports")
@@ -823,28 +860,114 @@
         .order("created_at", { ascending: false });
 
       if (error || !data) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: red;">Failed to load reports.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 15px; text-align: center; color: red;">Failed to load reports.</td></tr>';
         return;
       }
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No issues reported yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 15px; text-align: center; color: #64748b;">No issues reported yet.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.map((rep, idx) => `
-        <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
-          <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
-          <td style="padding: 10px; font-weight: bold; vertical-align: middle;">${rep.faculty_username}</td>
-          <td style="padding: 10px; vertical-align: middle;">
-            <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-weight: bold; font-size: 11px;">
-              ${rep.issue_category}
-            </span>
-          </td>
-          <td style="padding: 10px; vertical-align: middle; color: #334155;">${rep.message || '<i>No message provided</i>'}</td>
-          <td style="padding: 10px; vertical-align: middle;">${new Date(rep.created_at).toLocaleString("en-PH")}</td>
-        </tr>
-      `).join("");
+      tbody.innerHTML = data.map((rep, idx) => {
+        const currentStatus = rep.status || "PENDING";
+        const currentFeedback = rep.admin_feedback || "";
+
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+            <td style="padding: 10px; font-weight: bold; color: #64748b;">${idx + 1}</td>
+            <td style="padding: 10px; font-weight: bold;">${rep.faculty_username}</td>
+            <td style="padding: 10px;">
+              <span style="display: inline-block; padding: 3px 6px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-weight: bold; font-size: 11px;">
+                ${rep.issue_category}
+              </span>
+              <div style="margin-top: 4px; color: #334155;">${rep.message || '<i>No message</i>'}</div>
+            </td>
+            <td style="padding: 10px;">
+              <select id="status_${rep.id}" style="width: 100%; padding: 5px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1; margin-bottom: 6px; font-weight: bold;">
+                <option value="PENDING" ${currentStatus === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                <option value="ON PROCESS" ${currentStatus === 'ON PROCESS' ? 'selected' : ''}>ON PROCESS</option>
+                <option value="ACCOMPLISHED & DONE" ${currentStatus === 'ACCOMPLISHED & DONE' ? 'selected' : ''}>ACCOMPLISHED & DONE</option>
+              </select>
+              <input type="text" id="feedback_${rep.id}" value="${currentFeedback}" placeholder="Enter feedback..." style="width: 100%; padding: 5px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1; box-sizing: border-box;">
+            </td>
+            <td style="padding: 10px; font-size: 11px; color: #64748b;">${new Date(rep.created_at).toLocaleString("en-PH")}</td>
+            <td style="padding: 10px;">
+              <button onclick="updateReportStatus(${rep.id})" class="button" style="padding: 6px 10px; font-size: 11px; width: 100%;">Save</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function updateReportStatus(reportId) {
+      const newStatus = document.getElementById(`status_${reportId}`).value;
+      const newFeedback = document.getElementById(`feedback_${reportId}`).value.trim();
+
+      const { error } = await window.supabaseClient
+        .from("issue_reports")
+        .update({ status: newStatus, admin_feedback: newFeedback })
+        .eq("id", reportId);
+
+      if (error) {
+        alert("Failed to update report: " + error.message);
+      } else {
+        alert("Report status and feedback updated successfully!");
+        loadAdminReports();
+        loadAdminReportCount();
+      }
+    }
+
+    // 6. FACULTY VIEW SUBMITTED REPORTS & FEEDBACK LOGIC
+    function openFacultyReportsModal() {
+      document.getElementById("facultyReportsModal").style.display = "flex";
+      loadFacultyReports();
+    }
+
+    function closeFacultyReportsModal() {
+      document.getElementById("facultyReportsModal").style.display = "none";
+    }
+
+    async function loadFacultyReports() {
+      const tbody = document.getElementById("facultyReportsTableBody");
+      tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching your reports...</td></tr>';
+
+      const { data, error } = await window.supabaseClient
+        .from("issue_reports")
+        .select("*")
+        .eq("faculty_username", username)
+        .order("created_at", { ascending: false });
+
+      if (error || !data) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: red;">Failed to load your reports.</td></tr>';
+        return;
+      }
+
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">You have not submitted any issues yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map((rep, idx) => {
+        const status = rep.status || "PENDING";
+        let badgeColor = "#f59e0b"; // Pending
+        if (status === "ON PROCESS") badgeColor = "#3b82f6";
+        if (status === "ACCOMPLISHED & DONE") badgeColor = "#22c55e";
+
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
+            <td style="padding: 10px; font-weight: bold; color: #64748b;">${idx + 1}</td>
+            <td style="padding: 10px; font-weight: bold;">${rep.issue_category}</td>
+            <td style="padding: 10px; color: #334155;">${rep.message || '<i>No message</i>'}</td>
+            <td style="padding: 10px;">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: ${badgeColor}; color: white; font-weight: bold; font-size: 11px;">
+                ${status}
+              </span>
+            </td>
+            <td style="padding: 10px; color: #1e40af; font-weight: 500;">${rep.admin_feedback || '<span style="color:#94a3b8; font-style:italic;">No feedback yet</span>'}</td>
+          </tr>
+        `;
+      }).join("");
     }
 
     function subscribeToIssueReports() {
