@@ -169,20 +169,7 @@
     // ========================================================
     function clearLiveDeviceData() {
         setText("temperature", "UNAVAILABLE");
-        setText("ac-status", "UNAVAILABLE");
-        setText("rfid-status", "UNAVAILABLE");
-        setText("control-mode", "UNAVAILABLE");
-        setText("door-status", "UNAVAILABLE");
-        setText("crowd-alert", "UNAVAILABLE");
-        setText("performance-score", "UNAVAILABLE");
-        setText("performance-status", "UNAVAILABLE");
-        setText("door-factor", "UNAVAILABLE");
-        setText("crowd-factor", "UNAVAILABLE");
-        setText("weather-factor", "UNAVAILABLE");
-        setText("degradation-factor", "UNAVAILABLE");
-        setText("last-update", "UNAVAILABLE");
     }
-
     // ========================================================
     // MASTER ONLINE MONITOR
     // ========================================================
@@ -429,8 +416,12 @@
     // ========================================================
     // COOLING PERFORMANCE EVALUATION
     // ========================================================
-    function evaluateCoolingPerformance(data) {
+    const AC_EVALUATION_DELAY_MS = 10 * 60 * 1000; // 10 minutes at OPTIMAL before grading
+    const MIN_COOLING_DROP_C = 0.5;
+    let acTurnedOnAtMs = 0;
+    let acBaselineTempC = null;
 
+    function evaluateCoolingPerformance(data) {
         const stateData = data || currentRoomState;
         const isAcOn = Boolean(
             stateData && (
@@ -440,7 +431,7 @@
             )
         );
 
-        // 1. When AC is OFF, reset cooling timer & baseline and show AC OFF
+        // 1. When AC is OFF, show AC OFF and reset timer
         if (!isAcOn) {
             acTurnedOnAtMs = 0;
             acBaselineTempC = null;
@@ -463,7 +454,7 @@
             ? (temps.reduce((acc, val) => acc + val, 0) / temps.length)
             : NaN;
 
-        // 2. Start the 10-minute timer & record baseline temp when AC turns ON
+        // 2. Start the 10-minute warm-up timer when AC turns ON
         if (acTurnedOnAtMs === 0) {
             acTurnedOnAtMs = Date.now();
         }
@@ -471,29 +462,29 @@
             acBaselineTempC = avgTemp;
         }
 
-        // 3. Always display OPTIMAL for the first 10 minutes so the AC has time to cool the room
+        // 3. Always show OPTIMAL during the first 10 minutes of AC runtime
         if (Date.now() - acTurnedOnAtMs < AC_EVALUATION_DELAY_MS) {
             setText("performance-status", "OPTIMAL");
             return;
         }
 
         if (temps.length === 0) {
-            setText("performance-status", "WAITING FOR DATA");
+            setText("performance-status", "OPTIMAL");
             return;
         }
 
-        // 4. After 10 minutes, evaluate if room reached <= 26°C OR cooled by at least 0.5°C
+        // 4. After 10 minutes, evaluate actual cooling drop
         const maxTemp = Math.max(...temps);
         const minTemp = Math.min(...temps);
         const tempSpread = maxTemp - minTemp;
         const effectiveTemp = avgTemp + (0.5 * tempSpread);
         const tempDrop = acBaselineTempC !== null ? (acBaselineTempC - avgTemp) : 0;
 
-        const isOptimal =
-            (effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C) ||
-            (tempDrop >= MIN_COOLING_DROP_C);
+        const status = (effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C || tempDrop >= MIN_COOLING_DROP_C)
+            ? "OPTIMAL"
+            : "POOR";
 
-        setText("performance-status", isOptimal ? "OPTIMAL" : "POOR");
+        setText("performance-status", status);
     }
 
     // ========================================================
@@ -520,7 +511,7 @@
     }
 
     function displayDegradationState(data) {
-      if (!data) return;
+        if (!data) return;
 
         const doorActive = Boolean(data.door_open);
         setText("door-factor", doorActive ? "HIGH" : "LOW");
@@ -565,7 +556,7 @@
             disableAdminControls();
             setText("connection-status", "DEVICE OFFLINE");
             setStatus("connection-status", "offline");
-            setText("system-status", "Master Node is offline or its Internet connection is unavailable.");
+            setText("system-status", "Master Node is offline or no longer receiving temperature data.");
         } else {
             setText("connection-status", "DEVICE ONLINE");
             setStatus("connection-status", "connected");
