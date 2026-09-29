@@ -20,7 +20,7 @@
     // ========================================================
     const MASTER_TIMEOUT_MS = 3 * 60 * 1000;      // 3 minutes
     const TEMPERATURE_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
-    const WEATHER_TIMEOUT_MS = 10 * 60 * 1000;     // 10 minutes
+    const WEATHER_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 hours (always show latest weather)
     const POLL_INTERVAL_MS = 10000;               // 10 seconds
     const WEATHER_POLL_INTERVAL_MS = 60000;        // 60 seconds
     const FRESHNESS_INTERVAL_MS = 1000;           // 1 second
@@ -213,8 +213,9 @@
             setText("connection-status", "DEVICE OFFLINE");
             setStatus("connection-status", "offline");
             disableAdminControls();
-            clearLiveDeviceData();
+            setText("temperature", "UNAVAILABLE");
             setText("system-status", "Master Node is offline or its Internet connection is unavailable.");
+            if (currentRoomState) displayRoomState(currentRoomState);
         }
     }
 
@@ -280,7 +281,7 @@
     // CROWD MONITORING
     // ========================================================
     function displayCrowdState(data) {
-        if (!masterOnline || !data) {
+        if (!data) {
             setText("crowd-alert", "UNAVAILABLE");
             return;
         }
@@ -429,10 +430,6 @@
     // COOLING PERFORMANCE EVALUATION
     // ========================================================
     function evaluateCoolingPerformance(data) {
-        if (!masterOnline) {
-            setText("performance-status", "UNAVAILABLE");
-            return;
-        }
 
         const stateData = data || currentRoomState;
         const isAcOn = Boolean(
@@ -523,13 +520,7 @@
     }
 
     function displayDegradationState(data) {
-        if (!masterOnline) {
-            setText("door-factor", "UNAVAILABLE");
-            setText("crowd-factor", "UNAVAILABLE");
-            setText("weather-factor", "UNAVAILABLE");
-            setText("degradation-factor", "UNAVAILABLE");
-            return;
-        }
+      if (!data) return;
 
         const doorActive = Boolean(data.door_open);
         setText("door-factor", doorActive ? "HIGH" : "LOW");
@@ -571,17 +562,15 @@
         masterOnline = masterIsActuallyOnline();
 
         if (!masterOnline) {
-            clearLiveDeviceData();
             disableAdminControls();
             setText("connection-status", "DEVICE OFFLINE");
             setStatus("connection-status", "offline");
             setText("system-status", "Master Node is offline or its Internet connection is unavailable.");
-            return;
+        } else {
+            setText("connection-status", "DEVICE ONLINE");
+            setStatus("connection-status", "connected");
+            setText("system-status", "Master Node is online and reporting.");
         }
-
-        setText("connection-status", "DEVICE ONLINE");
-        setStatus("connection-status", "connected");
-        setText("system-status", "Master Node is online and reporting.");
 
         updateCooldownDisplay();
         displayCrowdState(activeData);
@@ -598,7 +587,7 @@
         const latestUpdateTs = lastMasterSeenAt || activeData.updated_at || activeData.master_last_seen_at;
         setText("last-update", latestUpdateTs ? new Date(latestUpdateTs).toLocaleString("en-PH") : "--");
 
-        if (activeData.crowd_scan_status !== "CHECKING") {
+        if (masterOnline && activeData.crowd_scan_status !== "CHECKING") {
             enableAdminControls();
         }
     }
