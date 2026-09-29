@@ -26,10 +26,14 @@
     const FRESHNESS_INTERVAL_MS = 1000;           // 1 second
     const DASHBOARD_COOLDOWN_MS = 3 * 60 * 1000;  // 3 minutes
     const OPTIMAL_EFFECTIVE_TEMP_MAX_C = 26.0;
+    const AC_EVALUATION_DELAY_MS = 10 * 60 * 1000; // 10 minutes at OPTIMAL before grading
+    const MIN_COOLING_DROP_C = 0.5;                // Minimum °C drop required if still > 26°C
 
     // ========================================================
     // STATE
     // ========================================================
+    let acTurnedOnAtMs = 0;
+    let acBaselineTempC = null;
     let rooms = [];
     let currentRoomId = null;
     let currentRoomState = null;
@@ -124,11 +128,9 @@
 
     function refreshMasterActivityTimestamp() {
         const candidateTimestamps = [];
-        if (currentRoomState) {
-            if (currentRoomState.master_last_seen_at) candidateTimestamps.push(currentRoomState.master_last_seen_at);
-            if (currentRoomState.updated_at) candidateTimestamps.push(currentRoomState.updated_at);
-        }
 
+        // Only count actual temperature readings so room_state/weather updates
+        // cannot falsely keep the badge on DEVICE ONLINE
         latestTemperatureReadings.forEach(reading => {
             if (reading && reading.recorded_at) {
                 candidateTimestamps.push(reading.recorded_at);
@@ -138,13 +140,15 @@
         const newestServerTs = getNewestTimestamp(candidateTimestamps);
         if (newestServerTs) {
             lastMasterSeenAt = newestServerTs;
-            if (isFresh(newestServerTs, MASTER_TIMEOUT_MS) || (lastSeenServerSignature !== "" && newestServerTs !== lastSeenServerSignature)) {
-                extendOnlineHold();
+            if (isFresh(newestServerTs, TEMPERATURE_TIMEOUT_MS)) {
+                if (lastSeenServerSignature !== "" && newestServerTs !== lastSeenServerSignature) {
+                    extendOnlineHold();
+                }
             }
             lastSeenServerSignature = newestServerTs;
         }
     }
-
+    
     // ========================================================
     // ADMIN CONTROLS ENABLING / DISABLING
     // ========================================================
@@ -339,24 +343,18 @@
             const average = total / freshReadings.length;
             extendTempHold(average);
             setText("temperature", `${average.toFixed(1)} °C`);
+            evaluateCoolingPerformance(currentRoomState);
             return;
-        }
-
-        if (currentRoomState && currentRoomState.avg_temperature_c !== null && currentRoomState.avg_temperature_c !== undefined) {
-            const roomTemp = Number(currentRoomState.avg_temperature_c);
-            if (Number.isFinite(roomTemp)) {
-                extendTempHold(roomTemp);
-                setText("temperature", `${roomTemp.toFixed(1)} °C`);
-                return;
-            }
         }
 
         if (lastValidTempValue !== null && Date.now() < tempHoldUntilMs) {
             setText("temperature", `${Number(lastValidTempValue).toFixed(1)} °C`);
+            evaluateCoolingPerformance(currentRoomState);
             return;
         }
 
         setText("temperature", "SENSOR DATA UNAVAILABLE");
+        evaluateCoolingPerformance(currentRoomState);
     }
 
     // ========================================================
@@ -445,7 +443,10 @@
             )
         );
 
+        // 1. When AC is OFF, reset cooling timer & baseline and show AC OFF
         if (!isAcOn) {
+            acTurnedOnAtMs = 0;
+            acBaselineTempC = null;
             setText("performance-status", "AC OFF");
             return;
         }
@@ -457,10 +458,26 @@
 
         let temps = freshReadings.map(r => Number(r.temperature_c));
 
-        if (temps.length === 0 && stateData && stateData.avg_temperature_c !== null && stateData.avg_temperature_c !== undefined && Number.isFinite(Number(stateData.avg_temperature_c))) {
-            temps = [Number(stateData.avg_temperature_c)];
-        } else if (temps.length === 0 && lastValidTempValue !== null && Date.now() < tempHoldUntilMs) {
+        if (temps.length === 0 && lastValidTempValue !== null && Date.now() < tempHoldUntilMs) {
             temps = [Number(lastValidTempValue)];
+        }
+
+        const avgTemp = temps.length > 0
+            ? (temps.reduce((acc, val) => acc + val, 0) / temps.length)
+            : NaN;
+
+        // 2. Start the 10-minute timer & record baseline temp when AC turns ON
+        if (acTurnedOnAtMs === 0) {
+            acTurnedOnAtMs = Date.now();
+        }
+        if (acBaselineTempC === null && Number.isFinite(avgTemp)) {
+            acBaselineTempC = avgTemp;
+        }
+
+        // 3. Always display OPTIMAL for the first 10 minutes so the AC has time to cool the room
+        if (Date.now() - acTurnedOnAtMs < AC_EVALUATION_DELAY_MS) {
+            setText("performance-status", "OPTIMAL");
+            return;
         }
 
         if (temps.length === 0) {
@@ -468,15 +485,18 @@
             return;
         }
 
-        const sum = temps.reduce((acc, val) => acc + val, 0);
-        const avgTemp = sum / temps.length;
+        // 4. After 10 minutes, evaluate if room reached <= 26°C OR cooled by at least 0.5°C
         const maxTemp = Math.max(...temps);
         const minTemp = Math.min(...temps);
         const tempSpread = maxTemp - minTemp;
         const effectiveTemp = avgTemp + (0.5 * tempSpread);
+        const tempDrop = acBaselineTempC !== null ? (acBaselineTempC - avgTemp) : 0;
 
-        const status = effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C ? "OPTIMAL" : "POOR";
-        setText("performance-status", status);
+        const isOptimal =
+            (effectiveTemp <= OPTIMAL_EFFECTIVE_TEMP_MAX_C) ||
+            (tempDrop >= MIN_COOLING_DROP_C);
+
+        setText("performance-status", isOptimal ? "OPTIMAL" : "POOR");
     }
 
     // ========================================================
@@ -737,7 +757,7 @@
                 "postgres_changes",
                 { event: "UPDATE", schema: "public", table: "room_state", filter: `room_id=eq.${roomId}` },
                 payload => {
-                    extendOnlineHold();
+        
                     displayRoomState(payload.new);
                 }
             )
@@ -760,7 +780,7 @@
                 "postgres_changes",
                 { event: "*", schema: "public", table: "ac_commands", filter: `room_id=eq.${roomId}` },
                 payload => {
-                    extendOnlineHold();
+                    
                     const command = payload.new;
                     if (!command) return;
 
