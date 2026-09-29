@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=35" />
+  <link rel="stylesheet" href="style.css?v=37" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -68,6 +68,31 @@
       border-radius: 50%;
       padding: 2px 6px;
       font-weight: bold;
+    }
+    
+    /* PAGINATION CONTROL STYLES */
+    .pagination-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .pagination-btn {
+      padding: 5px 12px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -228,6 +253,12 @@
           <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading access logs...</td></tr>
         </tbody>
       </table>
+      <!-- ACCESS LOGS PAGINATION -->
+      <div class="pagination-container">
+        <button id="btnPrevAccessLogs" class="pagination-btn" onclick="changeAccessLogsPage(-1)">Previous</button>
+        <span id="accessLogsPageIndicator">Page 1 of 1</span>
+        <button id="btnNextAccessLogs" class="pagination-btn" onclick="changeAccessLogsPage(1)">Next</button>
+      </div>
     </section>
 
     <!-- CONTAINER 2: COMBINED AIRCON POWER & CONTROL LOGS (WEB & RFID) -->
@@ -248,6 +279,12 @@
           <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading aircon control logs...</td></tr>
         </tbody>
       </table>
+      <!-- AIRCON LOGS PAGINATION -->
+      <div class="pagination-container">
+        <button id="btnPrevAcLogs" class="pagination-btn" onclick="changeAcLogsPage(-1)">Previous</button>
+        <span id="acLogsPageIndicator">Page 1 of 1</span>
+        <button id="btnNextAcLogs" class="pagination-btn" onclick="changeAcLogsPage(1)">Next</button>
+      </div>
     </section>
 
   </div>
@@ -294,6 +331,12 @@
           <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading accounts...</td></tr>
         </tbody>
       </table>
+      <!-- REGISTERED ACCOUNTS PAGINATION -->
+      <div class="pagination-container">
+        <button id="btnPrevAccounts" class="pagination-btn" onclick="changeAccountsPage(-1)">Previous</button>
+        <span id="accountsPageIndicator">Page 1 of 1</span>
+        <button id="btnNextAccounts" class="pagination-btn" onclick="changeAccountsPage(1)">Next</button>
+      </div>
     </section>
 
   </div>
@@ -345,7 +388,7 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=35"></script>
+  <script src="dashboard.js?v=37"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -354,6 +397,17 @@
 
     const role = localStorage.getItem("user_role") || "FACULTY";
     const username = localStorage.getItem("current_user") || "User";
+
+    // GLOBAL PAGINATION STATE
+    const PAGE_LIMIT = 10;
+    let accessLogsPage = 1;
+    let accessLogsData = [];
+
+    let acLogsPage = 1;
+    let acLogsData = [];
+
+    let accountsPage = 1;
+    let accountsData = [];
 
     document.getElementById("userRoleBadge").innerText = `${role}: ${username}`;
 
@@ -397,7 +451,7 @@
       window.location.href = "login.html";
     }
 
-    // 1. ACCESS LOGS WITH NUMBER ROW (#)
+    // 1. ACCESS LOGS WITH 10-ITEM PAGINATION
     async function loadAccessLogs() {
       const tbody = document.getElementById("logsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching logs...</td></tr>';
@@ -405,34 +459,60 @@
       const { data, error } = await window.supabaseClient
         .from("user_logs")
         .select("*")
-        .order("logged_at", { ascending: false })
-        .limit(30);
+        .order("logged_at", { ascending: false });
 
       if (error || !data) {
         tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: red;">Failed to load logs.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = data.map((log, idx) => `
-        <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
-          <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
-          <td style="padding: 10px; vertical-align: middle;">${log.username}</td>
-          <td style="padding: 10px; vertical-align: middle;">${log.role}</td>
-          <td style="padding: 10px; font-weight: bold; vertical-align: middle; color: ${log.action === 'LOGIN' ? '#22c55e' : '#ef4444'};">${log.action}</td>
-          <td style="padding: 10px; vertical-align: middle;">${new Date(log.logged_at).toLocaleString("en-PH")}</td>
-        </tr>
-      `).join("");
+      accessLogsData = data;
+      renderAccessLogsTable();
     }
 
-    // 2. AIRCON CONTROL LOGS WITH NUMBER ROW (#)
+    function renderAccessLogsTable() {
+      const tbody = document.getElementById("logsTableBody");
+      const totalPages = Math.ceil(accessLogsData.length / PAGE_LIMIT) || 1;
+      
+      if (accessLogsPage > totalPages) accessLogsPage = totalPages;
+      if (accessLogsPage < 1) accessLogsPage = 1;
+
+      const startIndex = (accessLogsPage - 1) * PAGE_LIMIT;
+      const pageSlice = accessLogsData.slice(startIndex, startIndex + PAGE_LIMIT);
+
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No access logs recorded.</td></tr>';
+      } else {
+        tbody.innerHTML = pageSlice.map((log, idx) => `
+          <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
+            <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${startIndex + idx + 1}</td>
+            <td style="padding: 10px; vertical-align: middle;">${log.username}</td>
+            <td style="padding: 10px; vertical-align: middle;">${log.role}</td>
+            <td style="padding: 10px; font-weight: bold; vertical-align: middle; color: ${log.action === 'LOGIN' ? '#22c55e' : '#ef4444'};">${log.action}</td>
+            <td style="padding: 10px; vertical-align: middle;">${new Date(log.logged_at).toLocaleString("en-PH")}</td>
+          </tr>
+        `).join("");
+      }
+
+      document.getElementById("accessLogsPageIndicator").innerText = `Page ${accessLogsPage} of ${totalPages}`;
+      document.getElementById("btnPrevAccessLogs").disabled = accessLogsPage === 1;
+      document.getElementById("btnNextAccessLogs").disabled = accessLogsPage === totalPages;
+    }
+
+    function changeAccessLogsPage(step) {
+      accessLogsPage += step;
+      renderAccessLogsTable();
+    }
+
+    // 2. AIRCON CONTROL LOGS WITH 10-ITEM PAGINATION
     async function loadACControlLogs() {
       const tbody = document.getElementById("acLogsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching aircon control logs...</td></tr>';
 
       try {
         const [cmdRes, rfidRes] = await Promise.all([
-          window.supabaseClient.from("ac_commands").select("*").order("created_at", { ascending: false }).limit(20),
-          window.supabaseClient.from("rfid_events").select("*").order("created_at", { ascending: false }).limit(20)
+          window.supabaseClient.from("ac_commands").select("*").order("created_at", { ascending: false }),
+          window.supabaseClient.from("rfid_events").select("*").order("created_at", { ascending: false })
         ]);
 
         const commands = cmdRes.data || [];
@@ -465,23 +545,38 @@
           };
         });
 
-        const combinedLogs = [...formattedCommands, ...formattedRfid]
-          .sort((a, b) => b.timestamp - a.timestamp)
-          .slice(0, 30);
+        acLogsData = [...formattedCommands, ...formattedRfid]
+          .sort((a, b) => b.timestamp - a.timestamp);
 
-        if (combinedLogs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity logged.</td></tr>';
-          return;
-        }
+        renderAcLogsTable();
 
-        tbody.innerHTML = combinedLogs.map((log, idx) => {
+      } catch (err) {
+        console.error("Failed to load aircon logs:", err);
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: red;">Error processing logs.</td></tr>';
+      }
+    }
+
+    function renderAcLogsTable() {
+      const tbody = document.getElementById("acLogsTableBody");
+      const totalPages = Math.ceil(acLogsData.length / PAGE_LIMIT) || 1;
+
+      if (acLogsPage > totalPages) acLogsPage = totalPages;
+      if (acLogsPage < 1) acLogsPage = 1;
+
+      const startIndex = (acLogsPage - 1) * PAGE_LIMIT;
+      const pageSlice = acLogsData.slice(startIndex, startIndex + PAGE_LIMIT);
+
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity logged.</td></tr>';
+      } else {
+        tbody.innerHTML = pageSlice.map((log, idx) => {
           let actionBadgeColor = "#1e40af"; 
           if (log.command.includes("ON")) actionBadgeColor = "#22c55e"; 
           if (log.command.includes("OFF")) actionBadgeColor = "#ef4444"; 
 
           return `
             <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
-              <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
+              <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${startIndex + idx + 1}</td>
               <td style="padding: 10px; font-weight: bold; vertical-align: middle;">
                 ${log.source} 
                 <span style="font-size: 11px; color: #64748b; font-weight: normal;">(${log.type})</span>
@@ -498,14 +593,19 @@
             </tr>
           `;
         }).join("");
-
-      } catch (err) {
-        console.error("Failed to load aircon logs:", err);
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: red;">Error processing logs.</td></tr>';
       }
+
+      document.getElementById("acLogsPageIndicator").innerText = `Page ${acLogsPage} of ${totalPages}`;
+      document.getElementById("btnPrevAcLogs").disabled = acLogsPage === 1;
+      document.getElementById("btnNextAcLogs").disabled = acLogsPage === totalPages;
     }
 
-    // 3. REGISTERED ACCOUNTS WITH NUMBER ROW (#)
+    function changeAcLogsPage(step) {
+      acLogsPage += step;
+      renderAcLogsTable();
+    }
+
+    // 3. REGISTERED ACCOUNTS WITH 10-ITEM PAGINATION
     async function loadUserAccounts() {
       const tbody = document.getElementById("userAccountsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching accounts...</td></tr>';
@@ -520,46 +620,72 @@
         return;
       }
 
+      accountsData = data;
+      renderAccountsTable();
+    }
+
+    function renderAccountsTable() {
+      const tbody = document.getElementById("userAccountsTableBody");
       const currentLoggedInUser = localStorage.getItem("current_user");
+      const totalPages = Math.ceil(accountsData.length / PAGE_LIMIT) || 1;
 
-      tbody.innerHTML = data.map((account, idx) => {
-        const isActive = account.is_active !== false;
-        const isSelf = account.username === currentLoggedInUser;
+      if (accountsPage > totalPages) accountsPage = totalPages;
+      if (accountsPage < 1) accountsPage = 1;
 
-        return `
-          <tr style="border-bottom: 1px solid #e2e8f0; height: 50px;">
-            <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
-            <td style="padding: 10px; font-weight: bold; vertical-align: middle;">
-              ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b; font-weight: normal;">(You)</span>' : ''}
-            </td>
-            <td style="padding: 10px; vertical-align: middle; color: #334155;">${account.role}</td>
-            <td style="padding: 10px; vertical-align: middle;">
-              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; background: ${isActive ? '#dcfce7' : '#fee2e2'}; color: ${isActive ? '#15803d' : '#b91c1c'};">
-                ${isActive ? 'ACTIVE' : 'DISABLED'}
-              </span>
-            </td>
-            <td style="padding: 10px; vertical-align: middle;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <button 
-                  onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
-                  ${isSelf ? 'disabled' : ''} 
-                  style="width: 120px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#f59e0b' : '#22c55e'}; color: white;"
-                >
-                  ${isActive ? 'Disable Access' : 'Enable Access'}
-                </button>
+      const startIndex = (accountsPage - 1) * PAGE_LIMIT;
+      const pageSlice = accountsData.slice(startIndex, startIndex + PAGE_LIMIT);
 
-                <button 
-                  onclick="deleteAccount(${account.id}, '${account.username}')" 
-                  ${isSelf ? 'disabled' : ''} 
-                  style="width: 80px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: #ef4444; color: white; opacity: ${isSelf ? '0.5' : '1'};"
-                >
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("");
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No accounts registered.</td></tr>';
+      } else {
+        tbody.innerHTML = pageSlice.map((account, idx) => {
+          const isActive = account.is_active !== false;
+          const isSelf = account.username === currentLoggedInUser;
+
+          return `
+            <tr style="border-bottom: 1px solid #e2e8f0; height: 50px;">
+              <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${startIndex + idx + 1}</td>
+              <td style="padding: 10px; font-weight: bold; vertical-align: middle;">
+                ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b; font-weight: normal;">(You)</span>' : ''}
+              </td>
+              <td style="padding: 10px; vertical-align: middle; color: #334155;">${account.role}</td>
+              <td style="padding: 10px; vertical-align: middle;">
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; background: ${isActive ? '#dcfce7' : '#fee2e2'}; color: ${isActive ? '#15803d' : '#b91c1c'};">
+                  ${isActive ? 'ACTIVE' : 'DISABLED'}
+                </span>
+              </td>
+              <td style="padding: 10px; vertical-align: middle;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button 
+                    onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
+                    ${isSelf ? 'disabled' : ''} 
+                    style="width: 120px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#f59e0b' : '#22c55e'}; color: white;"
+                  >
+                    ${isActive ? 'Disable Access' : 'Enable Access'}
+                  </button>
+
+                  <button 
+                    onclick="deleteAccount(${account.id}, '${account.username}')" 
+                    ${isSelf ? 'disabled' : ''} 
+                    style="width: 80px; padding: 7px 0; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; text-align: center; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: #ef4444; color: white; opacity: ${isSelf ? '0.5' : '1'};"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      document.getElementById("accountsPageIndicator").innerText = `Page ${accountsPage} of ${totalPages}`;
+      document.getElementById("btnPrevAccounts").disabled = accountsPage === 1;
+      document.getElementById("btnNextAccounts").disabled = accountsPage === totalPages;
+    }
+
+    function changeAccountsPage(step) {
+      accountsPage += step;
+      renderAccountsTable();
     }
 
     async function toggleAccountStatus(accountId, newStatus) {
