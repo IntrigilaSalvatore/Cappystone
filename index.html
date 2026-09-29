@@ -179,7 +179,7 @@
           <div class="card"><span class="card-title">AC Power</span><span class="card-value" data-rvj="ac-status">OFF</span></div>
           <div class="card"><span class="card-title">RFID Card</span><span class="card-value" data-rvj="rfid-status">REMOVED</span></div>
           <div class="card"><span class="card-title">Control Mode</span><span class="card-value" data-rvj="control-mode">RFID</span></div>
-          <div class="card"><span class="card-title">Door Contact</span><span class="card-title">Door/Window</span><span class="card-value" data-rvj="door-status">CLOSED</span></div>
+          <div class="card"><span class="card-title">Door/Window</span><span class="card-value" data-rvj="door-status">CLOSED</span></div>
           <div class="card"><span class="card-title">Crowd Level</span><span class="card-value" data-rvj="crowd-alert">NORMAL</span></div>
           <div class="card"><span class="card-title">Weather Alert</span><span class="card-value" data-rvj="weather-alert">NORMAL</span></div>
         </div>
@@ -415,11 +415,11 @@
     if (role === "ADMIN") {
       document.getElementById("adminNav").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
-      document.getElementById("btnReportIssue").style.display = "none"; // Hide report button for Admin
+      document.getElementById("btnReportIssue").style.display = "none";
       loadAdminReportCount();
       subscribeToIssueReports();
     } else {
-      document.getElementById("btnReportIssue").style.display = "inline-block"; // Show report button ONLY for Faculty
+      document.getElementById("btnReportIssue").style.display = "inline-block";
     }
 
     function switchTab(tab) {
@@ -729,94 +729,93 @@
       const r = document.getElementById("newRole").value;
       const output = document.getElementById("userCreateOutput");
 
+      output.style.color = "#334155";
       output.innerText = "Creating account...";
 
-      const { error } = await window.supabaseClient.from("user_accounts").insert({
-        username: u,
-        password: p,
-        role: r,
-        is_active: true
-      });
+      const { error } = await window.supabaseClient
+        .from("user_accounts")
+        .insert({ username: u, password: p, role: r, is_active: true });
 
       if (error) {
-        output.style.color = "red";
+        output.style.color = "#ef4444";
         output.innerText = "Error: " + error.message;
       } else {
-        output.style.color = "green";
-        output.innerText = `Account '${u}' (${r}) created successfully!`;
+        output.style.color = "#22c55e";
+        output.innerText = `Account '${u}' created successfully!`;
         document.getElementById("newUsername").value = "";
         document.getElementById("newPassword").value = "";
-        if (document.getElementById("tabUsers").style.display === "block") {
-          loadUserAccounts();
-        }
+        loadUserAccounts();
       }
     }
 
-    // 4. FACULTY ISSUE REPORTING LOGIC
+    // MODAL HANDLERS FOR FACULTY REPORT & ADMIN ENVELOPE
     function openReportModal() {
       document.getElementById("reportModal").style.display = "flex";
       document.getElementById("reportStatus").innerText = "";
+      document.getElementById("reportMessage").value = "";
     }
 
     function closeReportModal() {
       document.getElementById("reportModal").style.display = "none";
     }
 
-    async function submitFacultyReport(e) {
-      e.preventDefault();
-      const category = document.getElementById("reportCategory").value;
-      const msg = document.getElementById("reportMessage").value.trim();
-      const statusDiv = document.getElementById("reportStatus");
-
-      statusDiv.style.color = "#1e40af";
-      statusDiv.innerText = "Submitting report...";
-
-      const { error } = await window.supabaseClient.from("issue_reports").insert({
-        faculty_username: username,
-        issue_category: category,
-        message: msg,
-        status: "PENDING"
-      });
-
-      if (error) {
-        statusDiv.style.color = "red";
-        statusDiv.innerText = "Failed: " + error.message;
-      } else {
-        statusDiv.style.color = "green";
-        statusDiv.innerText = "Report submitted successfully to all admins!";
-        document.getElementById("reportMessage").value = "";
-        setTimeout(closeReportModal, 1200);
-      }
-    }
-
-    // 5. ADMIN ENVELOPE NOTIFICATION LOGIC
     function openAdminReportsModal() {
       document.getElementById("adminReportsModal").style.display = "flex";
-      loadAdminReports();
+      loadAdminReportsList();
     }
 
     function closeAdminReportsModal() {
       document.getElementById("adminReportsModal").style.display = "none";
     }
 
-    async function loadAdminReportCount() {
-      const { data, error } = await window.supabaseClient
-        .from("issue_reports")
-        .select("id");
+    async function submitFacultyReport(e) {
+      e.preventDefault();
+      const category = document.getElementById("reportCategory").value;
+      const message = document.getElementById("reportMessage").value.trim();
+      const statusDiv = document.getElementById("reportStatus");
 
-      if (!error && data) {
-        const badge = document.getElementById("unreadReportBadge");
-        badge.innerText = data.length;
-        badge.style.display = data.length > 0 ? "block" : "none";
+      statusDiv.style.color = "#334155";
+      statusDiv.innerText = "Submitting report...";
+
+      const { error } = await window.supabaseClient
+        .from("faculty_reports")
+        .insert({
+          faculty_name: username,
+          category: category,
+          message: message,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        statusDiv.style.color = "#ef4444";
+        statusDiv.innerText = "Failed to submit: " + error.message;
+      } else {
+        statusDiv.style.color = "#22c55e";
+        statusDiv.innerText = "Report sent successfully to administrators!";
+        setTimeout(() => {
+          closeReportModal();
+        }, 1500);
       }
     }
 
-    async function loadAdminReports() {
+    async function loadAdminReportCount() {
+      const { count, error } = await window.supabaseClient
+        .from("faculty_reports")
+        .select("*", { count: "exact", head: true });
+
+      if (!error && count > 0) {
+        const badge = document.getElementById("unreadReportBadge");
+        badge.style.display = "inline-block";
+        badge.innerText = count;
+      }
+    }
+
+    async function loadAdminReportsList() {
       const tbody = document.getElementById("adminReportsTableBody");
-      tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching reports...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Loading received reports...</td></tr>';
 
       const { data, error } = await window.supabaseClient
-        .from("issue_reports")
+        .from("faculty_reports")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -826,34 +825,30 @@
       }
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No issues reported yet.</td></tr>';
-        return;
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No maintenance reports filed yet.</td></tr>';
+      } else {
+        tbody.innerHTML = data.map((rep, idx) => `
+          <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
+            <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
+            <td style="padding: 10px; font-weight: bold; vertical-align: middle;">${rep.faculty_name || 'Faculty'}</td>
+            <td style="padding: 10px; vertical-align: middle; color: #1e40af; font-weight: bold;">${rep.category}</td>
+            <td style="padding: 10px; vertical-align: middle;">${rep.message || 'No additional details.'}</td>
+            <td style="padding: 10px; vertical-align: middle;">${new Date(rep.created_at).toLocaleString("en-PH")}</td>
+          </tr>
+        `).join("");
       }
-
-      tbody.innerHTML = data.map((rep, idx) => `
-        <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
-          <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${idx + 1}</td>
-          <td style="padding: 10px; font-weight: bold; vertical-align: middle;">${rep.faculty_username}</td>
-          <td style="padding: 10px; vertical-align: middle;">
-            <span style="display: inline-block; padding: 3px 8px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-weight: bold; font-size: 11px;">
-              ${rep.issue_category}
-            </span>
-          </td>
-          <td style="padding: 10px; vertical-align: middle; color: #334155;">${rep.message || '<i>No message provided</i>'}</td>
-          <td style="padding: 10px; vertical-align: middle;">${new Date(rep.created_at).toLocaleString("en-PH")}</td>
-        </tr>
-      `).join("");
     }
 
     function subscribeToIssueReports() {
       window.supabaseClient
-        .channel('issue-reports-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'issue_reports' }, () => {
-          loadAdminReportCount();
-          if (document.getElementById("adminReportsModal").style.display === "flex") {
-            loadAdminReports();
+        .channel("faculty-reports-badge-channel")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "faculty_reports" },
+          () => {
+            loadAdminReportCount();
           }
-        })
+        )
         .subscribe();
     }
   </script>
