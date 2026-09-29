@@ -395,8 +395,12 @@
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const role = localStorage.getItem("user_role") || "FACULTY";
-    const username = localStorage.getItem("current_user") || "User";
+    const role = (localStorage.getItem("user_role") || "FACULTY").toUpperCase();
+    const username =
+      localStorage.getItem("current_user") ||
+      localStorage.getItem("current_admin_user") ||
+      localStorage.getItem("professor_name") ||
+      "User";
 
     // GLOBAL PAGINATION STATE
     const PAGE_LIMIT = 10;
@@ -433,13 +437,10 @@
     }
 
     async function handleLogout() {
-      const user = localStorage.getItem("current_user");
-      const userRole = localStorage.getItem("user_role");
-
-      if (user && window.supabaseClient) {
+      if (username && window.supabaseClient) {
         await window.supabaseClient.from("user_logs").insert({
-          username: user,
-          role: userRole,
+          username: username,
+          role: role,
           action: "LOGOUT",
           logged_at: new Date().toISOString()
         });
@@ -447,10 +448,11 @@
 
       localStorage.removeItem("access_granted");
       localStorage.removeItem("current_user");
+      localStorage.removeItem("current_admin_user");
+      localStorage.removeItem("professor_name");
       localStorage.removeItem("user_role");
       window.location.href = "login.html";
     }
-
     // 1. ACCESS LOGS WITH 10-ITEM PAGINATION
     async function loadAccessLogs() {
       const tbody = document.getElementById("logsTableBody");
@@ -511,8 +513,8 @@
 
       try {
         const [cmdRes, rfidRes] = await Promise.all([
-          window.supabaseClient.from("ac_commands").select("*").order("created_at", { ascending: false }),
-          window.supabaseClient.from("rfid_events").select("*").order("created_at", { ascending: false })
+          window.supabaseClient.from("ac_commands").select("*").limit(100),
+          window.supabaseClient.from("rfid_events").select("*").limit(100)
         ]);
 
         const commands = cmdRes.data || [];
@@ -523,7 +525,7 @@
           command: cmd.command,
           status: cmd.status || 'EXECUTED',
           type: 'WEB OVERRIDE',
-          timestamp: new Date(cmd.created_at)
+          timestamp: new Date(cmd.issued_at || cmd.created_at || Date.now())
         }));
 
         const formattedRfid = rfidEvents.map(evt => {
@@ -541,7 +543,7 @@
             command: cmdDisplay,
             status: 'EXECUTED',
             type: 'PHYSICAL RFID',
-            timestamp: new Date(evt.created_at || evt.timestamp)
+            timestamp: new Date(evt.recorded_at || evt.created_at || evt.timestamp || Date.now())
           };
         });
 
@@ -626,7 +628,7 @@
 
     function renderAccountsTable() {
       const tbody = document.getElementById("userAccountsTableBody");
-      const currentLoggedInUser = localStorage.getItem("current_user");
+      const currentLoggedInUser = username;
       const totalPages = Math.ceil(accountsData.length / PAGE_LIMIT) || 1;
 
       if (accountsPage > totalPages) accountsPage = totalPages;
