@@ -248,6 +248,66 @@ body.light-mode .box {
 
 
 /* ============================================================
+   ROLE CHOICE BUTTONS (FACULTY / ADMIN)
+   ============================================================ */
+
+.role-switch {
+
+    display: flex;
+
+    gap: 8px;
+
+    margin-bottom: 20px;
+}
+
+
+.role-btn {
+
+    flex: 1;
+
+    padding: 10px;
+
+    border-radius: 8px;
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    background: rgba(15,23,42,0.6);
+
+    color: white;
+
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+
+body.light-mode .role-btn {
+
+    background: #e5e7eb;
+
+    color: #111827;
+
+    border: 1px solid #ccc;
+}
+
+
+.role-btn.active {
+
+    background: #FADA7A;
+
+    color: #111827;
+
+    border-color: #FADA7A;
+}
+
+
+.hidden {
+
+    display: none;
+}
+
+
+/* ============================================================
    INPUT
    ============================================================ */
 
@@ -370,11 +430,11 @@ body.light-mode .toggle-btn {
 
 <div class="fog">
 
-<div class="fog-layer layer1"></div>
+    <div class="fog-layer layer1"></div>
 
-<div class="fog-layer layer2"></div>
+    <div class="fog-layer layer2"></div>
 
-<div class="fog-layer layer3"></div>
+    <div class="fog-layer layer3"></div>
 
 </div>
 
@@ -387,7 +447,7 @@ body.light-mode .toggle-btn {
  class="toggle-btn"
  onclick="toggleMode()">
 
-Light Mode
+    Light Mode
 
 </button>
 
@@ -397,55 +457,103 @@ Light Mode
 
 <div class="box">
 
-<h2>Admin Access</h2>
+    <!-- ROLE SELECTOR (FACULTY OR ADMIN) -->
+
+    <div class="role-switch">
+
+        <button
+            type="button"
+            id="facultyTabBtn"
+            class="role-btn active"
+            onclick="switchRole('faculty')">
+            Faculty
+        </button>
+
+        <button
+            type="button"
+            id="adminTabBtn"
+            class="role-btn"
+            onclick="switchRole('admin')">
+            Admin
+        </button>
+
+    </div>
+
+    <h2 id="boxTitle">Faculty Access</h2>
 
 
-<form onsubmit="checkCode(event)">
+    <!-- ========================================================
+         FACULTY FORM (PROFESSOR'S NAME)
+         ======================================================== -->
+
+    <form id="facultyForm" onsubmit="checkFaculty(event)">
+
+        <input
+            type="text"
+            id="professorName"
+            placeholder="Enter Professor's Name"
+            required
+            autocomplete="name"
+        >
+
+        <button
+            type="submit"
+            class="submit-btn"
+            id="facultyButton">
+
+            Enter Dashboard
+
+        </button>
+
+    </form>
 
 
-    <!-- USERNAME -->
+    <!-- ========================================================
+         ADMIN FORM (USERNAME + ACCESS CODE)
+         ======================================================== -->
 
-    <input
-        type="text"
-        id="username"
-        placeholder="Enter Username"
-        required
-        autocomplete="username"
-    >
+    <form id="adminForm" class="hidden" onsubmit="checkCode(event)">
+
+        <!-- USERNAME -->
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter Username"
+            required
+            autocomplete="username"
+        >
+
+        <!-- ACCESS CODE / PASSWORD -->
+
+        <input
+            type="password"
+            id="code"
+            placeholder="Enter Access Code"
+            required
+            autocomplete="current-password"
+        >
+
+        <!-- LOGIN BUTTON -->
+
+        <button
+            type="submit"
+            class="submit-btn"
+            id="loginButton">
+
+            Enter Dashboard
+
+        </button>
+
+    </form>
 
 
-    <!-- ACCESS CODE / PASSWORD -->
+    <!-- STATUS / ERROR -->
 
-    <input
-        type="password"
-        id="code"
-        placeholder="Enter Access Code"
-        required
-        autocomplete="current-password"
-    >
-
-
-    <!-- LOGIN BUTTON -->
-
-    <button
-        type="submit"
-        class="submit-btn"
-        id="loginButton">
-
-        Enter Dashboard
-
-    </button>
-
-
-</form>
-
-
-<!-- STATUS / ERROR -->
-
-<div
-    id="error"
-    class="error">
-</div>
+    <div
+        id="error"
+        class="error">
+    </div>
 
 </div>
 
@@ -482,7 +590,122 @@ if (
 
 
 // ============================================================
-// LOGIN FUNCTION
+// SWITCH ROLE (FACULTY / ADMIN)
+// ============================================================
+
+function switchRole(role) {
+
+    const facultyTabBtn =
+        document.getElementById("facultyTabBtn");
+
+    const adminTabBtn =
+        document.getElementById("adminTabBtn");
+
+    const facultyForm =
+        document.getElementById("facultyForm");
+
+    const adminForm =
+        document.getElementById("adminForm");
+
+    const boxTitle =
+        document.getElementById("boxTitle");
+
+    const errorDiv =
+        document.getElementById("error");
+
+    errorDiv.innerText = "";
+
+    if (role === "faculty") {
+
+        facultyTabBtn.classList.add("active");
+        adminTabBtn.classList.remove("active");
+
+        facultyForm.classList.remove("hidden");
+        adminForm.classList.add("hidden");
+
+        boxTitle.innerText = "Faculty Access";
+
+    } else {
+
+        adminTabBtn.classList.add("active");
+        facultyTabBtn.classList.remove("active");
+
+        adminForm.classList.remove("hidden");
+        facultyForm.classList.add("hidden");
+
+        boxTitle.innerText = "Admin Access";
+    }
+}
+
+
+// ============================================================
+// FACULTY LOGIN FUNCTION
+// ============================================================
+
+function checkFaculty(event) {
+
+    event.preventDefault();
+
+    const professorInput =
+        document.getElementById("professorName");
+
+    const errorDiv =
+        document.getElementById("error");
+
+    const facultyButton =
+        document.getElementById("facultyButton");
+
+    const professorName =
+        professorInput.value.trim();
+
+    errorDiv.innerText = "";
+
+    if (!professorName) {
+
+        errorDiv.style.color = "#ef4444";
+
+        errorDiv.innerText =
+            "Please enter the Professor's name.";
+
+        return;
+    }
+
+    facultyButton.disabled = true;
+
+    errorDiv.style.color = "#22c55e";
+
+    errorDiv.innerText = "Access Granted!";
+
+    localStorage.setItem(
+        "access_granted",
+        "true"
+    );
+
+    localStorage.setItem(
+        "user_role",
+        "faculty"
+    );
+
+    localStorage.setItem(
+        "professor_name",
+        professorName
+    );
+
+    localStorage.setItem(
+        "current_admin_user",
+        professorName
+    );
+
+    setTimeout(() => {
+
+        window.location.replace("index.html");
+
+    }, 800);
+}
+
+
+// ============================================================
+// ADMIN LOGIN FUNCTION
 // ============================================================
 
 async function checkCode(event) {
@@ -559,6 +782,7 @@ async function checkCode(event) {
 
     try {
 
+
         // ----------------------------------------------------
         // CALL SUPABASE FUNCTION
         // ----------------------------------------------------
@@ -625,6 +849,7 @@ async function checkCode(event) {
 
         if (isValid) {
 
+
             errorDiv.style.color =
                 "#22c55e";
 
@@ -640,6 +865,11 @@ async function checkCode(event) {
             localStorage.setItem(
                 "access_granted",
                 "true"
+            );
+
+            localStorage.setItem(
+                "user_role",
+                "admin"
             );
 
 
@@ -666,6 +896,7 @@ async function checkCode(event) {
 
         } else {
 
+
             // ------------------------------------------------
             // INVALID LOGIN
             // ------------------------------------------------
@@ -686,6 +917,7 @@ async function checkCode(event) {
 
 
     } catch (err) {
+
 
         // ----------------------------------------------------
         // UNEXPECTED ERROR
@@ -710,6 +942,7 @@ async function checkCode(event) {
 
 
     } finally {
+
 
         // ----------------------------------------------------
         // RESTORE BUTTON
