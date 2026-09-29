@@ -376,20 +376,20 @@
 
   <!-- MODAL 2: ADMIN ENVELOPE REPORTS VIEW & STATUS MANAGEMENT -->
   <div id="adminReportsModal" class="modal-overlay">
-    <div class="modal-box" style="width: min(850px, 95%); max-height: 85vh; overflow-y: auto;">
+    <div class="modal-box" style="width: min(900px, 95%); max-height: 85vh; overflow-y: auto;">
       <button class="modal-close" onclick="closeAdminReportsModal()">✕</button>
       <h3 style="margin-top: 0; color: #005A92;">✉️ Received Faculty Reports & Status Management</h3>
-      <p style="font-size: 13px; color: #64748b;">Manage maintenance issues reported by faculty and update their progress/feedback.</p>
+      <p style="font-size: 13px; color: #64748b;">Manage maintenance issues reported by faculty, update feedback, and archive/delete resolved items.</p>
       
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
             <th style="padding: 10px; width: 5%;">#</th>
-            <th style="padding: 10px; width: 15%;">Faculty</th>
-            <th style="padding: 10px; width: 20%;">Category & Issue</th>
-            <th style="padding: 10px; width: 25%;">Status & Feedback</th>
-            <th style="padding: 10px; width: 20%;">Timestamp</th>
-            <th style="padding: 10px; width: 15%;">Action</th>
+            <th style="padding: 10px; width: 14%;">Faculty</th>
+            <th style="padding: 10px; width: 18%;">Category & Issue</th>
+            <th style="padding: 10px; width: 23%;">Status & Feedback</th>
+            <th style="padding: 10px; width: 18%;">Timestamp</th>
+            <th style="padding: 10px; width: 22%;">Actions</th>
           </tr>
         </thead>
         <tbody id="adminReportsTableBody">
@@ -872,9 +872,10 @@
       tbody.innerHTML = data.map((rep, idx) => {
         const currentStatus = rep.status || "PENDING";
         const currentFeedback = rep.admin_feedback || "";
+        const isDone = currentStatus === "ACCOMPLISHED & DONE";
 
         return `
-          <tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+          <tr style="border-bottom: 1px solid #e2e8f0; vertical-align: top; background: ${isDone ? '#f8fafc' : '#ffffff'};">
             <td style="padding: 10px; font-weight: bold; color: #64748b;">${idx + 1}</td>
             <td style="padding: 10px; font-weight: bold;">${rep.faculty_username}</td>
             <td style="padding: 10px;">
@@ -893,7 +894,10 @@
             </td>
             <td style="padding: 10px; font-size: 11px; color: #64748b;">${new Date(rep.created_at).toLocaleString("en-PH")}</td>
             <td style="padding: 10px;">
-              <button onclick="updateReportStatus(${rep.id})" class="button" style="padding: 6px 10px; font-size: 11px; width: 100%;">Save</button>
+              <div style="display: flex; gap: 5px;">
+                <button onclick="updateReportStatus(${rep.id})" class="button" style="padding: 6px 10px; font-size: 11px; flex: 1;">Save</button>
+                <button onclick="deleteReport(${rep.id})" style="padding: 6px 10px; font-size: 11px; background: #ef4444; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Delete</button>
+              </div>
             </td>
           </tr>
         `;
@@ -913,6 +917,23 @@
         alert("Failed to update report: " + error.message);
       } else {
         alert("Report status and feedback updated successfully!");
+        loadAdminReports();
+        loadAdminReportCount();
+      }
+    }
+
+    async function deleteReport(reportId) {
+      if (!confirm("Are you sure you want to delete this report record?")) return;
+
+      const { error } = await window.supabaseClient
+        .from("issue_reports")
+        .delete()
+        .eq("id", reportId);
+
+      if (error) {
+        alert("Failed to delete report: " + error.message);
+      } else {
+        alert("Report deleted successfully.");
         loadAdminReports();
         loadAdminReportCount();
       }
