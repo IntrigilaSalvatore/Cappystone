@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin Access</title>
 
-<!-- Supabase JS Client library -->
-<script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
+<!-- Supabase JS Client library (encoded colon prevents copy-paste link corruption) -->
+<script src="https&#58;//cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 /* ============================================================
    BODY
    ============================================================ */
 body {
-    font-family: Arial;
-    background: url("[https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg](https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg)")
+    font-family: Arial, sans-serif;
+    background: url("https&#58;//www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg")
         no-repeat center center/cover;
     display: flex;
     justify-content: center;
@@ -34,7 +34,7 @@ body.light-mode {
 }
 
 /* ============================================================
-   FOG CONTAINER
+   FOG CONTAINER & LAYERS
    ============================================================ */
 .fog {
     position: fixed;
@@ -43,9 +43,6 @@ body.light-mode {
     z-index: 1;
 }
 
-/* ============================================================
-   FOG LAYERS
-   ============================================================ */
 .fog-layer {
     position: absolute;
     width: 200%;
@@ -55,9 +52,6 @@ body.light-mode {
     filter: blur(60px);
 }
 
-/* ============================================================
-   FOG ANIMATIONS
-   ============================================================ */
 .layer1 {
     animation: fogMove1 80s linear infinite;
 }
@@ -72,78 +66,33 @@ body.light-mode {
     opacity: 0.5;
 }
 
-/* ============================================================
-   FOG KEYFRAMES
-   ============================================================ */
 @keyframes fogMove1 {
-    0% {
-        transform: translateX(0) translateY(0);
-    }
-    100% {
-        transform: translateX(-400px) translateY(-150px);
-    }
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-400px) translateY(-150px); }
 }
 
 @keyframes fogMove2 {
-    0% {
-        transform: translateX(0) translateY(0);
-    }
-    100% {
-        transform: translateX(-300px) translateY(200px);
-    }
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-300px) translateY(200px); }
 }
 
 @keyframes fogMove3 {
-    0% {
-        transform: translateX(0) translateY(0);
-    }
-    100% {
-        transform: translateX(-500px) translateY(100px);
-    }
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-500px) translateY(100px); }
 }
 
-/* ============================================================
-   DARK MODE FOG
-   ============================================================ */
 body:not(.light-mode) .fog-layer {
     background:
-        radial-gradient(
-            circle at 30% 40%,
-            rgba(0,0,0,0.5) 0%,
-            transparent 40%
-        ),
-        radial-gradient(
-            circle at 70% 60%,
-            rgba(0,0,0,0.4) 0%,
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 50% 80%,
-            rgba(0,0,0,0.35) 0%,
-            transparent 40%
-        );
+        radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(0,0,0,0.4) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(0,0,0,0.35) 0%, transparent 40%);
 }
 
-/* ============================================================
-   LIGHT MODE FOG
-   ============================================================ */
 body.light-mode .fog-layer {
     background:
-        radial-gradient(
-            circle at 30% 40%,
-            rgba(255,255,255,0.15) 0%,
-            transparent 40%
-        ),
-        radial-gradient(
-            circle at 70% 60%,
-            rgba(255,255,255,0.12) 0%,
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 50% 80%,
-            rgba(255,255,255,0.1) 0%,
-            transparent 40%
-        );
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
 }
 
 /* ============================================================
@@ -165,9 +114,6 @@ body.light-mode .box {
     color: #111827;
 }
 
-/* ============================================================
-   INPUT
-   ============================================================ */
 input {
     width: 100%;
     padding: 12px;
@@ -177,9 +123,6 @@ input {
     box-sizing: border-box;
 }
 
-/* ============================================================
-   LOGIN BUTTON
-   ============================================================ */
 button.submit-btn {
     margin-top: 15px;
     width: 100%;
@@ -200,18 +143,12 @@ button.submit-btn:disabled {
     cursor: not-allowed;
 }
 
-/* ============================================================
-   ERROR / STATUS MESSAGE
-   ============================================================ */
 .error {
     color: #ef4444;
     margin-top: 10px;
     min-height: 20px;
 }
 
-/* ============================================================
-   TOGGLE BUTTON
-   ============================================================ */
 .toggle-btn {
     position: fixed;
     top: 20px;
@@ -236,34 +173,20 @@ body.light-mode .toggle-btn {
 
 <body>
 
-<!-- ============================================================
-     FOG
-     ============================================================ -->
 <div class="fog">
     <div class="fog-layer layer1"></div>
     <div class="fog-layer layer2"></div>
     <div class="fog-layer layer3"></div>
 </div>
 
-<!-- ============================================================
-     THEME TOGGLE
-     ============================================================ -->
-<button
-    id="modeToggle"
-    class="toggle-btn"
-    onclick="toggleMode()">
+<button id="modeToggle" class="toggle-btn" onclick="toggleMode()">
     Light Mode
 </button>
 
-<!-- ============================================================
-     LOGIN BOX
-     ============================================================ -->
 <div class="box">
     <h2>Admin Access</h2>
 
     <form onsubmit="checkCode(event)">
-
-        <!-- USERNAME -->
         <input
             type="text"
             id="username"
@@ -271,8 +194,6 @@ body.light-mode .toggle-btn {
             required
             autocomplete="username"
         >
-
-        <!-- ACCESS CODE / PASSWORD -->
         <input
             type="password"
             id="code"
@@ -280,22 +201,15 @@ body.light-mode .toggle-btn {
             required
             autocomplete="current-password"
         >
-
-        <!-- LOGIN BUTTON -->
         <button
             type="submit"
             class="submit-btn"
             id="loginButton">
             Enter Dashboard
         </button>
-
     </form>
 
-    <!-- STATUS / ERROR -->
-    <div
-        id="error"
-        class="error">
-    </div>
+    <div id="error" class="error"></div>
 </div>
 
 <script>
@@ -304,7 +218,7 @@ body.light-mode .toggle-btn {
 // ============================================================
 
 const SUPABASE_URL =
-    "[https://raphpzlmjjzgwohjgczu.supabase.co](https://raphpzlmjjzgwohjgczu.supabase.co)";
+    "https" + "://" + "raphpzlmjjzgwohjgczu.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
@@ -316,15 +230,13 @@ const supabaseClient =
     );
 
 // ============================================================
-// CLEAR OLD PERSISTENT LOCALSTORAGE SESSIONS & CHECK TAB SESSION
+// SESSION HANDLER (AUTO-LOGOUT ON TAB / BROWSER CLOSE)
 // ============================================================
 
 localStorage.removeItem("access_granted");
 localStorage.removeItem("current_admin_user");
 
-if (
-    sessionStorage.getItem("access_granted") === "true"
-) {
+if (sessionStorage.getItem("access_granted") === "true") {
     window.location.href = "index.html";
 }
 
@@ -333,33 +245,21 @@ if (
 // ============================================================
 
 async function checkCode(event) {
-
     event.preventDefault();
 
-    const usernameInput =
-        document.getElementById("username");
+    const usernameInput = document.getElementById("username");
+    const codeInput = document.getElementById("code");
+    const errorDiv = document.getElementById("error");
+    const loginButton = document.getElementById("loginButton");
 
-    const codeInput =
-        document.getElementById("code");
-
-    const errorDiv =
-        document.getElementById("error");
-
-    const loginButton =
-        document.getElementById("loginButton");
-
-    const username =
-        usernameInput.value.trim();
-
-    const code =
-        codeInput.value;
+    const username = usernameInput.value.trim();
+    const code = codeInput.value;
 
     errorDiv.innerText = "";
 
     if (!username || !code) {
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText =
-            "Please enter your username and access code.";
+        errorDiv.innerText = "Please enter your username and access code.";
         return;
     }
 
@@ -370,15 +270,13 @@ async function checkCode(event) {
     errorDiv.innerText = "Verifying credentials...";
 
     try {
-
-        const { data, error } =
-            await supabaseClient.rpc(
-                "verify_admin_login",
-                {
-                    p_username: username,
-                    p_password: code
-                }
-            );
+        const { data, error } = await supabaseClient.rpc(
+            "verify_admin_login",
+            {
+                p_username: username,
+                p_password: code
+            }
+        );
 
         console.log("LOGIN RESULT:", data);
         console.log("LOGIN ERROR:", error);
@@ -391,27 +289,18 @@ async function checkCode(event) {
         }
 
         if (data === true) {
-
             errorDiv.style.color = "#22c55e";
             errorDiv.innerText = "Access Granted!";
 
-            // Store session in sessionStorage (auto-clears when tab/browser closes)
-            sessionStorage.setItem(
-                "access_granted",
-                "true"
-            );
-
-            sessionStorage.setItem(
-                "current_admin_user",
-                username
-            );
+            // Saved in sessionStorage so closing the tab/browser logs out automatically
+            sessionStorage.setItem("access_granted", "true");
+            sessionStorage.setItem("current_admin_user", username);
 
             setTimeout(() => {
                 window.location.href = "index.html";
             }, 800);
 
         } else {
-
             errorDiv.style.color = "#ef4444";
             errorDiv.innerText = "Invalid Username or Access Code";
             codeInput.value = "";
@@ -419,15 +308,10 @@ async function checkCode(event) {
         }
 
     } catch (err) {
-
         console.error("UNEXPECTED LOGIN ERROR:", err);
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText =
-            "Connection Error: " +
-            (err.message || "Unknown error");
-
+        errorDiv.innerText = "Connection Error: " + (err.message || "Unknown error");
     } finally {
-
         loginButton.disabled = false;
         loginButton.innerText = "Enter Dashboard";
     }
@@ -437,23 +321,17 @@ async function checkCode(event) {
 // THEME TOGGLE
 // ============================================================
 
-const toggleBtn =
-    document.getElementById("modeToggle");
+const toggleBtn = document.getElementById("modeToggle");
 
-if (
-    localStorage.getItem("theme") === "light"
-) {
+if (localStorage.getItem("theme") === "light") {
     document.body.classList.add("light-mode");
     toggleBtn.textContent = "Dark Mode";
 }
 
 function toggleMode() {
-
     document.body.classList.toggle("light-mode");
 
-    if (
-        document.body.classList.contains("light-mode")
-    ) {
+    if (document.body.classList.contains("light-mode")) {
         toggleBtn.textContent = "Dark Mode";
         localStorage.setItem("theme", "light");
     } else {
