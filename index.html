@@ -59,7 +59,6 @@
         localStorage.setItem("session_expires_at", String(now + SESSION_DURATION_MS));
     }
 
-  </script>
     ["click", "keydown", "mousemove", "touchstart"].forEach(eventType => {
         window.addEventListener(eventType, refreshSessionActivity, { passive: true });
     });
