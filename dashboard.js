@@ -848,7 +848,7 @@
                 return;
             }
 
-            setText("command-status", `${displayName} command sent. Waiting for Master...`);
+            setText("command-status", `${displayName} command sent. Waiting for Master Node`);
         } catch (error) {
             setText("command-status", `ERROR: ${error.message}`);
         }
