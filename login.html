@@ -1,974 +1,653 @@
 <!DOCTYPE html>
 
-
-
 <html lang="en">
-
-
 
 <head>
 
-
-
 <meta charset="UTF-8" />
-
-
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-
-
 <title>Admin Access</title>
-
-
 
 <!-- Supabase JS Client library -->
 
-
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
 
 <style>
 
 
-
 /* ============================================================
-
    BODY
-
    ============================================================ */
-
-
 
 body {
 
-
-
     font-family: Arial;
 
+    background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg") no-repeat center center/cover;
 
-
+    display:flex;
     background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg")
-
         no-repeat center center/cover;
 
-
-
+    justify-content:center;
     display: flex;
 
-
-
+    align-items:center;
     justify-content: center;
 
-
-
+    height:100vh;
     align-items: center;
 
-
-
+    margin:0;
     height: 100vh;
 
-
-
+    color:white;
     margin: 0;
 
-
-
+    overflow:hidden;
     color: white;
 
-
-
     overflow: hidden;
-
 }
 
 
-
-
-
 /* ============================================================
-
    LIGHT MODE
-
    ============================================================ */
 
+/* LIGHT MODE */
 
+body.light-mode{
 
+    color:#111827;
 body.light-mode {
 
-
-
     color: #111827;
-
 }
 
 
-
-
-
 /* ============================================================
-
    FOG CONTAINER
-
    ============================================================ */
 
-
-
+/* FOG CONTAINER */
 .fog {
 
-
-
+.fog{
     position: fixed;
 
-
-
+    position:fixed;
     inset: 0;
 
-
-
+    inset:0;
     pointer-events: none;
 
-
-
+    pointer-events:none;
     z-index: 1;
-
 }
 
+    z-index:1;
 
-
-
-
+}
 /* ============================================================
-
    FOG LAYERS
-
    ============================================================ */
-
-
 
 .fog-layer {
 
-
-
     position: absolute;
 
-
-
+/* FOG LAYERS */
     width: 200%;
 
-
-
+.fog-layer{
     height: 200%;
 
-
-
+    position:absolute;
     top: -50%;
 
-
-
+    width:200%;
     left: -50%;
 
-
-
+    height:200%;
     filter: blur(60px);
-
 }
 
+    top:-50%;
 
-
-
-
+    left:-50%;
 /* ============================================================
-
    FOG ANIMATIONS
-
    ============================================================ */
 
-
-
+    filter:blur(60px);
 .layer1 {
 
-
-
     animation: fogMove1 80s linear infinite;
-
 }
-
-
 
 .layer2 {
 
-
-
     animation: fogMove2 120s linear infinite;
 
-
-
+/* ANIMATION */
     opacity: 0.7;
-
 }
 
-
-
+.layer1{
 .layer3 {
 
-
-
+animation:fogMove1 80s linear infinite;
     animation: fogMove3 160s linear infinite;
 
-
-
     opacity: 0.5;
-
 }
 
+.layer2{
 
-
-
-
+animation:fogMove2 120s linear infinite;
 /* ============================================================
-
    FOG KEYFRAMES
-
    ============================================================ */
 
-
-
+opacity:0.7;
 @keyframes fogMove1 {
-
-
-
-    0% {
-
-
-
-        transform: translateX(0) translateY(0);
-
-    }
-
-
-
-    100% {
-
-
-
-        transform: translateX(-400px) translateY(-150px);
-
-    }
 
 }
 
+.layer3{
+    0% {
 
+animation:fogMove3 160s linear infinite;
+        transform: translateX(0) translateY(0);
+    }
 
+opacity:0.5;
+    100% {
+
+        transform: translateX(-400px) translateY(-150px);
+    }
+}
 
 
 @keyframes fogMove2 {
 
-
-
+@keyframes fogMove1{
     0% {
 
-
-
+0%{transform:translateX(0) translateY(0);}
         transform: translateX(0) translateY(0);
-
     }
 
-
-
+100%{transform:translateX(-400px) translateY(-150px);}
     100% {
-
-
 
         transform: translateX(-300px) translateY(200px);
-
     }
-
 }
 
+@keyframes fogMove2{
 
+0%{transform:translateX(0) translateY(0);}
 
-
-
+100%{transform:translateX(-300px) translateY(200px);}
 @keyframes fogMove3 {
 
+}
 
-
+@keyframes fogMove3{
     0% {
 
-
-
+0%{transform:translateX(0) translateY(0);}
         transform: translateX(0) translateY(0);
-
     }
 
-
-
+100%{transform:translateX(-500px) translateY(100px);}
     100% {
 
-
-
         transform: translateX(-500px) translateY(100px);
-
     }
-
 }
 
 
-
-
-
 /* ============================================================
-
    DARK MODE FOG
-
    ============================================================ */
 
-
-
+/* DARK MODE FOG (transparent black) */
 body:not(.light-mode) .fog-layer {
 
-
-
+body:not(.light-mode) .fog-layer{
     background:
 
-
-
+background:
         radial-gradient(
-
             circle at 30% 40%,
-
             rgba(0,0,0,0.5) 0%,
-
             transparent 40%
-
         ),
 
+    radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0%, transparent 40%),
 
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,0.4) 0%, transparent 45%),
 
+    radial-gradient(circle at 50% 80%, rgba(0,0,0,0.35) 0%, transparent 40%);
         radial-gradient(
-
             circle at 70% 60%,
-
             rgba(0,0,0,0.4) 0%,
-
             transparent 45%
-
         ),
 
-
-
         radial-gradient(
-
             circle at 50% 80%,
-
             rgba(0,0,0,0.35) 0%,
-
             transparent 40%
-
         );
-
 }
 
 
-
-
-
 /* ============================================================
-
    LIGHT MODE FOG
-
    ============================================================ */
 
+/* LIGHT MODE FOG (soft semi-transparent white) */
 
-
+body.light-mode .fog-layer{
 body.light-mode .fog-layer {
 
-
-
+background:
     background:
 
-
-
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 40%),
         radial-gradient(
-
             circle at 30% 40%,
-
             rgba(255,255,255,0.15) 0%,
-
             transparent 40%
-
         ),
 
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.12) 0%, transparent 45%),
 
-
+    radial-gradient(circle at 50% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
         radial-gradient(
-
             circle at 70% 60%,
-
             rgba(255,255,255,0.12) 0%,
-
             transparent 45%
-
         ),
 
-
-
         radial-gradient(
-
             circle at 50% 80%,
-
             rgba(255,255,255,0.1) 0%,
-
             transparent 40%
-
         );
-
 }
-
-
-
 
 
 /* ============================================================
-
    LOGIN BOX
-
    ============================================================ */
 
+/* LOGIN BOX */
 
+.box{
 
+    background:rgba(30,41,59,0.9);
 .box {
 
-
-
+    backdrop-filter:blur(10px);
     background: rgba(30,41,59,0.9);
 
-
-
+    padding:40px;
     backdrop-filter: blur(10px);
 
-
-
+    border-radius:12px;
     padding: 40px;
 
-
-
+    width:320px;
     border-radius: 12px;
 
-
-
+    text-align:center;
     width: 320px;
 
-
-
+    position:relative;
     text-align: center;
 
-
-
+    z-index:2;
     position: relative;
 
-
-
     z-index: 2;
-
 }
-
-
-
 
 
 body.light-mode .box {
 
+body.light-mode .box{
 
+    background:rgba(255,255,255,0.9);
 
+    color:#111827;
     background: rgba(255,255,255,0.9);
 
-
-
     color: #111827;
-
 }
 
 
-
-
-
 /* ============================================================
-
    INPUT
-
    ============================================================ */
 
+/* INPUT */
 
-
+input{
 input {
 
-
-
+    width:100%;
     width: 100%;
 
-
-
+    padding:12px;
     padding: 12px;
 
-
-
+    margin-top:10px;
     margin-top: 10px;
 
-
-
+    border-radius:8px;
     border-radius: 8px;
 
+    border:1px solid #ccc;
 
-
+    box-sizing:border-box;
     border: 1px solid #ccc;
 
-
-
     box-sizing: border-box;
-
 }
-
-
-
 
 
 /* ============================================================
-
    LOGIN BUTTON
-
    ============================================================ */
 
+/* LOGIN BUTTON */
 
-
+button.submit-btn{
 button.submit-btn {
 
-
-
+    margin-top:15px;
     margin-top: 15px;
 
-
-
+    width:100%;
     width: 100%;
 
-
-
+    padding:12px;
     padding: 12px;
 
-
-
+    background:#FADA7A;
     background: #FADA7A;
 
-
-
+    border:none;
     border: none;
 
-
-
+    border-radius:8px;
     border-radius: 8px;
 
+    font-weight:bold;
 
-
+    cursor:pointer;
     font-weight: bold;
 
-
-
     cursor: pointer;
-
 }
-
-
-
 
 
 button.submit-btn:hover {
 
+button.submit-btn:hover{
 
+    background:#d9a944;
 
     background: #d9a944;
-
 }
 
 
+button.submit-btn:disabled{
 
-
-
+    opacity:0.7;
 button.submit-btn:disabled {
 
-
-
+    cursor:not-allowed;
     opacity: 0.7;
 
-
-
     cursor: not-allowed;
-
 }
 
 
-
-
-
 /* ============================================================
-
    ERROR / STATUS MESSAGE
-
    ============================================================ */
 
-
-
+.error{
 .error {
 
-
-
+    color:#ef4444;
     color: #ef4444;
 
-
-
+    margin-top:10px;
     margin-top: 10px;
 
-
-
     min-height: 20px;
-
 }
-
-
-
 
 
 /* ============================================================
-
    TOGGLE BUTTON
-
    ============================================================ */
 
+/* TOGGLE BUTTON */
 
+.toggle-btn{
 
+    position:fixed;
 .toggle-btn {
 
-
-
+    top:20px;
     position: fixed;
 
-
-
+    right:20px;
     top: 20px;
 
-
-
+    width:50px;
     right: 20px;
 
-
-
+    height:50px;
     width: 50px;
 
-
-
+    border-radius:50%;
     height: 50px;
 
-
-
+    border:none;
     border-radius: 50%;
 
-
-
+    background:#888;
     border: none;
 
-
-
+    color:white;
     background: #888;
 
-
-
+    cursor:pointer;
     color: white;
 
-
-
+    font-size:10px;
     cursor: pointer;
 
-
-
+    z-index:3;
     font-size: 10px;
 
-
-
     z-index: 3;
-
 }
-
-
-
 
 
 body.light-mode .toggle-btn {
 
+body.light-mode .toggle-btn{
 
+    background:#111827;
 
+    color:#f0f0f0;
     background: #111827;
 
-
-
     color: #f0f0f0;
-
 }
 
 
 
 </style>
 
-
-
 </head>
-
-
 
 <body>
 
-
-
 <!-- ============================================================
-
      FOG
-
      ============================================================ -->
-
-
 
 <div class="fog">
 
-
-
 ```
-
 <div class="fog-layer layer1"></div>
-
-
 
 <div class="fog-layer layer2"></div>
 
-
-
 <div class="fog-layer layer3"></div>
-
 ```
-
-
 
 </div>
 
-
-
+<button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
 <!-- ============================================================
-
      THEME TOGGLE
-
      ============================================================ -->
 
-
-
 <button
-
  id="modeToggle"
-
  class="toggle-btn"
-
  onclick="toggleMode()">
 
-
-
 ```
-
 Light Mode
-
 ```
-
-
 
 </button>
 
-
-
 <!-- ============================================================
-
      LOGIN BOX
-
      ============================================================ -->
-
-
 
 <div class="box">
 
-
-
 ```
-
 <h2>Admin Access</h2>
-
-
-
 
 
 <form onsubmit="checkCode(event)">
 
+<input
+type="text"
+id="username"
+placeholder="Enter Username"
+required
+autocomplete="username"
 
-
-
-
+>
     <!-- USERNAME -->
 
-
-
+<input
+type="password"
+id="code"
+placeholder="Enter Access Code"
+required
+autocomplete="current-password"
     <input
-
         type="text"
-
         id="username"
-
         placeholder="Enter Username"
-
         required
-
         autocomplete="username"
-
     >
 
+>
 
-
-
-
+<button
+ type="submit"
+ class="submit-btn"
+ id="loginButton">
+Enter Dashboard </button>
     <!-- ACCESS CODE / PASSWORD -->
 
-
-
     <input
-
         type="password"
-
         id="code"
-
         placeholder="Enter Access Code"
-
         required
-
         autocomplete="current-password"
-
     >
-
-
-
 
 
     <!-- LOGIN BUTTON -->
 
-
-
     <button
-
         type="submit"
-
         class="submit-btn"
-
         id="loginButton">
 
-
-
         Enter Dashboard
-
-
 
     </button>
 
 
-
-
-
 </form>
 
-
-
-
+<div id="error" class="error"></div>
 
 <!-- STATUS / ERROR -->
 
-
-
 <div
-
     id="error"
-
     class="error">
-
 </div>
-
 ```
 
-
-
 </div>
-
-
 
 <script>
 
 
-
-
-
 // ============================================================
-
 // SUPABASE CONFIGURATION
-
 // ============================================================
-
-
 
 const SUPABASE_URL =
-
     "https://raphpzlmjjzgwohjgczu.supabase.co";
 
-
-
 const SUPABASE_PUBLISHABLE_KEY =
-
     "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
 
-
-
-
 const supabaseClient =
-
     window.supabase.createClient(
-
         SUPABASE_URL,
-
         SUPABASE_PUBLISHABLE_KEY
-
     );
 
 
 
-
-
 // ============================================================
-
+// EXISTING LOGIN SESSION CHECK
 // CHECK EXISTING LOGIN
-
 // ============================================================
-
-
 
 if (
-
     localStorage.getItem("access_granted") === "true"
-
 ) {
-
-
 
     window.location.href = "index.html";
 
@@ -976,625 +655,348 @@ if (
 
 
 
-
-
 // ============================================================
-
+// VERIFY USERNAME + ACCESS CODE
 // LOGIN FUNCTION
-
 // ============================================================
-
-
 
 async function checkCode(event) {
-
-
 
     event.preventDefault();
 
 
-
-
-
     // --------------------------------------------------------
-
     // GET ELEMENTS
-
     // --------------------------------------------------------
-
-
 
     const usernameInput =
-
         document.getElementById("username");
 
-
-
     const codeInput =
-
         document.getElementById("code");
 
-
-
     const errorDiv =
-
         document.getElementById("error");
 
-
-
     const loginButton =
-
         document.getElementById("loginButton");
 
 
-
-
-
     // --------------------------------------------------------
-
     // GET VALUES
-
     // --------------------------------------------------------
-
-
 
     const username =
-
         usernameInput.value.trim();
 
-
-
     const code =
-
         codeInput.value;
 
 
-
-
-
     // --------------------------------------------------------
-
     // CLEAR MESSAGE
-
     // --------------------------------------------------------
-
-
 
     errorDiv.innerText = "";
 
 
-
-
-
     // --------------------------------------------------------
-
     // VALIDATE INPUT
-
     // --------------------------------------------------------
-
-
 
     if (!username || !code) {
 
-
-
         errorDiv.style.color = "#ef4444";
 
-
-
         errorDiv.innerText =
-
             "Please enter your username and access code.";
 
-
-
         return;
-
     }
 
 
-
-
-
     // --------------------------------------------------------
-
     // DISABLE BUTTON
-
     // --------------------------------------------------------
-
-
 
     loginButton.disabled = true;
 
-
-
+    loginButton.innerText = "Verifying...";
     loginButton.innerText =
-
         "Verifying...";
 
 
-
-
-
     errorDiv.style.color =
-
         "#FADA7A";
 
-
-
     errorDiv.innerText =
-
         "Verifying credentials...";
-
-
-
 
 
     try {
 
 
-
-
-
         // ----------------------------------------------------
-
         // CALL SUPABASE FUNCTION
-
         // ----------------------------------------------------
-
-
 
         const { data, error } =
-
             await supabaseClient.rpc(
-
                 "verify_admin_login",
-
                 {
-
                     p_username: username,
-
                     p_password: code
-
                 }
-
             );
 
 
-
-
-
         // ----------------------------------------------------
-
         // CONSOLE DEBUG INFORMATION
-
         // ----------------------------------------------------
 
-
-
         console.log(
-
             "LOGIN RESULT:",
-
             data
-
         );
-
-
 
         console.log(
-
             "LOGIN ERROR:",
-
             error
-
         );
 
 
-
-
-
         // ----------------------------------------------------
-
         // SUPABASE ERROR
-
         // ----------------------------------------------------
-
-
 
         if (error) {
 
-
-
             console.error(
-
+                "Supabase Login Error:",
                 "SUPABASE LOGIN ERROR:",
-
                 error
-
             );
 
-
-
-
+            errorDiv.style.color = "#ef4444";
 
             errorDiv.style.color =
-
                 "#ef4444";
 
 
-
-
-
             errorDiv.innerText =
-
+                "Error checking credentials.";
                 "Supabase Error: " +
-
                 error.message;
 
 
-
-
-
             return;
-
         }
 
 
-
-
-
+        if (
+            data &&
+            data.valid === true
+        ) {
         // ----------------------------------------------------
-
         // VALID LOGIN
-
         // ----------------------------------------------------
-
-
 
         if (data === true) {
 
 
-
-
-
             errorDiv.style.color =
-
                 "#22c55e";
 
-
-
-
+            errorDiv.style.color = "#22c55e";
 
             errorDiv.innerText =
-
                 "Access Granted!";
 
 
-
-
-
+            // Existing dashboard access flag
             // ------------------------------------------------
-
             // STORE LOGIN SESSION
-
             // ------------------------------------------------
 
-
-
             localStorage.setItem(
-
                 "access_granted",
-
                 "true"
-
             );
 
 
-
-
-
+            // Save currently logged-in user
             // ------------------------------------------------
-
             // STORE CURRENT ADMIN USER
-
             // ------------------------------------------------
-
-
 
             localStorage.setItem(
-
                 "current_admin_user",
-
+                data.username
                 username
-
             );
 
 
-
-
+            // Save display name
+            localStorage.setItem(
+                "current_admin_name",
+                data.display_name || data.username
+            );
 
             // ------------------------------------------------
-
             // REDIRECT TO DASHBOARD
-
             // ------------------------------------------------
-
-
 
             setTimeout(() => {
 
-
-
                 window.location.href =
-
                     "index.html";
 
-
-
             }, 800);
-
-
-
 
 
         } else {
 
 
-
-
-
+            errorDiv.style.color = "#ef4444";
             // ------------------------------------------------
-
             // INVALID LOGIN
-
             // ------------------------------------------------
-
-
 
             errorDiv.style.color =
-
                 "#ef4444";
 
 
-
-
-
             errorDiv.innerText =
-
                 "Invalid Username or Access Code";
-
-
-
 
 
             codeInput.value = "";
 
-
-
             codeInput.focus();
 
-
-
         }
-
-
-
 
 
     } catch (err) {
 
 
-
-
-
         // ----------------------------------------------------
-
         // UNEXPECTED ERROR
-
         // ----------------------------------------------------
-
-
 
         console.error(
-
+            "Unexpected Login Error:",
             "UNEXPECTED LOGIN ERROR:",
-
             err
-
         );
 
-
-
-
+        errorDiv.style.color = "#ef4444";
 
         errorDiv.style.color =
-
             "#ef4444";
 
 
-
-
-
         errorDiv.innerText =
-
+            "Connection error.";
             "Connection Error: " +
-
             (
-
                 err.message ||
-
                 "Unknown error"
-
             );
-
-
-
-
-
-    } finally {
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // RESTORE BUTTON
-
-        // ----------------------------------------------------
-
-
-
-        loginButton.disabled = false;
-
-
-
-        loginButton.innerText =
-
-            "Enter Dashboard";
 
     }
 
+    } finally {
 
+    loginButton.disabled = false;
+
+    loginButton.innerText =
+        "Enter Dashboard";
+}
+        // ----------------------------------------------------
+        // RESTORE BUTTON
+        // ----------------------------------------------------
+
+        loginButton.disabled = false;
+
+        loginButton.innerText =
+            "Enter Dashboard";
+    }
 
 }
 
 
-
-
-
 // ============================================================
-
 // THEME TOGGLE
-
 // ============================================================
-
-
 
 const toggleBtn =
-
     document.getElementById("modeToggle");
 
 
 
-
-
+// Load saved theme preference on launch
 // ============================================================
-
 // LOAD SAVED THEME
-
 // ============================================================
-
-
 
 if (
-
     localStorage.getItem("theme") === "light"
-
 ) {
 
-
-
+    document.body.classList.add("light-mode");
     document.body.classList.add(
-
         "light-mode"
-
     );
 
-
-
     toggleBtn.textContent =
-
         "Dark Mode";
 
 }
 
 
-
-
-
 // ============================================================
-
 // TOGGLE LIGHT / DARK MODE
-
 // ============================================================
-
-
 
 function toggleMode() {
 
-
-
+    document.body.classList.toggle("light-mode");
     document.body.classList.toggle(
-
         "light-mode"
-
     );
 
 
-
-
-
     if (
-
+        document.body.classList.contains("light-mode")
         document.body.classList.contains(
-
             "light-mode"
-
         )
-
     ) {
 
-
-
         toggleBtn.textContent =
-
             "Dark Mode";
 
 
-
-
-
         localStorage.setItem(
-
             "theme",
-
             "light"
-
         );
-
-
-
 
 
     } else {
 
 
-
-
-
         toggleBtn.textContent =
-
             "Light Mode";
 
 
-
-
-
         localStorage.setItem(
-
             "theme",
-
             "dark"
-
         );
 
-
-
     }
-
-
 
 }
 
@@ -1602,11 +1004,6 @@ function toggleMode() {
 
 </script>
 
-
-
 </body>
 
-
-
-</html> 
-
+</html>
