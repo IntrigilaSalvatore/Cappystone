@@ -275,7 +275,7 @@ async function checkCode(event) {
         let isValid = false;
 
         if (currentRole === "ADMIN") {
-            // Call existing admin login RPC
+            // Call admin login RPC (checks username, password, and is_active)
             const { data, error } = await supabaseClient.rpc("verify_admin_login", {
                 p_username: username,
                 p_password: code
@@ -286,13 +286,23 @@ async function checkCode(event) {
             // Query Faculty / User Accounts table
             const { data, error } = await supabaseClient
                 .from("user_accounts")
-                .select("id, role")
+                .select("id, role, is_active")
                 .eq("username", username)
                 .eq("password", code)
                 .maybeSingle();
 
             if (error) throw error;
-            if (data) isValid = true;
+
+            if (data) {
+                if (data.is_active === false) {
+                    errorDiv.style.color = "#ef4444";
+                    errorDiv.innerText = "This account has been disabled by an Administrator.";
+                    loginButton.disabled = false;
+                    loginButton.innerText = "Enter Dashboard";
+                    return;
+                }
+                isValid = true;
+            }
         }
 
         if (isValid) {
@@ -316,7 +326,7 @@ async function checkCode(event) {
             }, 800);
         } else {
             errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = `Invalid ${currentRole === 'ADMIN' ? 'Admin' : 'Faculty'} Username or Password`;
+            errorDiv.innerText = `Invalid or Disabled ${currentRole === 'ADMIN' ? 'Admin' : 'Faculty'} Account`;
             document.getElementById("code").value = "";
         }
     } catch (err) {
