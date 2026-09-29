@@ -12,7 +12,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=31" />
+  <link rel="stylesheet" href="style.css?v=32" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -173,7 +173,7 @@
 
   </div>
 
-  <!-- TAB 3: ACCOUNT MANAGEMENT & DISABLE ACCESS (ADMIN ONLY) -->
+  <!-- TAB 3: ACCOUNT MANAGEMENT, DISABLE & DELETE ACCESS (ADMIN ONLY) -->
   <div id="tabUsers" style="display: none; padding: 20px; width: min(1400px, calc(100% - 20px)); margin: auto;">
     
     <!-- CONTAINER 1: CREATE NEW ACCOUNT -->
@@ -197,17 +197,17 @@
       </form>
     </section>
 
-    <!-- CONTAINER 2: MANAGED USER ACCOUNTS & DISABLE ACCESS -->
+    <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
-      <p style="font-size: 13px; color: #64748b;">Administrators can enable or disable faculty and admin user access at any time.</p>
+      <p style="font-size: 13px; color: #64748b;">Administrators can enable, disable, or permanently delete faculty and admin accounts.</p>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
             <th style="padding: 10px;">Username</th>
             <th style="padding: 10px;">Role</th>
             <th style="padding: 10px;">Account Status</th>
-            <th style="padding: 10px;">Access Control</th>
+            <th style="padding: 10px;">Access Control Actions</th>
           </tr>
         </thead>
         <tbody id="userAccountsTableBody">
@@ -218,7 +218,7 @@
 
   </div>
 
-  <script src="dashboard.js?v=31"></script>
+  <script src="dashboard.js?v=32"></script>
 
   <script>
     const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
@@ -400,13 +400,23 @@
             <td style="padding: 10px; font-weight: bold; color: ${isActive ? '#22c55e' : '#ef4444'};">
               ${isActive ? 'ACTIVE' : 'DISABLED'}
             </td>
-            <td style="padding: 10px;">
+            <td style="padding: 10px; display: flex; gap: 8px;">
+              <!-- DISABLE / ENABLE BUTTON -->
               <button 
                 onclick="toggleAccountStatus(${account.id}, ${!isActive})" 
                 ${isSelf ? 'disabled' : ''} 
-                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#ef4444' : '#22c55e'}; color: white;"
+                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: ${isActive ? '#f59e0b' : '#22c55e'}; color: white;"
               >
                 ${isActive ? 'Disable Access' : 'Enable Access'}
+              </button>
+
+              <!-- DELETE ACCOUNT BUTTON -->
+              <button 
+                onclick="deleteAccount(${account.id}, '${account.username}')" 
+                ${isSelf ? 'disabled' : ''} 
+                style="padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: ${isSelf ? 'not-allowed' : 'pointer'}; background: #ef4444; color: white; opacity: ${isSelf ? '0.5' : '1'};"
+              >
+                Delete
               </button>
             </td>
           </tr>
@@ -423,6 +433,24 @@
       if (error) {
         alert("Error updating account status: " + error.message);
       } else {
+        loadUserAccounts();
+      }
+    }
+
+    async function deleteAccount(accountId, usernameToDelete) {
+      const confirmDelete = confirm(`Are you sure you want to permanently delete the account '${usernameToDelete}'? This action cannot be undone.`);
+      
+      if (!confirmDelete) return;
+
+      const { error } = await window.supabaseClient
+        .from("user_accounts")
+        .delete()
+        .eq("id", accountId);
+
+      if (error) {
+        alert("Error deleting account: " + error.message);
+      } else {
+        alert(`Account '${usernameToDelete}' deleted successfully.`);
         loadUserAccounts();
       }
     }
