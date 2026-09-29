@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RVJ Classroom Performance Dashboard</title>
 
+  <!-- AUTH GUARD SCRIPT -->
   <script>
     if (localStorage.getItem("access_granted") !== "true") {
       window.location.href = "login.html";
     }
   </script>
 
-  <link rel="stylesheet" href="style.css?v=23" />
+  <link rel="stylesheet" href="style.css?v=28" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -26,7 +27,7 @@
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
       <span class="status-badge" id="userRoleBadge">ROLE: --</span>
 
-      <!-- LOGOUT BUTTON WITH LOGOUT AUDIT TRACKING -->
+      <!-- LOGOUT BUTTON -->
       <a 
         href="#" 
         class="status-badge" 
@@ -39,7 +40,7 @@
   </header>
 
   <!-- ADMIN NAVIGATION BAR (Hidden for Faculty) -->
-  <nav id="adminNav" style="display: none; background: #1e40af; padding: 10px 20px; gap: 15px;">
+  <nav id="adminNav" style="display: none; background: #005A92; padding: 10px 20px; gap: 15px; border-bottom: 2px solid #FCE883;">
     <button class="button button-on" onclick="switchTab('dashboard')">Dashboard</button>
     <button class="button" onclick="switchTab('logs')">Access & Duty Logs</button>
     <button class="button" onclick="switchTab('users')">Manage Accounts</button>
@@ -133,7 +134,7 @@
   <div id="tabLogs" style="display: none; padding: 20px; width: min(1400px, calc(100% - 20px)); margin: auto;">
     <section class="panel">
       <h2>User Access & Duty Logs</h2>
-      <p style="font-size: 13px; color: #64748b;">Monitors login/logout timestamps of faculty and admin personnel during aircon operations.</p>
+      <p style="font-size: 13px; color: #64748b;">Monitors login and logout timestamps of faculty and administrative personnel.</p>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
@@ -162,7 +163,7 @@
         <input type="password" id="newPassword" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
 
         <label class="label">Account Role:</label>
-        <select id="newRole" style="padding: 8px; border-radius: 4px;">
+        <select id="newRole" style="padding: 8px; border-radius: 4px; border: 2px solid #1e40af;">
           <option value="FACULTY">Faculty Member</option>
           <option value="ADMIN">Administrator</option>
         </select>
@@ -173,10 +174,13 @@
     </section>
   </div>
 
-  <script src="dashboard.js?v=27"></script>
+  <script src="dashboard.js?v=28"></script>
 
   <script>
-    // Role-based Navigation Script
+    const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
     const role = localStorage.getItem("user_role") || "FACULTY";
     const username = localStorage.getItem("current_user") || "User";
 
