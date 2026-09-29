@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Classroom Performance Access</title>
+<title>System Access - RVJ Climate Control</title>
 
 <!-- Supabase JS Client library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+/* ============================================================
+   BODY & BACKGROUND
+   ============================================================ */
 body {
     font-family: Arial, sans-serif;
     background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg") no-repeat center center/cover;
@@ -25,85 +28,135 @@ body.light-mode {
     color: #111827;
 }
 
+/* ============================================================
+   FOG CONTAINER & LAYERS
+   ============================================================ */
+.fog {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.fog-layer {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    filter: blur(60px);
+}
+
+.layer1 { animation: fogMove1 80s linear infinite; }
+.layer2 { animation: fogMove2 120s linear infinite; opacity: 0.7; }
+.layer3 { animation: fogMove3 160s linear infinite; opacity: 0.5; }
+
+@keyframes fogMove1 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-400px) translateY(-150px); }
+}
+@keyframes fogMove2 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-300px) translateY(200px); }
+}
+@keyframes fogMove3 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-500px) translateY(100px); }
+}
+
+body:not(.light-mode) .fog-layer {
+    background:
+        radial-gradient(circle at 30% 40%, rgba(0,0,0,0.5) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(0,0,0,0.4) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(0,0,0,0.35) 0%, transparent 40%);
+}
+
+body.light-mode .fog-layer {
+    background:
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(255,255,255,0.1) 0%, transparent 40%);
+}
+
+/* ============================================================
+   LOGIN BOX
+   ============================================================ */
 .box {
-    background: rgba(30,41,59,0.92);
+    background: rgba(30,41,59,0.9);
     backdrop-filter: blur(10px);
-    padding: 30px 35px;
+    padding: 35px 40px;
     border-radius: 12px;
     width: 340px;
     text-align: center;
     position: relative;
     z-index: 2;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 body.light-mode .box {
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.9);
     color: #111827;
 }
 
-.role-tabs {
+/* ============================================================
+   ROLE TOGGLE BUTTONS
+   ============================================================ */
+.role-selector {
     display: flex;
     gap: 8px;
     margin-bottom: 20px;
-    background: rgba(15, 23, 42, 0.5);
-    padding: 4px;
-    border-radius: 8px;
 }
 
-.role-tab {
+.role-btn {
     flex: 1;
     padding: 10px;
-    border: none;
+    border: 1px solid #64748b;
     background: transparent;
-    color: #94a3b8;
+    color: #cbd5e1;
     font-weight: bold;
-    font-size: 13px;
-    cursor: pointer;
     border-radius: 6px;
+    cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 13px;
 }
 
-.role-tab.active {
-    background: #005A92;
-    color: #ffffff;
+body.light-mode .role-btn {
+    color: #475569;
+    border-color: #cbd5e1;
 }
 
-body.light-mode .role-tab.active {
-    background: #1e40af;
-    color: #ffffff;
+.role-btn.active {
+    background: #FADA7A;
+    color: #1e293b;
+    border-color: #FADA7A;
 }
 
+/* ============================================================
+   INPUT & SUBMIT
+   ============================================================ */
 input {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
     border-radius: 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #ccc;
     box-sizing: border-box;
 }
 
 button.submit-btn {
-    margin-top: 18px;
+    margin-top: 20px;
     width: 100%;
     padding: 12px;
     background: #FADA7A;
-    color: #1e293b;
     border: none;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
-    font-size: 14px;
+    color: #1e293b;
 }
 
-button.submit-btn:hover {
-    background: #d9a944;
-}
-
-button.submit-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
+button.submit-btn:hover { background: #d9a944; }
+button.submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .error {
     color: #ef4444;
@@ -112,17 +165,21 @@ button.submit-btn:disabled {
     font-size: 13px;
 }
 
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
 .toggle-btn {
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 8px 14px;
+    width: 80px;
+    height: 35px;
     border-radius: 20px;
     border: none;
-    background: #888;
+    background: #475569;
     color: white;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
     z-index: 3;
 }
@@ -136,19 +193,26 @@ body.light-mode .toggle-btn {
 
 <body>
 
+<div class="fog">
+    <div class="fog-layer layer1"></div>
+    <div class="fog-layer layer2"></div>
+    <div class="fog-layer layer3"></div>
+</div>
+
 <button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
 
 <div class="box">
-    <h2 id="loginTitle" style="margin-top:0; margin-bottom:15px; color:#ffffff;">Admin Access</h2>
+    <h2 id="loginTitle">Admin Access</h2>
 
-    <div class="role-tabs">
-        <button type="button" class="role-tab active" id="tabAdmin" onclick="switchRole('ADMIN')">Admin Access</button>
-        <button type="button" class="role-tab" id="tabFaculty" onclick="switchRole('FACULTY')">Faculty Access</button>
+    <!-- ROLE SELECTION BUTTONS -->
+    <div class="role-selector">
+        <button type="button" class="role-btn active" id="btnAdminRole" onclick="setRole('ADMIN')">Admin Access</button>
+        <button type="button" class="role-btn" id="btnFacultyRole" onclick="setRole('FACULTY')">Faculty Login</button>
     </div>
 
     <form onsubmit="checkCode(event)">
         <input type="text" id="username" placeholder="Enter Username" required autocomplete="username">
-        <input type="password" id="code" placeholder="Enter Access Code" required autocomplete="current-password">
+        <input type="password" id="code" placeholder="Enter Password" required autocomplete="current-password">
 
         <button type="submit" class="submit-btn" id="loginButton">Enter Dashboard</button>
     </form>
@@ -162,45 +226,43 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-let selectedRole = "ADMIN";
+let currentRole = "ADMIN";
 
+// Redirect if already logged in
 if (localStorage.getItem("access_granted") === "true") {
     window.location.href = "index.html";
 }
 
-function switchRole(role) {
-    selectedRole = role;
-    const adminTab = document.getElementById("tabAdmin");
-    const facultyTab = document.getElementById("tabFaculty");
+function setRole(role) {
+    currentRole = role;
+    const adminBtn = document.getElementById("btnAdminRole");
+    const facultyBtn = document.getElementById("btnFacultyRole");
     const title = document.getElementById("loginTitle");
 
     if (role === "ADMIN") {
-        adminTab.classList.add("active");
-        facultyTab.classList.remove("active");
-        title.textContent = "Admin Access";
+        adminBtn.classList.add("active");
+        facultyBtn.classList.remove("active");
+        title.innerText = "Admin Access";
     } else {
-        facultyTab.classList.add("active");
-        adminTab.classList.remove("active");
-        title.textContent = "Faculty Access";
+        facultyBtn.classList.add("active");
+        adminBtn.classList.remove("active");
+        title.innerText = "Faculty Access";
     }
 }
 
 async function checkCode(event) {
     event.preventDefault();
 
-    const usernameInput = document.getElementById("username");
-    const codeInput = document.getElementById("code");
+    const username = document.getElementById("username").value.trim();
+    const code = document.getElementById("code").value;
     const errorDiv = document.getElementById("error");
     const loginButton = document.getElementById("loginButton");
-
-    const username = usernameInput.value.trim();
-    const code = codeInput.value;
 
     errorDiv.innerText = "";
 
     if (!username || !code) {
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Please enter your username and access code.";
+        errorDiv.innerText = "Please enter your username and password.";
         return;
     }
 
@@ -210,52 +272,56 @@ async function checkCode(event) {
     errorDiv.innerText = "Verifying credentials...";
 
     try {
-        const { data, error } = await supabaseClient.rpc("verify_admin_login", {
-            p_username: username,
-            p_password: code
-        });
+        let isValid = false;
 
-        if (error) {
-            errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Supabase Error: " + error.message;
-            return;
+        if (currentRole === "ADMIN") {
+            // Call existing admin login RPC
+            const { data, error } = await supabaseClient.rpc("verify_admin_login", {
+                p_username: username,
+                p_password: code
+            });
+            if (error) throw error;
+            isValid = (data === true);
+        } else {
+            // Query Faculty / User Accounts table
+            const { data, error } = await supabaseClient
+                .from("user_accounts")
+                .select("id, role")
+                .eq("username", username)
+                .eq("password", code)
+                .maybeSingle();
+
+            if (error) throw error;
+            if (data) isValid = true;
         }
 
-        if (data === true) {
+        if (isValid) {
             errorDiv.style.color = "#22c55e";
             errorDiv.innerText = "Access Granted!";
 
-            const { data: logData } = await supabaseClient
-                .from("access_logs")
-                .insert({
-                    username: username,
-                    user_role: selectedRole,
-                    login_time: new Date().toISOString()
-                })
-                .select("id")
-                .single();
+            // Log Login Session to Supabase
+            await supabaseClient.from("user_logs").insert({
+                username: username,
+                role: currentRole,
+                action: "LOGIN",
+                logged_at: new Date().toISOString()
+            });
 
             localStorage.setItem("access_granted", "true");
-            localStorage.setItem("user_role", selectedRole);
             localStorage.setItem("current_user", username);
-            if (logData && logData.id) {
-                localStorage.setItem("current_log_id", logData.id);
-            }
+            localStorage.setItem("user_role", currentRole);
 
             setTimeout(() => {
                 window.location.href = "index.html";
             }, 800);
-
         } else {
             errorDiv.style.color = "#ef4444";
-            errorDiv.innerText = "Invalid Username or Access Code";
-            codeInput.value = "";
-            codeInput.focus();
+            errorDiv.innerText = `Invalid ${currentRole === 'ADMIN' ? 'Admin' : 'Faculty'} Username or Password`;
+            document.getElementById("code").value = "";
         }
-
     } catch (err) {
         errorDiv.style.color = "#ef4444";
-        errorDiv.innerText = "Connection Error: " + (err.message || "Unknown error");
+        errorDiv.innerText = "Error: " + (err.message || "Connection failed");
     } finally {
         loginButton.disabled = false;
         loginButton.innerText = "Enter Dashboard";
