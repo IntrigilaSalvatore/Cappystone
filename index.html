@@ -108,11 +108,11 @@
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
       <span class="status-badge" id="userRoleBadge">ROLE: --</span>
 
-      <!-- FACULTY REPORT ISSUE BUTTON -->
+      <!-- FACULTY REPORT ISSUE BUTTON (Hidden by default, shown via JS for Faculty) -->
       <button 
         id="btnReportIssue" 
         class="status-badge" 
-        style="background: #f59e0b; color: white; border: none; cursor: pointer;"
+        style="display: none; background: #f59e0b; color: white; border: none; cursor: pointer;"
         onclick="openReportModal()"
       >
         ⚠️ REPORT ISSUE
@@ -411,11 +411,17 @@
 
     document.getElementById("userRoleBadge").innerText = `${role}: ${username}`;
 
+    // CONTROL VISIBILITY BASED ON USER ROLE
     if (role === "ADMIN") {
       document.getElementById("adminNav").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
+      document.getElementById("btnReportIssue").style.display = "none";
       loadAdminReportCount();
       subscribeToIssueReports();
+    } else {
+      document.getElementById("adminNav").style.display = "none";
+      document.getElementById("btnAdminEnvelope").style.display = "none";
+      document.getElementById("btnReportIssue").style.display = "inline-block";
     }
 
     function switchTab(tab) {
