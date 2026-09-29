@@ -15,10 +15,19 @@
   <!-- AUTH GUARD SCRIPT: Redirects to login.html if not authenticated -->
 
 <script>
+  // 1. Clear any old persistent localStorage login flags
   localStorage.removeItem("access_granted");
   localStorage.removeItem("current_admin_user");
 
+  // 2. Require an active tab session (auto-logs out when tab/browser closes)
   if (sessionStorage.getItem("access_granted") !== "true") {
+    window.location.href = "login.html";
+  }
+
+  // 3. Global logout function (if you have a Logout button with onclick="logout()")
+  function logout() {
+    sessionStorage.removeItem("access_granted");
+    sessionStorage.removeItem("current_admin_user");
     window.location.href = "login.html";
   }
 </script>
