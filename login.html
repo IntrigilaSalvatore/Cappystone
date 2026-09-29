@@ -1,1605 +1,288 @@
 <!DOCTYPE html>
-
-
-
 <html lang="en">
-
-
-
 <head>
-
-
-
 <meta charset="UTF-8" />
-
-
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-
-
-<title>Admin Access</title>
-
-
+<title>Classroom Performance Access</title>
 
 <!-- Supabase JS Client library -->
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-
-
 <style>
-
-
-
-/* ============================================================
-
-   BODY
-
-   ============================================================ */
-
-
-
 body {
-
-
-
-    font-family: Arial;
-
-
-
-    background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg")
-
-        no-repeat center center/cover;
-
-
-
+    font-family: Arial, sans-serif;
+    background: url("https://www.spcf.edu.ph/uploads/Sliders/2f6efc6ff35273df8149d3a4e1563b4b.jpg") no-repeat center center/cover;
     display: flex;
-
-
-
     justify-content: center;
-
-
-
     align-items: center;
-
-
-
     height: 100vh;
-
-
-
     margin: 0;
-
-
-
     color: white;
-
-
-
     overflow: hidden;
-
 }
-
-
-
-
-
-/* ============================================================
-
-   LIGHT MODE
-
-   ============================================================ */
-
-
 
 body.light-mode {
-
-
-
     color: #111827;
-
 }
-
-
-
-
-
-/* ============================================================
-
-   FOG CONTAINER
-
-   ============================================================ */
-
-
-
-.fog {
-
-
-
-    position: fixed;
-
-
-
-    inset: 0;
-
-
-
-    pointer-events: none;
-
-
-
-    z-index: 1;
-
-}
-
-
-
-
-
-/* ============================================================
-
-   FOG LAYERS
-
-   ============================================================ */
-
-
-
-.fog-layer {
-
-
-
-    position: absolute;
-
-
-
-    width: 200%;
-
-
-
-    height: 200%;
-
-
-
-    top: -50%;
-
-
-
-    left: -50%;
-
-
-
-    filter: blur(60px);
-
-}
-
-
-
-
-
-/* ============================================================
-
-   FOG ANIMATIONS
-
-   ============================================================ */
-
-
-
-.layer1 {
-
-
-
-    animation: fogMove1 80s linear infinite;
-
-}
-
-
-
-.layer2 {
-
-
-
-    animation: fogMove2 120s linear infinite;
-
-
-
-    opacity: 0.7;
-
-}
-
-
-
-.layer3 {
-
-
-
-    animation: fogMove3 160s linear infinite;
-
-
-
-    opacity: 0.5;
-
-}
-
-
-
-
-
-/* ============================================================
-
-   FOG KEYFRAMES
-
-   ============================================================ */
-
-
-
-@keyframes fogMove1 {
-
-
-
-    0% {
-
-
-
-        transform: translateX(0) translateY(0);
-
-    }
-
-
-
-    100% {
-
-
-
-        transform: translateX(-400px) translateY(-150px);
-
-    }
-
-}
-
-
-
-
-
-@keyframes fogMove2 {
-
-
-
-    0% {
-
-
-
-        transform: translateX(0) translateY(0);
-
-    }
-
-
-
-    100% {
-
-
-
-        transform: translateX(-300px) translateY(200px);
-
-    }
-
-}
-
-
-
-
-
-@keyframes fogMove3 {
-
-
-
-    0% {
-
-
-
-        transform: translateX(0) translateY(0);
-
-    }
-
-
-
-    100% {
-
-
-
-        transform: translateX(-500px) translateY(100px);
-
-    }
-
-}
-
-
-
-
-
-/* ============================================================
-
-   DARK MODE FOG
-
-   ============================================================ */
-
-
-
-body:not(.light-mode) .fog-layer {
-
-
-
-    background:
-
-
-
-        radial-gradient(
-
-            circle at 30% 40%,
-
-            rgba(0,0,0,0.5) 0%,
-
-            transparent 40%
-
-        ),
-
-
-
-        radial-gradient(
-
-            circle at 70% 60%,
-
-            rgba(0,0,0,0.4) 0%,
-
-            transparent 45%
-
-        ),
-
-
-
-        radial-gradient(
-
-            circle at 50% 80%,
-
-            rgba(0,0,0,0.35) 0%,
-
-            transparent 40%
-
-        );
-
-}
-
-
-
-
-
-/* ============================================================
-
-   LIGHT MODE FOG
-
-   ============================================================ */
-
-
-
-body.light-mode .fog-layer {
-
-
-
-    background:
-
-
-
-        radial-gradient(
-
-            circle at 30% 40%,
-
-            rgba(255,255,255,0.15) 0%,
-
-            transparent 40%
-
-        ),
-
-
-
-        radial-gradient(
-
-            circle at 70% 60%,
-
-            rgba(255,255,255,0.12) 0%,
-
-            transparent 45%
-
-        ),
-
-
-
-        radial-gradient(
-
-            circle at 50% 80%,
-
-            rgba(255,255,255,0.1) 0%,
-
-            transparent 40%
-
-        );
-
-}
-
-
-
-
-
-/* ============================================================
-
-   LOGIN BOX
-
-   ============================================================ */
-
-
 
 .box {
-
-
-
-    background: rgba(30,41,59,0.9);
-
-
-
+    background: rgba(30,41,59,0.92);
     backdrop-filter: blur(10px);
-
-
-
-    padding: 40px;
-
-
-
+    padding: 30px 35px;
     border-radius: 12px;
-
-
-
-    width: 320px;
-
-
-
+    width: 340px;
     text-align: center;
-
-
-
     position: relative;
-
-
-
     z-index: 2;
-
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
-
-
-
-
 
 body.light-mode .box {
-
-
-
-    background: rgba(255,255,255,0.9);
-
-
-
+    background: rgba(255,255,255,0.95);
     color: #111827;
-
 }
 
+/* ROLE SELECTION TABS */
+.role-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 4px;
+    border-radius: 8px;
+}
 
+.role-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
 
+.role-tab.active {
+    background: #005A92;
+    color: #ffffff;
+}
 
-
-/* ============================================================
-
-   INPUT
-
-   ============================================================ */
-
-
+body.light-mode .role-tab.active {
+    background: #1e40af;
+    color: #ffffff;
+}
 
 input {
-
-
-
     width: 100%;
-
-
-
     padding: 12px;
-
-
-
     margin-top: 10px;
-
-
-
     border-radius: 8px;
-
-
-
-    border: 1px solid #ccc;
-
-
-
+    border: 1px solid #cbd5e1;
     box-sizing: border-box;
-
 }
-
-
-
-
-
-/* ============================================================
-
-   LOGIN BUTTON
-
-   ============================================================ */
-
-
 
 button.submit-btn {
-
-
-
-    margin-top: 15px;
-
-
-
+    margin-top: 18px;
     width: 100%;
-
-
-
     padding: 12px;
-
-
-
     background: #FADA7A;
-
-
-
+    color: #1e293b;
     border: none;
-
-
-
     border-radius: 8px;
-
-
-
     font-weight: bold;
-
-
-
     cursor: pointer;
-
+    font-size: 14px;
 }
-
-
-
-
 
 button.submit-btn:hover {
-
-
-
     background: #d9a944;
-
 }
-
-
-
-
 
 button.submit-btn:disabled {
-
-
-
     opacity: 0.7;
-
-
-
     cursor: not-allowed;
-
 }
-
-
-
-
-
-/* ============================================================
-
-   ERROR / STATUS MESSAGE
-
-   ============================================================ */
-
-
 
 .error {
-
-
-
     color: #ef4444;
-
-
-
-    margin-top: 10px;
-
-
-
+    margin-top: 12px;
     min-height: 20px;
-
+    font-size: 13px;
 }
-
-
-
-
-
-/* ============================================================
-
-   TOGGLE BUTTON
-
-   ============================================================ */
-
-
 
 .toggle-btn {
-
-
-
     position: fixed;
-
-
-
     top: 20px;
-
-
-
     right: 20px;
-
-
-
-    width: 50px;
-
-
-
-    height: 50px;
-
-
-
-    border-radius: 50%;
-
-
-
+    padding: 8px 14px;
+    border-radius: 20px;
     border: none;
-
-
-
     background: #888;
-
-
-
     color: white;
-
-
-
     cursor: pointer;
-
-
-
-    font-size: 10px;
-
-
-
+    font-size: 12px;
+    font-weight: bold;
     z-index: 3;
-
 }
-
-
-
-
 
 body.light-mode .toggle-btn {
-
-
-
     background: #111827;
-
-
-
     color: #f0f0f0;
-
 }
-
-
-
 </style>
-
-
-
 </head>
-
-
 
 <body>
 
-
-
-<!-- ============================================================
-
-     FOG
-
-     ============================================================ -->
-
-
-
-<div class="fog">
-
-
-
-
-<div class="fog-layer layer1"></div>
-
-
-
-<div class="fog-layer layer2"></div>
-
-
-
-<div class="fog-layer layer3"></div>
-
-
-
-
-</div>
-
-
-
-<!-- ============================================================
-
-     THEME TOGGLE
-
-     ============================================================ -->
-
-
-
-<button
-
- id="modeToggle"
-
- class="toggle-btn"
-
- onclick="toggleMode()">
-
-
-
-
-Light Mode
-
-
-
-
-</button>
-
-
-
-<!-- ============================================================
-
-     LOGIN BOX
-
-     ============================================================ -->
-
-
+<button id="modeToggle" class="toggle-btn" onclick="toggleMode()">Light Mode</button>
 
 <div class="box">
+    <h2 id="loginTitle" style="margin-top:0; margin-bottom:15px; color:#ffffff;">Admin Access</h2>
 
+    <!-- ROLE SWITCH TABS -->
+    <div class="role-tabs">
+        <button type="button" class="role-tab active" id="tabAdmin" onclick="switchRole('ADMIN')">Admin Access</button>
+        <button type="button" class="role-tab" id="tabFaculty" onclick="switchRole('FACULTY')">Faculty Access</button>
+    </div>
 
+    <form onsubmit="checkCode(event)">
+        <input type="text" id="username" placeholder="Enter Username" required autocomplete="username">
+        <input type="password" id="code" placeholder="Enter Access Code" required autocomplete="current-password">
 
+        <button type="submit" class="submit-btn" id="loginButton">Enter Dashboard</button>
+    </form>
 
-<h2>Admin Access</h2>
-
-
-
-
-
-<form onsubmit="checkCode(event)">
-
-
-
-
-
-    <!-- USERNAME -->
-
-
-
-    <input
-
-        type="text"
-
-        id="username"
-
-        placeholder="Enter Username"
-
-        required
-
-        autocomplete="username"
-
-    >
-
-
-
-
-
-    <!-- ACCESS CODE / PASSWORD -->
-
-
-
-    <input
-
-        type="password"
-
-        id="code"
-
-        placeholder="Enter Access Code"
-
-        required
-
-        autocomplete="current-password"
-
-    >
-
-
-
-
-
-    <!-- LOGIN BUTTON -->
-
-
-
-    <button
-
-        type="submit"
-
-        class="submit-btn"
-
-        id="loginButton">
-
-
-
-        Enter Dashboard
-
-
-
-    </button>
-
-
-
-
-
-</form>
-
-
-
-
-
-<!-- STATUS / ERROR -->
-
-
-
-<div
-
-    id="error"
-
-    class="error">
-
+    <div id="error" class="error"></div>
 </div>
-
-
-
-
-</div>
-
-
 
 <script>
+const SUPABASE_URL = "https://raphpzlmjjzgwohjgczu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
 
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+let selectedRole = "ADMIN";
 
-
-
-// ============================================================
-
-// SUPABASE CONFIGURATION
-
-// ============================================================
-
-
-
-const SUPABASE_URL =
-
-    "https://raphpzlmjjzgwohjgczu.supabase.co";
-
-
-
-const SUPABASE_PUBLISHABLE_KEY =
-
-    "sb_publishable_-SIrgE8sT5liBPH0jOSTdA_CREkwiPd";
-
-
-
-
-
-const supabaseClient =
-
-    window.supabase.createClient(
-
-        SUPABASE_URL,
-
-        SUPABASE_PUBLISHABLE_KEY
-
-    );
-
-
-
-
-
-// ============================================================
-
-// CHECK EXISTING LOGIN
-
-// ============================================================
-
-
-
-if (
-
-    localStorage.getItem("access_granted") === "true"
-
-) {
-
-
-
+// AUTO REDIRECT IF LOGGED IN
+if (localStorage.getItem("access_granted") === "true") {
     window.location.href = "index.html";
-
 }
 
+function switchRole(role) {
+    selectedRole = role;
+    const adminTab = document.getElementById("tabAdmin");
+    const facultyTab = document.getElementById("tabFaculty");
+    const title = document.getElementById("loginTitle");
 
-
-
-
-// ============================================================
-
-// LOGIN FUNCTION
-
-// ============================================================
-
-
+    if (role === "ADMIN") {
+        adminTab.classList.add("active");
+        facultyTab.classList.remove("active");
+        title.textContent = "Admin Access";
+    } else {
+        facultyTab.classList.add("active");
+        adminTab.classList.remove("active");
+        title.textContent = "Faculty Access";
+    }
+}
 
 async function checkCode(event) {
-
-
-
     event.preventDefault();
 
+    const usernameInput = document.getElementById("username");
+    const codeInput = document.getElementById("code");
+    const errorDiv = document.getElementById("error");
+    const loginButton = document.getElementById("loginButton");
 
-
-
-
-    // --------------------------------------------------------
-
-    // GET ELEMENTS
-
-    // --------------------------------------------------------
-
-
-
-    const usernameInput =
-
-        document.getElementById("username");
-
-
-
-    const codeInput =
-
-        document.getElementById("code");
-
-
-
-    const errorDiv =
-
-        document.getElementById("error");
-
-
-
-    const loginButton =
-
-        document.getElementById("loginButton");
-
-
-
-
-
-    // --------------------------------------------------------
-
-    // GET VALUES
-
-    // --------------------------------------------------------
-
-
-
-    const username =
-
-        usernameInput.value.trim();
-
-
-
-    const code =
-
-        codeInput.value;
-
-
-
-
-
-    // --------------------------------------------------------
-
-    // CLEAR MESSAGE
-
-    // --------------------------------------------------------
-
-
+    const username = usernameInput.value.trim();
+    const code = codeInput.value;
 
     errorDiv.innerText = "";
 
-
-
-
-
-    // --------------------------------------------------------
-
-    // VALIDATE INPUT
-
-    // --------------------------------------------------------
-
-
-
     if (!username || !code) {
-
-
-
         errorDiv.style.color = "#ef4444";
-
-
-
-        errorDiv.innerText =
-
-            "Please enter your username and access code.";
-
-
-
+        errorDiv.innerText = "Please enter your username and access code.";
         return;
-
     }
-
-
-
-
-
-    // --------------------------------------------------------
-
-    // DISABLE BUTTON
-
-    // --------------------------------------------------------
-
-
 
     loginButton.disabled = true;
-
-
-
-    loginButton.innerText =
-
-        "Verifying...";
-
-
-
-
-
-    errorDiv.style.color =
-
-        "#FADA7A";
-
-
-
-    errorDiv.innerText =
-
-        "Verifying credentials...";
-
-
-
-
+    loginButton.innerText = "Verifying...";
+    errorDiv.style.color = "#FADA7A";
+    errorDiv.innerText = "Verifying credentials...";
 
     try {
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // CALL SUPABASE FUNCTION
-
-        // ----------------------------------------------------
-
-
-
-        const { data, error } =
-
-            await supabaseClient.rpc(
-
-                "verify_admin_login",
-
-                {
-
-                    p_username: username,
-
-                    p_password: code
-
-                }
-
-            );
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // CONSOLE DEBUG INFORMATION
-
-        // ----------------------------------------------------
-
-
-
-        console.log(
-
-            "LOGIN RESULT:",
-
-            data
-
-        );
-
-
-
-        console.log(
-
-            "LOGIN ERROR:",
-
-            error
-
-        );
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // SUPABASE ERROR
-
-        // ----------------------------------------------------
-
-
+        const { data, error } = await supabaseClient.rpc("verify_admin_login", {
+            p_username: username,
+            p_password: code
+        });
 
         if (error) {
-
-
-
-            console.error(
-
-                "SUPABASE LOGIN ERROR:",
-
-                error
-
-            );
-
-
-
-
-
-            errorDiv.style.color =
-
-                "#ef4444";
-
-
-
-
-
-            errorDiv.innerText =
-
-                "Supabase Error: " +
-
-                error.message;
-
-
-
-
-
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Supabase Error: " + error.message;
             return;
-
         }
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // VALID LOGIN
-
-        // ----------------------------------------------------
-
-
 
         if (data === true) {
+            errorDiv.style.color = "#22c55e";
+            errorDiv.innerText = "Access Granted!";
 
+            // 1. Create audit log entry in Supabase
+            const { data: logData } = await supabaseClient
+                .from("access_logs")
+                .insert({
+                    username: username,
+                    user_role: selectedRole,
+                    login_time: new Date().toISOString()
+                })
+                .select("id")
+                .single();
 
-
-
-
-            errorDiv.style.color =
-
-                "#22c55e";
-
-
-
-
-
-            errorDiv.innerText =
-
-                "Access Granted!";
-
-
-
-
-
-            // ------------------------------------------------
-
-            // STORE LOGIN SESSION
-
-            // ------------------------------------------------
-
-
-
-            localStorage.setItem(
-
-                "access_granted",
-
-                "true"
-
-            );
-
-
-
-
-
-            // ------------------------------------------------
-
-            // STORE CURRENT ADMIN USER
-
-            // ------------------------------------------------
-
-
-
-            localStorage.setItem(
-
-                "current_admin_user",
-
-                username
-
-            );
-
-
-
-
-
-            // ------------------------------------------------
-
-            // REDIRECT TO DASHBOARD
-
-            // ------------------------------------------------
-
-
+            // 2. Save Session Data
+            localStorage.setItem("access_granted", "true");
+            localStorage.setItem("user_role", selectedRole);
+            localStorage.setItem("current_user", username);
+            if (logData && logData.id) {
+                localStorage.setItem("current_log_id", logData.id);
+            }
 
             setTimeout(() => {
-
-
-
-                window.location.href =
-
-                    "index.html";
-
-
-
+                window.location.href = "index.html";
             }, 800);
 
-
-
-
-
         } else {
-
-
-
-
-
-            // ------------------------------------------------
-
-            // INVALID LOGIN
-
-            // ------------------------------------------------
-
-
-
-            errorDiv.style.color =
-
-                "#ef4444";
-
-
-
-
-
-            errorDiv.innerText =
-
-                "Invalid Username or Access Code";
-
-
-
-
-
+            errorDiv.style.color = "#ef4444";
+            errorDiv.innerText = "Invalid Username or Access Code";
             codeInput.value = "";
-
-
-
             codeInput.focus();
-
-
-
         }
 
-
-
-
-
     } catch (err) {
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // UNEXPECTED ERROR
-
-        // ----------------------------------------------------
-
-
-
-        console.error(
-
-            "UNEXPECTED LOGIN ERROR:",
-
-            err
-
-        );
-
-
-
-
-
-        errorDiv.style.color =
-
-            "#ef4444";
-
-
-
-
-
-        errorDiv.innerText =
-
-            "Connection Error: " +
-
-            (
-
-                err.message ||
-
-                "Unknown error"
-
-            );
-
-
-
-
-
+        errorDiv.style.color = "#ef4444";
+        errorDiv.innerText = "Connection Error: " + (err.message || "Unknown error");
     } finally {
-
-
-
-
-
-        // ----------------------------------------------------
-
-        // RESTORE BUTTON
-
-        // ----------------------------------------------------
-
-
-
         loginButton.disabled = false;
-
-
-
-        loginButton.innerText =
-
-            "Enter Dashboard";
-
+        loginButton.innerText = "Enter Dashboard";
     }
-
-
-
 }
-
-
-
-
-
-// ============================================================
-
-// THEME TOGGLE
-
-// ============================================================
-
-
-
-const toggleBtn =
-
-    document.getElementById("modeToggle");
-
-
-
-
-
-// ============================================================
-
-// LOAD SAVED THEME
-
-// ============================================================
-
-
-
-if (
-
-    localStorage.getItem("theme") === "light"
-
-) {
-
-
-
-    document.body.classList.add(
-
-        "light-mode"
-
-    );
-
-
-
-    toggleBtn.textContent =
-
-        "Dark Mode";
-
-}
-
-
-
-
-
-// ============================================================
-
-// TOGGLE LIGHT / DARK MODE
-
-// ============================================================
-
-
 
 function toggleMode() {
-
-
-
-    document.body.classList.toggle(
-
-        "light-mode"
-
-    );
-
-
-
-
-
-    if (
-
-        document.body.classList.contains(
-
-            "light-mode"
-
-        )
-
-    ) {
-
-
-
-        toggleBtn.textContent =
-
-            "Dark Mode";
-
-
-
-
-
-        localStorage.setItem(
-
-            "theme",
-
-            "light"
-
-        );
-
-
-
-
-
+    document.body.classList.toggle("light-mode");
+    const toggleBtn = document.getElementById("modeToggle");
+    if (document.body.classList.contains("light-mode")) {
+        toggleBtn.textContent = "Dark Mode";
+        localStorage.setItem("theme", "light");
     } else {
-
-
-
-
-
-        toggleBtn.textContent =
-
-            "Light Mode";
-
-
-
-
-
-        localStorage.setItem(
-
-            "theme",
-
-            "dark"
-
-        );
-
-
-
+        toggleBtn.textContent = "Light Mode";
+        localStorage.setItem("theme", "dark");
     }
-
-
-
 }
 
-
-
+if (localStorage.getItem("theme") === "light") {
+    document.body.classList.add("light-mode");
+    document.getElementById("modeToggle").textContent = "Dark Mode";
+}
 </script>
-
-
-
 </body>
-
-
-
-</html> 
+</html>
