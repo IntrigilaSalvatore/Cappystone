@@ -14,15 +14,66 @@
 
   <!-- AUTH GUARD SCRIPT: Redirects to login.html if not authenticated -->
 
-  <script>
+ <script>
+// ============================================================
+// ADMIN SESSION HANDLER (GUARD + IDLE TIMEOUT + LOGOUT)
+// ============================================================
+(function () {
+    const SESSION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
-    if (localStorage.getItem("access_granted") !== "true") {
-
-      window.location.href = "login.html";
-
+    function clearSessionAndRedirect() {
+        localStorage.removeItem("access_granted");
+        localStorage.removeItem("current_admin_user");
+        localStorage.removeItem("session_expires_at");
+        window.location.replace("login.html");
     }
 
-  </script>
+    function isSessionValid() {
+        const granted = localStorage.getItem("access_granted") === "true";
+        const expiresAt = Number(localStorage.getItem("session_expires_at") || 0);
+        const user = localStorage.getItem("current_admin_user");
+
+        return granted && Boolean(user) && Date.now() < expiresAt;
+    }
+
+    // 1. Immediate check before dashboard loads
+    if (!isSessionValid()) {
+        clearSessionAndRedirect();
+        return;
+    }
+
+    // 2. Sliding session: extend timer on user activity (throttled to once every 10s)
+    let lastActivityUpdate = 0;
+    function refreshSessionActivity() {
+        const now = Date.now();
+        if (now - lastActivityUpdate < 10000) return;
+
+        if (!isSessionValid()) {
+            clearSessionAndRedirect();
+            return;
+        }
+
+        lastActivityUpdate = now;
+        localStorage.setItem("session_expires_at", String(now + SESSION_DURATION_MS));
+    }
+
+    ["click", "keydown", "mousemove", "touchstart"].forEach(eventType => {
+        window.addEventListener(eventType, refreshSessionActivity, { passive: true });
+    });
+
+    // 3. Background watchdog: check every 15 seconds in case tab is left idle
+    setInterval(() => {
+        if (!isSessionValid()) {
+            clearSessionAndRedirect();
+        }
+    }, 15000);
+
+    // 4. Global logout function for your Logout button
+    window.logoutAdmin = function () {
+        clearSessionAndRedirect();
+    };
+})();
+</script>
 
 
 
