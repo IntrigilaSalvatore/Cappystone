@@ -554,7 +554,7 @@
 
       try {
         const [cmdRes, rfidRes] = await Promise.all([
-          window.supabaseClient.from("ac_commands").select("*").order("id", { ascending: false }),
+          window.supabaseClient.from("ac_commands").select("*").order("issued_at", { ascending: false }),
           window.supabaseClient.from("rfid_events").select("*").order("id", { ascending: false })
         ]);
 
@@ -569,7 +569,7 @@
           command: cmd.command,
           status: cmd.status || 'EXECUTED',
           type: 'WEB OVERRIDE',
-          timestamp: new Date(cmd.issued_at || cmd.executed_at || cmd.created_at)
+          timestamp: new Date(cmd.issued_at || cmd.executed_at)
         }));
 
         const formattedRfid = rfidEvents.map(evt => {
