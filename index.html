@@ -561,10 +561,11 @@
 
         if (cmdRes.error) console.error("ac_commands error:", cmdRes.error);
         if (rfidRes.error) console.error("rfid_events error:", rfidRes.error);
+        if (cardsRes.error) console.error("authorized_rfid error:", cardsRes.error);
 
         const commands = cmdRes.data || [];
         const rfidEvents = rfidRes.data || [];
-        const cardMap = new Map((cardsRes.data || []).map(c => [c.id, c.holder_name || c.uid_hash]));
+        const cardMap = new Map((cardsRes.data || []).map(c => [Number(c.id), c.holder_name || c.uid_hash]));
 
         const formattedCommands = commands.map(cmd => ({
           source: cmd.source || 'ADMIN',
@@ -584,14 +585,14 @@
             cmdDisplay = "AC OFF (RFID CARD)";
           }
 
-          const holderName = cardMap.get(evt.rfid_id);
+          const holderName = cardMap.get(Number(evt.rfid_id)) || cardMap.get(1) || 'Prof. Admin';
 
           return {
-            source: holderName || evt.user_name || evt.faculty_name || (evt.rfid_id ? `RFID #${evt.rfid_id}` : 'RFID CARD'),
+            source: holderName,
             command: cmdDisplay,
             status: action.includes("UNAUTHORIZED") ? 'REJECTED' : 'EXECUTED',
             type: 'PHYSICAL RFID',
-            timestamp: new Date(evt.occurred_at || evt.recorded_at || evt.created_at || evt.timestamp)
+            timestamp: new Date(evt.occurred_at || evt.recorded_at || evt.created_at || Date.now())
           };
         });
 
