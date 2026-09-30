@@ -553,9 +553,10 @@
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching aircon control logs...</td></tr>';
 
       try {
-        const [cmdRes, rfidRes] = await Promise.all([
+        const [cmdRes, rfidRes, cardsRes] = await Promise.all([
           window.supabaseClient.from("ac_commands").select("*").order("issued_at", { ascending: false }),
-          window.supabaseClient.from("rfid_events").select("*").order("id", { ascending: false })
+          window.supabaseClient.from("rfid_events").select("*").order("occurred_at", { ascending: false }),
+          window.supabaseClient.from("authorized_rfid").select("id, holder_name, uid_hash")
         ]);
 
         if (cmdRes.error) console.error("ac_commands error:", cmdRes.error);
@@ -563,31 +564,34 @@
 
         const commands = cmdRes.data || [];
         const rfidEvents = rfidRes.data || [];
+        const cardMap = new Map((cardsRes.data || []).map(c => [c.id, c.holder_name || c.uid_hash]));
 
         const formattedCommands = commands.map(cmd => ({
           source: cmd.source || 'ADMIN',
           command: cmd.command,
           status: cmd.status || 'EXECUTED',
           type: 'WEB OVERRIDE',
-          timestamp: new Date(cmd.issued_at || cmd.executed_at)
+          timestamp: new Date(cmd.issued_at || cmd.executed_at || cmd.created_at)
         }));
 
         const formattedRfid = rfidEvents.map(evt => {
-          const action = String(evt.action || evt.event_type || 'CARD TAP').toUpperCase();
+          const action = String(evt.event_type || evt.action || 'CARD TAP').toUpperCase();
           let cmdDisplay = action;
           
-          if (action.includes("TAP") || action.includes("PRESENT") || action.includes("INSERT") || action.includes("ON")) {
+          if (action.includes("PRESENT") || action.includes("TAP") || action.includes("INSERT") || action.includes("ON")) {
             cmdDisplay = "AC ON (RFID CARD)";
           } else if (action.includes("REMOVE") || action.includes("EXIT") || action.includes("OFF")) {
             cmdDisplay = "AC OFF (RFID CARD)";
           }
 
+          const holderName = cardMap.get(evt.rfid_id);
+
           return {
-            source: evt.user_name || evt.faculty_name || evt.card_uid || (evt.rfid_id ? `RFID #${evt.rfid_id}` : 'RFID CARD'),
+            source: holderName || evt.user_name || evt.faculty_name || (evt.rfid_id ? `RFID #${evt.rfid_id}` : 'RFID CARD'),
             command: cmdDisplay,
-            status: 'EXECUTED',
+            status: action.includes("UNAUTHORIZED") ? 'REJECTED' : 'EXECUTED',
             type: 'PHYSICAL RFID',
-            timestamp: new Date(evt.recorded_at || evt.created_at || evt.timestamp)
+            timestamp: new Date(evt.occurred_at || evt.recorded_at || evt.created_at || evt.timestamp)
           };
         });
 
