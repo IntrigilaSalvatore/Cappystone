@@ -554,9 +554,12 @@
 
       try {
         const [cmdRes, rfidRes] = await Promise.all([
-          window.supabaseClient.from("ac_commands").select("*").order("created_at", { ascending: false }),
-          window.supabaseClient.from("rfid_events").select("*").order("created_at", { ascending: false })
+          window.supabaseClient.from("ac_commands").select("*").order("id", { ascending: false }),
+          window.supabaseClient.from("rfid_events").select("*").order("id", { ascending: false })
         ]);
+
+        if (cmdRes.error) console.error("ac_commands error:", cmdRes.error);
+        if (rfidRes.error) console.error("rfid_events error:", rfidRes.error);
 
         const commands = cmdRes.data || [];
         const rfidEvents = rfidRes.data || [];
@@ -566,25 +569,25 @@
           command: cmd.command,
           status: cmd.status || 'EXECUTED',
           type: 'WEB OVERRIDE',
-          timestamp: new Date(cmd.created_at)
+          timestamp: new Date(cmd.issued_at || cmd.executed_at || cmd.created_at)
         }));
 
         const formattedRfid = rfidEvents.map(evt => {
           const action = String(evt.action || evt.event_type || 'CARD TAP').toUpperCase();
           let cmdDisplay = action;
           
-          if (action.includes("TAP") || action.includes("PRESENT") || action.includes("INSERT")) {
+          if (action.includes("TAP") || action.includes("PRESENT") || action.includes("INSERT") || action.includes("ON")) {
             cmdDisplay = "AC ON (RFID CARD)";
           } else if (action.includes("REMOVE") || action.includes("EXIT") || action.includes("OFF")) {
             cmdDisplay = "AC OFF (RFID CARD)";
           }
 
           return {
-            source: evt.user_name || evt.faculty_name || evt.card_uid || 'RFID CARD',
+            source: evt.user_name || evt.faculty_name || evt.card_uid || (evt.rfid_id ? `RFID #${evt.rfid_id}` : 'RFID CARD'),
             command: cmdDisplay,
             status: 'EXECUTED',
             type: 'PHYSICAL RFID',
-            timestamp: new Date(evt.created_at || evt.timestamp)
+            timestamp: new Date(evt.recorded_at || evt.created_at || evt.timestamp)
           };
         });
 
