@@ -323,6 +323,49 @@
       </form>
     </section>
 
+    <!-- CONTAINER 1.5: REGISTER NEW RFID CARD -->
+    <section class="panel" style="margin-bottom: 20px;">
+      <h2>Register New RFID Card</h2>
+      <p style="font-size: 13px; color: #64748b;">Tap an unregistered card on the scanner, then click "Detect Recent Tap" to capture its UID and assign it to a user.</p>
+      
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button type="button" class="button" onclick="detectRecentRFID()" style="background: #3b82f6; color: white;">📡 Detect Recent Tap</button>
+        <input type="text" id="detectedUID" placeholder="Waiting for card tap..." readonly style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; flex: 1; background: #f8fafc; font-family: monospace; font-weight: bold;">
+      </div>
+
+      <form onsubmit="registerRFIDCard(event)" style="display: grid; gap: 10px; max-width: 500px; margin-top: 15px;">
+        <label class="label">Assign to User:</label>
+        <select id="rfidAssignUser" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;" onchange="toggleCustomRfidName()">
+          <option value="">-- Select Existing Dashboard User --</option>
+          <!-- Options populated dynamically -->
+          <option value="CUSTOM">Create New RFID-Only User (No Login)</option>
+        </select>
+
+        <div id="customRfidNameContainer" style="display: none; flex-direction: column; gap: 5px;">
+          <label class="label">Cardholder Full Name:</label>
+          <input type="text" id="customRfidName" placeholder="E.g., Juan Dela Cruz" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        </div>
+
+        <button type="submit" class="button button-on" style="margin-top: 10px;" id="btnRegisterRfid" disabled>Save & Register RFID</button>
+        <div id="rfidRegisterOutput" class="label" style="margin-top: 5px;"></div>
+      </form>
+      
+      <h3 style="margin-top: 25px; color: #334155; font-size: 14px;">Currently Active RFID Cards</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
+        <thead>
+          <tr style="background: #e2e8f0; color: #334155; text-align: left;">
+            <th style="padding: 8px;">Holder Name</th>
+            <th style="padding: 8px;">UID Hash</th>
+            <th style="padding: 8px;">Status</th>
+            <th style="padding: 8px;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="registeredRfidTableBody">
+          <tr><td colspan="4" style="padding: 10px; text-align: center;">Loading cards...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
     <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
@@ -472,6 +515,7 @@
       }
       if (tab === "users") {
         loadUserAccounts();
+        loadRegisteredRFIDs();
       }
     }
 
@@ -676,6 +720,20 @@
     }
 
     function renderAccountsTable() {
+      const select = document.getElementById("rfidAssignUser");
+      if (select) {
+        select.innerHTML = '<option value="">-- Select Existing Dashboard User --</option>';
+        accountsData.forEach(acc => {
+          const opt = document.createElement("option");
+          opt.value = acc.id;
+          opt.textContent = acc.username;
+          select.appendChild(opt);
+        });
+        const customOpt = document.createElement("option");
+        customOpt.value = "CUSTOM";
+        customOpt.textContent = "Create New RFID-Only User (No Login)";
+        select.appendChild(customOpt);
+      }
       const tbody = document.getElementById("userAccountsTableBody");
       const currentLoggedInUser = localStorage.getItem("current_user");
       const totalPages = Math.ceil(accountsData.length / PAGE_LIMIT) || 1;
@@ -1009,6 +1067,118 @@
           }
         })
         .subscribe();
+    }
+
+    // --- RFID REGISTRATION LOGIC ---
+    async function loadRegisteredRFIDs() {
+      const tbody = document.getElementById("registeredRfidTableBody");
+      const { data, error } = await window.supabaseClient
+        .from("authorized_rfid")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error || !data) {
+        tbody.innerHTML = '<tr><td colspan="4">Error loading cards</td></tr>';
+        return;
+      }
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No cards registered yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(card => `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 8px; font-weight: bold;">${card.holder_name}</td>
+          <td style="padding: 8px; font-family: monospace;">${card.uid_hash}</td>
+          <td style="padding: 8px; color: ${card.active ? '#15803d' : '#b91c1c'}; font-weight: bold;">${card.active ? 'ACTIVE' : 'REVOKED'}</td>
+          <td style="padding: 8px;">
+            <button onclick="deleteRfidCard(${card.id})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function toggleCustomRfidName() {
+      const select = document.getElementById("rfidAssignUser");
+      document.getElementById("customRfidNameContainer").style.display = (select.value === "CUSTOM") ? "flex" : "none";
+    }
+
+    async function detectRecentRFID() {
+      const uidInput = document.getElementById("detectedUID");
+      const btnReg = document.getElementById("btnRegisterRfid");
+      uidInput.value = "Scanning logs for recent tap...";
+      
+      // Pull the most recent unauthorized tap from the ESP32 audit log
+      const { data, error } = await window.supabaseClient
+        .from("rfid_events")
+        .select("card_uid, event_type, occurred_at")
+        .ilike("event_type", "%UNAUTHORIZED%") 
+        .order("occurred_at", { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0 || !data[0].card_uid) {
+        uidInput.value = "No unregistered card detected. Tap card & try again.";
+        btnReg.disabled = true;
+        return;
+      }
+
+      // Ensure the tap happened within the last 5 minutes so we don't register old taps
+      const tapTime = new Date(data[0].occurred_at).getTime();
+      if (Date.now() - tapTime < 5 * 60 * 1000) {
+         uidInput.value = data[0].card_uid;
+         btnReg.disabled = false;
+      } else {
+         uidInput.value = "Tap expired. Tap card again and click detect.";
+         btnReg.disabled = true;
+      }
+    }
+
+    async function registerRFIDCard(e) {
+      e.preventDefault();
+      const uid = document.getElementById("detectedUID").value.trim();
+      const select = document.getElementById("rfidAssignUser");
+      const customName = document.getElementById("customRfidName").value.trim();
+      const output = document.getElementById("rfidRegisterOutput");
+
+      if (!uid || uid.includes("Tap")) return;
+
+      let holderName = "";
+      if (select.value === "CUSTOM") {
+        if (!customName) return (output.style.color = "red", output.innerText = "Enter a name for the RFID-only user.");
+        holderName = customName;
+      } else if (select.value !== "") {
+        holderName = select.options[select.selectedIndex].text;
+      } else {
+        return (output.style.color = "red", output.innerText = "Select a user to assign this card to.");
+      }
+
+      output.innerText = "Registering...";
+      
+      // Defaulting to Room 1 for classroom assignment
+      const { error } = await window.supabaseClient.from("authorized_rfid").insert({
+          room_id: 1, 
+          uid_hash: uid,
+          holder_name: holderName,
+          active: true
+      });
+
+      if (error) {
+        output.style.color = "red";
+        output.innerText = "Error: " + error.message;
+      } else {
+        output.style.color = "green";
+        output.innerText = `Card successfully registered to ${holderName}!`;
+        document.getElementById("detectedUID").value = "";
+        document.getElementById("customRfidName").value = "";
+        document.getElementById("btnRegisterRfid").disabled = true;
+        loadRegisteredRFIDs();
+      }
+    }
+
+    async function deleteRfidCard(id) {
+       if(!confirm("Are you sure you want to delete this RFID card?")) return;
+       await window.supabaseClient.from("authorized_rfid").delete().eq("id", id);
+       loadRegisteredRFIDs();
     }
   </script>
 </body>
