@@ -1108,10 +1108,11 @@
       const btnReg = document.getElementById("btnRegisterRfid");
       uidInput.value = "Scanning logs for recent tap...";
       
+      // Pull the most recent unauthorized tap from the ESP32 audit log
       const { data, error } = await window.supabaseClient
         .from("rfid_events")
         .select("card_uid, event_type, occurred_at")
-        .eq("event_type", "UNAUTHORIZED_TAP") 
+        .ilike("event_type", "%UNAUTHORIZED%") 
         .order("occurred_at", { ascending: false })
         .limit(1);
 
@@ -1120,17 +1121,6 @@
         btnReg.disabled = true;
         return;
       }
-
-      // Ensure the tap happened within the last 3 minutes
-      const tapTime = new Date(data[0].occurred_at).getTime();
-      if (Date.now() - tapTime < 3 * 60 * 1000) {
-         uidInput.value = data[0].card_uid;
-         btnReg.disabled = false;
-      } else {
-         uidInput.value = "Tap expired. Tap card again and click detect.";
-         btnReg.disabled = true;
-      }
-    }
 
       // Ensure the tap happened within the last 5 minutes so we don't register old taps
       const tapTime = new Date(data[0].occurred_at).getTime();
