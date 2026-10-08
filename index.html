@@ -802,7 +802,7 @@
 
       const { data, error } = await window.supabaseClient
         .from("user_accounts")
-        .select("id, username, role, is_active")
+        .select("id, username, role, is_active, email") // <-- ADDED 'email' HERE
         .order("created_at", { ascending: true });
 
       if (error || !data) {
@@ -1298,9 +1298,16 @@
         return (output.style.color = "red", output.innerText = "Select an existing user from the dropdown.");
       }
       
-      const holderName = select.options[select.selectedIndex].text;
-      output.innerText = "Registering replacement card...";
+      // Find the full user details from the loaded accounts data
+      const selectedUserId = Number(select.value);
+      const selectedUser = accountsData.find(acc => acc.id === selectedUserId);
       
+      if (!selectedUser) return;
+      
+      const holderName = selectedUser.username;
+      output.innerText = "Registering replacement card & sending email...";
+      
+      // 1. Save RFID to Supabase
       const { error } = await window.supabaseClient.from("authorized_rfid").insert({
           room_id: 1, 
           uid_hash: uid,
@@ -1310,10 +1317,35 @@
 
       if (error) {
         output.style.color = "red";
-        output.innerText = "Error: " + error.message;
+        output.innerText = "Database Error: " + error.message;
       } else {
-        output.style.color = "green";
-        output.innerText = `Card successfully registered to ${holderName}!`;
+        // 2. Send Update Email
+        if (selectedUser.email) {
+           const emailParams = {
+              to_email: selectedUser.email,
+              to_name: holderName,
+              username: holderName,
+              password: "(Your existing password)", // Mask password for existing users
+              role: selectedUser.role,
+              rfid_status: `A new RFID card (${uid}) has been successfully linked to your account and is ready to use!`
+           };
+
+           try {
+              // Using your exact keys
+              await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams, "1dVR-bW4ux2YCGUK6");
+              output.style.color = "green";
+              output.innerText = `Card successfully linked & email update sent to ${holderName}!`;
+           } catch (err) {
+              output.style.color = "#f59e0b";
+              output.innerText = `Card linked, but email failed to send.`;
+              console.error("EmailJS error:", err);
+           }
+        } else {
+           // Fallback if the user was created before the email feature existed
+           output.style.color = "green";
+           output.innerText = `Card successfully registered to ${holderName} (No email on file).`;
+        }
+
         document.getElementById("detectedUID").value = "";
         document.getElementById("btnRegisterRfid").disabled = true;
         loadRegisteredRFIDs();
