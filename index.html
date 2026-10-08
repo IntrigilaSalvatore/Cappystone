@@ -774,13 +774,25 @@
           const action = String(evt.event_type || evt.action || 'CARD TAP').toUpperCase();
           let cmdDisplay = action;
           
-          if (action.includes("PRESENT") || action.includes("TAP") || action.includes("INSERT") || action.includes("ON")) {
+          // 1. Set the Command Display
+          if (action.includes("UNAUTHORIZED")) {
+            cmdDisplay = "UNAUTHORIZED TAP";
+          } else if (action.includes("PRESENT") || action.includes("TAP") || action.includes("INSERT") || action.includes("ON")) {
             cmdDisplay = "AC ON (RFID CARD)";
           } else if (action.includes("REMOVE") || action.includes("EXIT") || action.includes("OFF")) {
             cmdDisplay = "AC OFF (RFID CARD)";
           }
 
-          const holderName = cardMap.get(Number(evt.rfid_id)) || cardMap.get(1) || 'Prof. Admin';
+          // 2. Set the Source/User Name dynamically
+          let holderName = cardMap.get(Number(evt.rfid_id));
+          
+          if (action.includes("UNAUTHORIZED")) {
+            // Show the UID if available, otherwise just say Unregistered
+            holderName = evt.card_uid ? `Unregistered Card (${evt.card_uid})` : "Unregistered Card";
+          } else if (!holderName) {
+            // Fallback if a registered card was deleted from the database but the log remains
+            holderName = "Deleted/Unknown User";
+          }
 
           return {
             source: holderName,
