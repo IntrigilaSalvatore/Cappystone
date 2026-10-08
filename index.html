@@ -404,31 +404,40 @@
       </table>
     </section>
 
-   <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
+    <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
-      
-      <!-- 🔍 INSERT HTML SEARCH BAR HERE -->
-      <div style="margin-top: 15px; margin-bottom: 10px;">
-        <input 
-          type="text" 
-          id="accountSearchInput" 
-          onkeyup="filterAccounts()" 
-          placeholder="🔍 Search accounts by username or email..." 
-          style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
-        >
-      </div>
-
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <p style="font-size: 13px; color: #64748b; margin: 0;">Administrators can enable, disable, or permanently delete faculty and admin accounts.</p>
         <div style="display: flex; align-items: center; gap: 8px;">
           <label style="font-size: 12px; font-weight: bold; color: #1e40af;">Filter Role:</label>
-          <select id="filterAccountRole" onchange="filterAccounts()" ...>
-             <!-- options -->
+          <select id="filterAccountRole" onchange="filterAccounts()" style="padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; width: auto; font-weight: bold;">
+            <option value="ALL">All Roles</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="FACULTY">FACULTY</option>
           </select>
         </div>
       </div>
-      <!-- Table goes here -->
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+        <thead>
+          <tr style="background: #005A92; color: white; text-align: left;">
+            <th style="padding: 12px 10px; width: 8%;">#</th>
+            <th style="padding: 12px 10px; width: 22%;">Username</th>
+            <th style="padding: 12px 10px; width: 18%;">Role</th>
+            <th style="padding: 12px 10px; width: 17%;">Account Status</th>
+            <th style="padding: 12px 10px; width: 35%;">Access Control Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userAccountsTableBody">
+          <tr><td colspan="5" style="padding: 15px; text-align: center;">Loading accounts...</td></tr>
+        </tbody>
+      </table>
+      <!-- REGISTERED ACCOUNTS PAGINATION -->
+      <div class="pagination-container">
+        <button id="btnPrevAccounts" class="pagination-btn" onclick="changeAccountsPage(-1)">Previous</button>
+        <span id="accountsPageIndicator">Page 1 of 1</span>
+        <button id="btnNextAccounts" class="pagination-btn" onclick="changeAccountsPage(1)">Next</button>
+      </div>
     </section>
 
   </div>
