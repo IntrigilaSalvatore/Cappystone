@@ -14,11 +14,10 @@
 
   <link rel="stylesheet" href="style.css?v=37" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- ADD THIS: EmailJS Library -->
+  <!-- EmailJS Library -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script type="text/javascript">
     (function() {
-      // PASTE YOUR EMAILJS PUBLIC KEY HERE:
       emailjs.init("1dVR-bW4ux2YCGUK6");
     })();
   </script>
@@ -116,7 +115,7 @@
       <span class="status-badge" data-rvj="connection-status">DISCONNECTED</span>
       <span class="status-badge" id="userRoleBadge">ROLE: --</span>
 
-      <!-- FACULTY REPORT ISSUE BUTTON (Hidden by default, shown via JS for Faculty) -->
+      <!-- FACULTY REPORT ISSUE BUTTON -->
       <button 
         id="btnReportIssue" 
         class="status-badge" 
@@ -159,12 +158,20 @@
     </div>
   </header>
 
-  <!-- ADMIN NAVIGATION BAR (Hidden for Faculty) -->
+  <!-- ADMIN NAVIGATION BAR -->
   <nav id="adminNav" style="display: none; background: #005A92; padding: 10px 20px; gap: 15px; border-bottom: 2px solid #FCE883;">
     <button class="button button-on" onclick="switchTab('dashboard')">Dashboard</button>
     <button class="button" onclick="switchTab('logs')">Access & Duty Logs</button>
     <button class="button" onclick="switchTab('users')">Manage Accounts</button>
   </nav>
+
+  <!-- MASTER ROLE FILTER BAR FOR QUICK SORTING -->
+  <div id="masterFilterBar" style="display: none; background: #f1f5f9; padding: 10px 20px; align-items: center; gap: 10px; border-bottom: 1px solid #cbd5e1; font-size: 13px;">
+    <span style="font-weight: bold; color: #1e40af;">⚡ Quick Role Filter (Applies across logs & accounts):</span>
+    <button onclick="filterAllRoleContainers('ALL')" class="pagination-btn" style="background: white;">Show All</button>
+    <button onclick="filterAllRoleContainers('ADMIN')" class="pagination-btn" style="background: #1e40af; color: white;">Admin Only</button>
+    <button onclick="filterAllRoleContainers('FACULTY')" class="pagination-btn" style="background: #059669; color: white;">Faculty Only</button>
+  </div>
 
   <!-- TAB 1: MAIN DASHBOARD -->
   <div id="tabDashboard">
@@ -256,7 +263,17 @@
     <!-- CONTAINER 1: USER LOGIN / LOGOUT DUTY LOGS -->
     <section class="panel" style="margin-bottom: 20px;">
       <h2>User Access & Duty Logs</h2>
-      <p style="font-size: 13px; color: #64748b;">Monitors login and logout timestamps of faculty and administrative personnel.</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Monitors login and logout timestamps of faculty and administrative personnel.</p>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 12px; font-weight: bold; color: #1e40af;">Filter Role:</label>
+          <select id="filterAccessRole" onchange="filterAccessLogs()" style="padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; width: auto; font-weight: bold;">
+            <option value="ALL">All Roles</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="FACULTY">FACULTY</option>
+          </select>
+        </div>
+      </div>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
@@ -282,7 +299,17 @@
     <!-- CONTAINER 2: COMBINED AIRCON POWER & CONTROL LOGS (WEB & RFID) -->
     <section class="panel">
       <h2>Aircon Power & Control History</h2>
-      <p style="font-size: 13px; color: #64748b;">Tracks who turned the aircon ON/OFF via web commands or physical RFID card taps.</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Tracks who turned the aircon ON/OFF via web commands or physical RFID card taps.</p>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 12px; font-weight: bold; color: #1e40af;">Filter Source:</label>
+          <select id="filterAcSourceRole" onchange="filterAcLogs()" style="padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; width: auto; font-weight: bold;">
+            <option value="ALL">All Sources</option>
+            <option value="ADMIN">Admin / Web Override</option>
+            <option value="FACULTY">Faculty / RFID</option>
+          </select>
+        </div>
+      </div>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
@@ -344,7 +371,7 @@
     <!-- CONTAINER 1.5: REGISTER NEW RFID CARD -->
     <section class="panel" style="margin-bottom: 20px;">
       <h2>Register/Update RFID Card</h2>
-      <p style="font-size: 13px; color: #64748b;">Scan an unregistered card, click "Detect", and assign it to an existing user (or use the Create Account form above to do both at once).</p>
+      <p style="font-size: 13px; color: #64748b;">Scan an unregistered card, click "Detect", and assign it to an existing user.</p>
       
       <div style="display: flex; gap: 10px; margin-top: 15px;">
         <button type="button" class="button" onclick="detectRecentRFID()" style="background: #3b82f6; color: white;">📡 Detect Recent Tap</button>
@@ -355,14 +382,12 @@
         <label class="label">Assign to Existing User:</label>
         <select id="rfidAssignUser" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
           <option value="">-- Select Existing Dashboard User --</option>
-          <!-- Options populated dynamically -->
         </select>
 
         <button type="submit" class="button button-on" style="margin-top: 10px;" id="btnRegisterRfid" disabled>Save & Link RFID</button>
         <div id="rfidRegisterOutput" class="label" style="margin-top: 5px;"></div>
       </form>
       
-      <!-- Existing table HTML stays here... -->
       <h3 style="margin-top: 25px; color: #334155; font-size: 14px;">Currently Active RFID Cards</h3>
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
         <thead>
@@ -382,7 +407,17 @@
     <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
-      <p style="font-size: 13px; color: #64748b;">Administrators can enable, disable, or permanently delete faculty and admin accounts.</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Administrators can enable, disable, or permanently delete faculty and admin accounts.</p>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 12px; font-weight: bold; color: #1e40af;">Filter Role:</label>
+          <select id="filterAccountRole" onchange="filterAccounts()" style="padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; width: auto; font-weight: bold;">
+            <option value="ALL">All Roles</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="FACULTY">FACULTY</option>
+          </select>
+        </div>
+      </div>
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
         <thead>
           <tr style="background: #005A92; color: white; text-align: left;">
@@ -505,6 +540,7 @@
     // CONTROL VISIBILITY BASED ON USER ROLE
     if (role === "ADMIN") {
       document.getElementById("adminNav").style.display = "flex";
+      document.getElementById("masterFilterBar").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
       document.getElementById("btnReportIssue").style.display = "none";
       document.getElementById("btnViewMyReports").style.display = "none";
@@ -512,6 +548,7 @@
       subscribeToIssueReports();
     } else {
       document.getElementById("adminNav").style.display = "none";
+      document.getElementById("masterFilterBar").style.display = "none";
       document.getElementById("btnAdminEnvelope").style.display = "none";
       document.getElementById("btnReportIssue").style.display = "inline-block";
       document.getElementById("btnViewMyReports").style.display = "inline-block";
@@ -529,6 +566,27 @@
       if (tab === "users") {
         loadUserAccounts();
         loadRegisteredRFIDs();
+      }
+    }
+
+    // MASTER GLOBAL ROLE FILTER ACROSS ALL LOGS & ACCOUNTS
+    function filterAllRoleContainers(roleValue) {
+      const accessSelect = document.getElementById("filterAccessRole");
+      if (accessSelect) {
+        accessSelect.value = roleValue;
+        filterAccessLogs();
+      }
+
+      const acSelect = document.getElementById("filterAcSourceRole");
+      if (acSelect) {
+        acSelect.value = roleValue;
+        filterAcLogs();
+      }
+
+      const accountSelect = document.getElementById("filterAccountRole");
+      if (accountSelect) {
+        accountSelect.value = roleValue;
+        filterAccounts();
       }
     }
 
@@ -551,7 +609,7 @@
       window.location.href = "login.html";
     }
 
-    // 1. ACCESS LOGS WITH 10-ITEM PAGINATION
+    // 1. ACCESS LOGS WITH FILTER & PAGINATION
     async function loadAccessLogs() {
       const tbody = document.getElementById("logsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching logs...</td></tr>';
@@ -570,24 +628,36 @@
       renderAccessLogsTable();
     }
 
+    function filterAccessLogs() {
+      accessLogsPage = 1;
+      renderAccessLogsTable();
+    }
+
+    function getFilteredAccessLogs() {
+      const roleFilter = document.getElementById("filterAccessRole").value;
+      if (roleFilter === "ALL") return accessLogsData;
+      return accessLogsData.filter(log => String(log.role).toUpperCase() === roleFilter);
+    }
+
     function renderAccessLogsTable() {
       const tbody = document.getElementById("logsTableBody");
-      const totalPages = Math.ceil(accessLogsData.length / PAGE_LIMIT) || 1;
+      const filteredData = getFilteredAccessLogs();
+      const totalPages = Math.ceil(filteredData.length / PAGE_LIMIT) || 1;
       
       if (accessLogsPage > totalPages) accessLogsPage = totalPages;
       if (accessLogsPage < 1) accessLogsPage = 1;
 
       const startIndex = (accessLogsPage - 1) * PAGE_LIMIT;
-      const pageSlice = accessLogsData.slice(startIndex, startIndex + PAGE_LIMIT);
+      const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No access logs recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No access logs found for this filter.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((log, idx) => `
           <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
             <td style="padding: 10px; font-weight: bold; color: #64748b; vertical-align: middle;">${startIndex + idx + 1}</td>
             <td style="padding: 10px; vertical-align: middle;">${log.username}</td>
-            <td style="padding: 10px; vertical-align: middle;">${log.role}</td>
+            <td style="padding: 10px; vertical-align: middle;"><span style="font-weight:bold; color:${log.role === 'ADMIN' ? '#1e40af' : '#059669'};">${log.role}</span></td>
             <td style="padding: 10px; font-weight: bold; vertical-align: middle; color: ${log.action === 'LOGIN' ? '#22c55e' : '#ef4444'};">${log.action}</td>
             <td style="padding: 10px; vertical-align: middle;">${new Date(log.logged_at).toLocaleString("en-PH")}</td>
           </tr>
@@ -604,7 +674,7 @@
       renderAccessLogsTable();
     }
 
-    // 2. AIRCON CONTROL LOGS WITH 10-ITEM PAGINATION
+    // 2. AIRCON CONTROL LOGS WITH FILTER & PAGINATION
     async function loadACControlLogs() {
       const tbody = document.getElementById("acLogsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching aircon control logs...</td></tr>';
@@ -615,10 +685,6 @@
           window.supabaseClient.from("rfid_events").select("*").order("occurred_at", { ascending: false }),
           window.supabaseClient.from("authorized_rfid").select("id, holder_name, uid_hash")
         ]);
-
-        if (cmdRes.error) console.error("ac_commands error:", cmdRes.error);
-        if (rfidRes.error) console.error("rfid_events error:", rfidRes.error);
-        if (cardsRes.error) console.error("authorized_rfid error:", cardsRes.error);
 
         const commands = cmdRes.data || [];
         const rfidEvents = rfidRes.data || [];
@@ -664,18 +730,34 @@
       }
     }
 
+    function filterAcLogs() {
+      acLogsPage = 1;
+      renderAcLogsTable();
+    }
+
+    function getFilteredAcLogs() {
+      const sourceFilter = document.getElementById("filterAcSourceRole").value;
+      if (sourceFilter === "ALL") return acLogsData;
+      if (sourceFilter === "ADMIN") {
+        return acLogsData.filter(log => log.type === "WEB OVERRIDE" || log.source.toUpperCase().includes("ADMIN"));
+      } else {
+        return acLogsData.filter(log => log.type === "PHYSICAL RFID" || !log.source.toUpperCase().includes("ADMIN"));
+      }
+    }
+
     function renderAcLogsTable() {
       const tbody = document.getElementById("acLogsTableBody");
-      const totalPages = Math.ceil(acLogsData.length / PAGE_LIMIT) || 1;
+      const filteredData = getFilteredAcLogs();
+      const totalPages = Math.ceil(filteredData.length / PAGE_LIMIT) || 1;
 
       if (acLogsPage > totalPages) acLogsPage = totalPages;
       if (acLogsPage < 1) acLogsPage = 1;
 
       const startIndex = (acLogsPage - 1) * PAGE_LIMIT;
-      const pageSlice = acLogsData.slice(startIndex, startIndex + PAGE_LIMIT);
+      const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity logged.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity found for this filter.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((log, idx) => {
           let actionBadgeColor = "#1e40af"; 
@@ -713,7 +795,7 @@
       renderAcLogsTable();
     }
 
-    // 3. REGISTERED ACCOUNTS WITH 10-ITEM PAGINATION
+    // 3. REGISTERED ACCOUNTS WITH FILTER & PAGINATION
     async function loadUserAccounts() {
       const tbody = document.getElementById("userAccountsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching accounts...</td></tr>';
@@ -732,6 +814,17 @@
       renderAccountsTable();
     }
 
+    function filterAccounts() {
+      accountsPage = 1;
+      renderAccountsTable();
+    }
+
+    function getFilteredAccounts() {
+      const roleFilter = document.getElementById("filterAccountRole").value;
+      if (roleFilter === "ALL") return accountsData;
+      return accountsData.filter(acc => String(acc.role).toUpperCase() === roleFilter);
+    }
+
     function renderAccountsTable() {
       const select = document.getElementById("rfidAssignUser");
       if (select) {
@@ -742,21 +835,21 @@
           opt.textContent = acc.username;
           select.appendChild(opt);
         });
-        // We removed the CUSTOM option here so RFIDs must belong to an account
       }
       
       const tbody = document.getElementById("userAccountsTableBody");
       const currentLoggedInUser = localStorage.getItem("current_user");
-      const totalPages = Math.ceil(accountsData.length / PAGE_LIMIT) || 1;
+      const filteredData = getFilteredAccounts();
+      const totalPages = Math.ceil(filteredData.length / PAGE_LIMIT) || 1;
 
       if (accountsPage > totalPages) accountsPage = totalPages;
       if (accountsPage < 1) accountsPage = 1;
 
       const startIndex = (accountsPage - 1) * PAGE_LIMIT;
-      const pageSlice = accountsData.slice(startIndex, startIndex + PAGE_LIMIT);
+      const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No accounts registered.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No accounts found for this role filter.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((account, idx) => {
           const isActive = account.is_active !== false;
@@ -768,7 +861,7 @@
               <td style="padding: 10px; font-weight: bold; vertical-align: middle;">
                 ${account.username} ${isSelf ? '<span style="font-size:11px; color:#64748b; font-weight: normal;">(You)</span>' : ''}
               </td>
-              <td style="padding: 10px; vertical-align: middle; color: #334155;">${account.role}</td>
+              <td style="padding: 10px; vertical-align: middle;"><span style="font-weight:bold; color:${account.role === 'ADMIN' ? '#1e40af' : '#059669'};">${account.role}</span></td>
               <td style="padding: 10px; vertical-align: middle;">
                 <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; background: ${isActive ? '#dcfce7' : '#fee2e2'}; color: ${isActive ? '#15803d' : '#b91c1c'};">
                   ${isActive ? 'ACTIVE' : 'DISABLED'}
@@ -858,7 +951,6 @@
 
       output.innerText = "Creating account & linking records...";
 
-      // 1. Save User to Supabase
       const { error: userErr } = await window.supabaseClient.from("user_accounts").insert({
         username: u,
         password: p,
@@ -871,7 +963,6 @@
         return (output.style.color = "red", output.innerText = "Database Error: " + userErr.message);
       }
 
-      // 2. Save RFID if checked
       let rfidMessage = "No RFID attached.";
       if (rfidToAssign) {
          const { error: rfidErr } = await window.supabaseClient.from("authorized_rfid").insert({
@@ -888,7 +979,6 @@
          }
       }
 
-      // 3. Send Email via EmailJS
       output.innerText = "Account saved. Sending confirmation email...";
       
       const emailParams = {
@@ -901,22 +991,16 @@
       };
 
      try {
-         // We now pass the Public Key ("1dVR-bW4ux2YCGUK6") directly into the send command
-         // so it is mathematically impossible for EmailJS to lose it!
          await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams, "1dVR-bW4ux2YCGUK6");
-         
          output.style.color = "green";
          output.innerText = `Account '${u}' created & email sent! ${rfidMessage}`;
-      } catch (err) {
+     } catch (err) {
          output.style.color = "#f59e0b";
          output.innerText = `Account created, but email failed to send. ${rfidMessage}`;
          console.error("EmailJS error:", err);
-         
-         // This will pop up the EXACT reason EmailJS rejected it!
          alert("EmailJS Rejected the send. Reason: " + (err.text || err.message || JSON.stringify(err)));
-      }
+     }
 
-      // Reset form
       document.getElementById("newEmail").value = "";
       document.getElementById("newUsername").value = "";
       document.getElementById("newPassword").value = "";
@@ -1180,7 +1264,6 @@
         .order("occurred_at", { ascending: false })
         .limit(1);
 
-      // If Supabase throws an error (like a missing column), show it!
       if (error) {
         uidInput.value = "DB Error: " + error.message;
         btnReg.disabled = true;
@@ -1193,7 +1276,6 @@
         return;
       }
 
-      // Check if tap happened within the last 10 minutes
       const tapTime = new Date(data[0].occurred_at).getTime();
       if (Date.now() - tapTime < 10 * 60 * 1000) {
          uidInput.value = data[0].card_uid;
