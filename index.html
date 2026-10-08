@@ -900,9 +900,10 @@
          rfid_status: rfidToAssign ? "Your new RFID card is activated and ready to use!" : "No RFID card is assigned to your account yet."
       };
 
-      try {
-         // !!! IMPORTANT: Replace with your exact Service ID and Template ID from EmailJS !!!
-         await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams);
+     try {
+         // We now pass the Public Key ("1dVR-bW4ux2YCGUK6") directly into the send command
+         // so it is mathematically impossible for EmailJS to lose it!
+         await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams, "1dVR-bW4ux2YCGUK6");
          
          output.style.color = "green";
          output.innerText = `Account '${u}' created & email sent! ${rfidMessage}`;
@@ -910,6 +911,9 @@
          output.style.color = "#f59e0b";
          output.innerText = `Account created, but email failed to send. ${rfidMessage}`;
          console.error("EmailJS error:", err);
+         
+         // This will pop up the EXACT reason EmailJS rejected it!
+         alert("EmailJS Rejected the send. Reason: " + (err.text || err.message || JSON.stringify(err)));
       }
 
       // Reset form
