@@ -255,6 +255,18 @@
     <!-- CONTAINER 1: USER LOGIN / LOGOUT DUTY LOGS -->
     <section class="panel" style="margin-bottom: 20px;">
       <h2>User Access & Duty Logs</h2>
+      
+      <!-- SEARCH BAR FOR ACCESS LOGS -->
+      <div style="margin-top: 15px; margin-bottom: 10px;">
+        <input 
+          type="text" 
+          id="accessLogSearchInput" 
+          onkeyup="filterAccessLogs()" 
+          placeholder="🔍 Search access logs by username or action..." 
+          style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
+        >
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <p style="font-size: 13px; color: #64748b; margin: 0;">Monitors login and logout timestamps of faculty and administrative personnel.</p>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -291,6 +303,18 @@
     <!-- CONTAINER 2: COMBINED AIRCON POWER & CONTROL LOGS (WEB & RFID) -->
     <section class="panel">
       <h2>Aircon Power & Control History</h2>
+      
+      <!-- SEARCH BAR FOR AC CONTROL LOGS -->
+      <div style="margin-top: 15px; margin-bottom: 10px;">
+        <input 
+          type="text" 
+          id="acLogSearchInput" 
+          onkeyup="filterAcLogs()" 
+          placeholder="🔍 Search aircon history by source or command..." 
+          style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
+        >
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <p style="font-size: 13px; color: #64748b; margin: 0;">Tracks who turned the aircon ON/OFF via web commands or physical RFID card taps.</p>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -400,7 +424,7 @@
     <section class="panel">
       <h2>Registered System Accounts</h2>
       
-      <!-- CASE-INSENSITIVE SEARCH BAR -->
+      <!-- CASE-INSENSITIVE SEARCH BAR FOR ACCOUNTS -->
       <div style="margin-top: 15px; margin-bottom: 10px;">
         <input 
           type="text" 
@@ -590,7 +614,7 @@
       window.location.href = "login.html";
     }
 
-    // 1. ACCESS LOGS WITH FILTER & PAGINATION
+    // 1. ACCESS LOGS WITH CASE-INSENSITIVE SEARCH, FILTER & PAGINATION
     async function loadAccessLogs() {
       const tbody = document.getElementById("logsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching logs...</td></tr>';
@@ -616,8 +640,17 @@
 
     function getFilteredAccessLogs() {
       const roleFilter = document.getElementById("filterAccessRole").value;
-      if (roleFilter === "ALL") return accessLogsData;
-      return accessLogsData.filter(log => String(log.role).toUpperCase() === roleFilter);
+      const searchQuery = document.getElementById("accessLogSearchInput") ? document.getElementById("accessLogSearchInput").value.trim().toLowerCase() : "";
+
+      return accessLogsData.filter(log => {
+        const matchesRole = (roleFilter === "ALL") || (String(log.role).toUpperCase() === roleFilter);
+        
+        const usernameMatch = log.username ? log.username.toLowerCase().includes(searchQuery) : false;
+        const actionMatch = log.action ? log.action.toLowerCase().includes(searchQuery) : false;
+        const matchesSearch = searchQuery === "" || usernameMatch || actionMatch;
+
+        return matchesRole && matchesSearch;
+      });
     }
 
     function renderAccessLogsTable() {
@@ -632,7 +665,7 @@
       const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No access logs found for this filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No access logs found matching your filter or search query.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((log, idx) => `
           <tr style="border-bottom: 1px solid #e2e8f0; height: 45px;">
@@ -655,7 +688,7 @@
       renderAccessLogsTable();
     }
 
-    // 2. AIRCON CONTROL LOGS WITH FILTER & PAGINATION
+    // 2. AIRCON CONTROL LOGS WITH CASE-INSENSITIVE SEARCH, FILTER & PAGINATION
     async function loadACControlLogs() {
       const tbody = document.getElementById("acLogsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching aircon control logs...</td></tr>';
@@ -718,12 +751,23 @@
 
     function getFilteredAcLogs() {
       const sourceFilter = document.getElementById("filterAcSourceRole").value;
-      if (sourceFilter === "ALL") return acLogsData;
-      if (sourceFilter === "ADMIN") {
-        return acLogsData.filter(log => log.type === "WEB OVERRIDE" || log.source.toUpperCase().includes("ADMIN"));
-      } else {
-        return acLogsData.filter(log => log.type === "PHYSICAL RFID" || !log.source.toUpperCase().includes("ADMIN"));
-      }
+      const searchQuery = document.getElementById("acLogSearchInput") ? document.getElementById("acLogSearchInput").value.trim().toLowerCase() : "";
+
+      return acLogsData.filter(log => {
+        let matchesSourceFilter = true;
+        if (sourceFilter === "ADMIN") {
+          matchesSourceFilter = (log.type === "WEB OVERRIDE" || log.source.toUpperCase().includes("ADMIN"));
+        } else if (sourceFilter === "FACULTY") {
+          matchesSourceFilter = (log.type === "PHYSICAL RFID" || !log.source.toUpperCase().includes("ADMIN"));
+        }
+
+        const sourceMatch = log.source ? log.source.toLowerCase().includes(searchQuery) : false;
+        const commandMatch = log.command ? log.command.toLowerCase().includes(searchQuery) : false;
+        const typeMatch = log.type ? log.type.toLowerCase().includes(searchQuery) : false;
+        const matchesSearch = searchQuery === "" || sourceMatch || commandMatch || typeMatch;
+
+        return matchesSourceFilter && matchesSearch;
+      });
     }
 
     function renderAcLogsTable() {
@@ -738,7 +782,7 @@
       const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity found for this filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No recent aircon activity found matching your filter or search query.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((log, idx) => {
           let actionBadgeColor = "#1e40af"; 
@@ -776,14 +820,14 @@
       renderAcLogsTable();
     }
 
-    // 3. REGISTERED ACCOUNTS WITH FILTER & PAGINATION
+    // 3. REGISTERED ACCOUNTS WITH CASE-INSENSITIVE SEARCH, FILTER & PAGINATION
     async function loadUserAccounts() {
       const tbody = document.getElementById("userAccountsTableBody");
       tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center;">Fetching accounts...</td></tr>';
 
       const { data, error } = await window.supabaseClient
         .from("user_accounts")
-        .select("id, username, role, is_active, email") // <-- ADDED 'email' HERE
+        .select("id, username, role, is_active, email")
         .order("created_at", { ascending: true });
 
       if (error || !data) {
@@ -839,7 +883,7 @@
       const pageSlice = filteredData.slice(startIndex, startIndex + PAGE_LIMIT);
 
       if (pageSlice.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No accounts found for this role filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No accounts found matching your filter or search query.</td></tr>';
       } else {
         tbody.innerHTML = pageSlice.map((account, idx) => {
           const isActive = account.is_active !== false;
@@ -1288,7 +1332,6 @@
         return (output.style.color = "red", output.innerText = "Select an existing user from the dropdown.");
       }
       
-      // Find the full user details from the loaded accounts data
       const selectedUserId = Number(select.value);
       const selectedUser = accountsData.find(acc => acc.id === selectedUserId);
       
@@ -1297,7 +1340,6 @@
       const holderName = selectedUser.username;
       output.innerText = "Registering replacement card & sending email...";
       
-      // 1. Save RFID to Supabase
       const { error } = await window.supabaseClient.from("authorized_rfid").insert({
           room_id: 1, 
           uid_hash: uid,
@@ -1309,19 +1351,17 @@
         output.style.color = "red";
         output.innerText = "Database Error: " + error.message;
       } else {
-        // 2. Send Update Email
         if (selectedUser.email) {
            const emailParams = {
               to_email: selectedUser.email,
               to_name: holderName,
               username: holderName,
-              password: "(Your existing password)", // Mask password for existing users
+              password: "(Your existing password)",
               role: selectedUser.role,
               rfid_status: `A new RFID card (${uid}) has been successfully linked to your account and is ready to use!`
            };
 
            try {
-              // Using your exact keys
               await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams, "1dVR-bW4ux2YCGUK6");
               output.style.color = "green";
               output.innerText = `Card successfully linked & email update sent to ${holderName}!`;
@@ -1331,7 +1371,6 @@
               console.error("EmailJS error:", err);
            }
         } else {
-           // Fallback if the user was created before the email feature existed
            output.style.color = "green";
            output.innerText = `Card successfully registered to ${holderName} (No email on file).`;
         }
