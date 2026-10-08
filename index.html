@@ -14,6 +14,16 @@
 
   <link rel="stylesheet" href="style.css?v=37" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ADD THIS: EmailJS Library -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function() {
+      // PASTE YOUR EMAILJS PUBLIC KEY HERE:
+      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+    })();
+  </script>
   
   <style>
     /* MODAL STYLES FOR FACULTY REPORT & ADMIN ENVELOPE */
@@ -302,10 +312,13 @@
   <!-- TAB 3: ACCOUNT MANAGEMENT, DISABLE & DELETE ACCESS (ADMIN ONLY) -->
   <div id="tabUsers" style="display: none; padding: 20px; width: min(1400px, calc(100% - 20px)); margin: auto;">
     
-    <!-- CONTAINER 1: CREATE NEW ACCOUNT -->
+    <!-- CONTAINER 1: CREATE NEW ACCOUNT & SEND EMAIL -->
     <section class="panel" style="margin-bottom: 20px;">
       <h2>Create New Account (Admin / Faculty)</h2>
       <form onsubmit="createNewUser(event)" style="display: grid; gap: 10px; max-width: 400px; margin-top: 15px;">
+        <label class="label">Email Address (For Confirmation):</label>
+        <input type="email" id="newEmail" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+
         <label class="label">New Username:</label>
         <input type="text" id="newUsername" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
 
@@ -318,15 +331,22 @@
           <option value="ADMIN">Administrator</option>
         </select>
 
-        <button type="submit" class="button button-on" style="margin-top: 10px;">Create Account</button>
+        <div style="margin-top: 5px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px;">
+          <label style="font-size: 13px; font-weight: bold; color: #334155; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="linkScannedRfid" style="width: 16px; height: 16px;">
+            Link currently scanned RFID to this new account
+          </label>
+        </div>
+
+        <button type="submit" class="button button-on" style="margin-top: 10px;">Create Account & Send Email</button>
         <div id="userCreateOutput" class="label" style="margin-top: 5px;"></div>
       </form>
     </section>
 
     <!-- CONTAINER 1.5: REGISTER NEW RFID CARD -->
     <section class="panel" style="margin-bottom: 20px;">
-      <h2>Register New RFID Card</h2>
-      <p style="font-size: 13px; color: #64748b;">Tap an unregistered card on the scanner, then click "Detect Recent Tap" to capture its UID and assign it to a user.</p>
+      <h2>Register/Update RFID Card</h2>
+      <p style="font-size: 13px; color: #64748b;">Scan an unregistered card, click "Detect", and assign it to an existing user (or use the Create Account form above to do both at once).</p>
       
       <div style="display: flex; gap: 10px; margin-top: 15px;">
         <button type="button" class="button" onclick="detectRecentRFID()" style="background: #3b82f6; color: white;">📡 Detect Recent Tap</button>
@@ -334,22 +354,17 @@
       </div>
 
       <form onsubmit="registerRFIDCard(event)" style="display: grid; gap: 10px; max-width: 500px; margin-top: 15px;">
-        <label class="label">Assign to User:</label>
-        <select id="rfidAssignUser" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;" onchange="toggleCustomRfidName()">
+        <label class="label">Assign to Existing User:</label>
+        <select id="rfidAssignUser" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
           <option value="">-- Select Existing Dashboard User --</option>
           <!-- Options populated dynamically -->
-          <option value="CUSTOM">Create New RFID-Only User (No Login)</option>
         </select>
 
-        <div id="customRfidNameContainer" style="display: none; flex-direction: column; gap: 5px;">
-          <label class="label">Cardholder Full Name:</label>
-          <input type="text" id="customRfidName" placeholder="E.g., Juan Dela Cruz" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-        </div>
-
-        <button type="submit" class="button button-on" style="margin-top: 10px;" id="btnRegisterRfid" disabled>Save & Register RFID</button>
+        <button type="submit" class="button button-on" style="margin-top: 10px;" id="btnRegisterRfid" disabled>Save & Link RFID</button>
         <div id="rfidRegisterOutput" class="label" style="margin-top: 5px;"></div>
       </form>
       
+      <!-- Existing table HTML stays here... -->
       <h3 style="margin-top: 25px; color: #334155; font-size: 14px;">Currently Active RFID Cards</h3>
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
         <thead>
@@ -729,11 +744,9 @@
           opt.textContent = acc.username;
           select.appendChild(opt);
         });
-        const customOpt = document.createElement("option");
-        customOpt.value = "CUSTOM";
-        customOpt.textContent = "Create New RFID-Only User (No Login)";
-        select.appendChild(customOpt);
+        // We removed the CUSTOM option here so RFIDs must belong to an account
       }
+      
       const tbody = document.getElementById("userAccountsTableBody");
       const currentLoggedInUser = localStorage.getItem("current_user");
       const totalPages = Math.ceil(accountsData.length / PAGE_LIMIT) || 1;
@@ -829,32 +842,87 @@
 
     async function createNewUser(e) {
       e.preventDefault();
+      const email = document.getElementById("newEmail").value.trim();
       const u = document.getElementById("newUsername").value.trim();
       const p = document.getElementById("newPassword").value;
       const r = document.getElementById("newRole").value;
+      const linkRfid = document.getElementById("linkScannedRfid").checked;
+      const scannedUid = document.getElementById("detectedUID").value.trim();
       const output = document.getElementById("userCreateOutput");
 
-      output.innerText = "Creating account...";
+      let rfidToAssign = null;
+      if (linkRfid) {
+         if (!scannedUid || scannedUid.includes("Tap") || scannedUid.includes("Error")) {
+            return (output.style.color = "red", output.innerText = "Error: No valid RFID scanned to link. Please detect a card first.");
+         }
+         rfidToAssign = scannedUid;
+      }
 
-      const { error } = await window.supabaseClient.from("user_accounts").insert({
+      output.innerText = "Creating account & linking records...";
+
+      // 1. Save User to Supabase
+      const { error: userErr } = await window.supabaseClient.from("user_accounts").insert({
         username: u,
         password: p,
         role: r,
+        email: email,
         is_active: true
       });
 
-      if (error) {
-        output.style.color = "red";
-        output.innerText = "Error: " + error.message;
-      } else {
-        output.style.color = "green";
-        output.innerText = `Account '${u}' (${r}) created successfully!`;
-        document.getElementById("newUsername").value = "";
-        document.getElementById("newPassword").value = "";
-        if (document.getElementById("tabUsers").style.display === "block") {
-          loadUserAccounts();
-        }
+      if (userErr) {
+        return (output.style.color = "red", output.innerText = "Database Error: " + userErr.message);
       }
+
+      // 2. Save RFID if checked
+      let rfidMessage = "No RFID attached.";
+      if (rfidToAssign) {
+         const { error: rfidErr } = await window.supabaseClient.from("authorized_rfid").insert({
+             room_id: 1, 
+             uid_hash: rfidToAssign,
+             holder_name: u,
+             active: true
+         });
+         if (rfidErr) {
+            rfidMessage = "Account created, but RFID failed: " + rfidErr.message;
+         } else {
+            rfidMessage = `RFID (${rfidToAssign}) successfully linked!`;
+            document.getElementById("detectedUID").value = "";
+         }
+      }
+
+      // 3. Send Email via EmailJS
+      output.innerText = "Account saved. Sending confirmation email...";
+      
+      const emailParams = {
+         to_email: email,
+         to_name: u,
+         username: u,
+         password: p,
+         role: r,
+         rfid_status: rfidToAssign ? "Your new RFID card is activated and ready to use!" : "No RFID card is assigned to your account yet."
+      };
+
+      try {
+         // !!! IMPORTANT: Replace with your exact Service ID and Template ID from EmailJS !!!
+         await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", emailParams);
+         
+         output.style.color = "green";
+         output.innerText = `Account '${u}' created & email sent! ${rfidMessage}`;
+      } catch (err) {
+         output.style.color = "#f59e0b";
+         output.innerText = `Account created, but email failed to send. ${rfidMessage}`;
+         console.error("EmailJS error:", err);
+      }
+
+      // Reset form
+      document.getElementById("newEmail").value = "";
+      document.getElementById("newUsername").value = "";
+      document.getElementById("newPassword").value = "";
+      document.getElementById("linkScannedRfid").checked = false;
+      document.getElementById("btnRegisterRfid").disabled = true;
+      
+      loadUserAccounts();
+      if (rfidToAssign) loadRegisteredRFIDs();
     }
 
     // 4. FACULTY ISSUE REPORTING LOGIC
@@ -1098,11 +1166,6 @@
       `).join("");
     }
 
-    function toggleCustomRfidName() {
-      const select = document.getElementById("rfidAssignUser");
-      document.getElementById("customRfidNameContainer").style.display = (select.value === "CUSTOM") ? "flex" : "none";
-    }
-
     async function detectRecentRFID() {
       const uidInput = document.getElementById("detectedUID");
       const btnReg = document.getElementById("btnRegisterRfid");
@@ -1143,24 +1206,17 @@
       e.preventDefault();
       const uid = document.getElementById("detectedUID").value.trim();
       const select = document.getElementById("rfidAssignUser");
-      const customName = document.getElementById("customRfidName").value.trim();
       const output = document.getElementById("rfidRegisterOutput");
 
       if (!uid || uid.includes("Tap")) return;
 
-      let holderName = "";
-      if (select.value === "CUSTOM") {
-        if (!customName) return (output.style.color = "red", output.innerText = "Enter a name for the RFID-only user.");
-        holderName = customName;
-      } else if (select.value !== "") {
-        holderName = select.options[select.selectedIndex].text;
-      } else {
-        return (output.style.color = "red", output.innerText = "Select a user to assign this card to.");
+      if (select.value === "") {
+        return (output.style.color = "red", output.innerText = "Select an existing user from the dropdown.");
       }
-
-      output.innerText = "Registering...";
       
-      // Defaulting to Room 1 for classroom assignment
+      const holderName = select.options[select.selectedIndex].text;
+      output.innerText = "Registering replacement card...";
+      
       const { error } = await window.supabaseClient.from("authorized_rfid").insert({
           room_id: 1, 
           uid_hash: uid,
@@ -1175,7 +1231,6 @@
         output.style.color = "green";
         output.innerText = `Card successfully registered to ${holderName}!`;
         document.getElementById("detectedUID").value = "";
-        document.getElementById("customRfidName").value = "";
         document.getElementById("btnRegisterRfid").disabled = true;
         loadRegisteredRFIDs();
       }
