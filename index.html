@@ -1183,8 +1183,17 @@
 
     async function deleteRfidCard(id) {
        if(!confirm("Are you sure you want to delete this RFID card?")) return;
-       await window.supabaseClient.from("authorized_rfid").delete().eq("id", id);
-       loadRegisteredRFIDs();
+       
+       const { error } = await window.supabaseClient
+         .from("authorized_rfid")
+         .delete()
+         .eq("id", id);
+         
+       if (error) {
+         alert("Database Error: " + error.message);
+       } else {
+         loadRegisteredRFIDs();
+       }
     }
   </script>
 </body>
