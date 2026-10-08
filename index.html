@@ -165,14 +165,6 @@
     <button class="button" onclick="switchTab('users')">Manage Accounts</button>
   </nav>
 
-  <!-- MASTER ROLE FILTER BAR FOR QUICK SORTING -->
-  <div id="masterFilterBar" style="display: none; background: #f1f5f9; padding: 10px 20px; align-items: center; gap: 10px; border-bottom: 1px solid #cbd5e1; font-size: 13px;">
-    <span style="font-weight: bold; color: #1e40af;">⚡ Quick Role Filter (Applies across logs & accounts):</span>
-    <button onclick="filterAllRoleContainers('ALL')" class="pagination-btn" style="background: white;">Show All</button>
-    <button onclick="filterAllRoleContainers('ADMIN')" class="pagination-btn" style="background: #1e40af; color: white;">Admin Only</button>
-    <button onclick="filterAllRoleContainers('FACULTY')" class="pagination-btn" style="background: #059669; color: white;">Faculty Only</button>
-  </div>
-
   <!-- TAB 1: MAIN DASHBOARD -->
   <div id="tabDashboard">
     <main class="dashboard">
@@ -540,7 +532,6 @@
     // CONTROL VISIBILITY BASED ON USER ROLE
     if (role === "ADMIN") {
       document.getElementById("adminNav").style.display = "flex";
-      document.getElementById("masterFilterBar").style.display = "flex";
       document.getElementById("btnAdminEnvelope").style.display = "flex";
       document.getElementById("btnReportIssue").style.display = "none";
       document.getElementById("btnViewMyReports").style.display = "none";
@@ -548,7 +539,6 @@
       subscribeToIssueReports();
     } else {
       document.getElementById("adminNav").style.display = "none";
-      document.getElementById("masterFilterBar").style.display = "none";
       document.getElementById("btnAdminEnvelope").style.display = "none";
       document.getElementById("btnReportIssue").style.display = "inline-block";
       document.getElementById("btnViewMyReports").style.display = "inline-block";
@@ -566,27 +556,6 @@
       if (tab === "users") {
         loadUserAccounts();
         loadRegisteredRFIDs();
-      }
-    }
-
-    // MASTER GLOBAL ROLE FILTER ACROSS ALL LOGS & ACCOUNTS
-    function filterAllRoleContainers(roleValue) {
-      const accessSelect = document.getElementById("filterAccessRole");
-      if (accessSelect) {
-        accessSelect.value = roleValue;
-        filterAccessLogs();
-      }
-
-      const acSelect = document.getElementById("filterAcSourceRole");
-      if (acSelect) {
-        acSelect.value = roleValue;
-        filterAcLogs();
-      }
-
-      const accountSelect = document.getElementById("filterAccountRole");
-      if (accountSelect) {
-        accountSelect.value = roleValue;
-        filterAccounts();
       }
     }
 
@@ -802,7 +771,7 @@
 
       const { data, error } = await window.supabaseClient
         .from("user_accounts")
-        .select("id, username, role, is_active, email") // <-- ADDED 'email' HERE
+        .select("id, username, role, is_active, email")
         .order("created_at", { ascending: true });
 
       if (error || !data) {
@@ -1298,7 +1267,6 @@
         return (output.style.color = "red", output.innerText = "Select an existing user from the dropdown.");
       }
       
-      // Find the full user details from the loaded accounts data
       const selectedUserId = Number(select.value);
       const selectedUser = accountsData.find(acc => acc.id === selectedUserId);
       
@@ -1307,7 +1275,6 @@
       const holderName = selectedUser.username;
       output.innerText = "Registering replacement card & sending email...";
       
-      // 1. Save RFID to Supabase
       const { error } = await window.supabaseClient.from("authorized_rfid").insert({
           room_id: 1, 
           uid_hash: uid,
@@ -1319,19 +1286,17 @@
         output.style.color = "red";
         output.innerText = "Database Error: " + error.message;
       } else {
-        // 2. Send Update Email
         if (selectedUser.email) {
            const emailParams = {
               to_email: selectedUser.email,
               to_name: holderName,
               username: holderName,
-              password: "(Your existing password)", // Mask password for existing users
+              password: "(Your existing password)",
               role: selectedUser.role,
               rfid_status: `A new RFID card (${uid}) has been successfully linked to your account and is ready to use!`
            };
 
            try {
-              // Using your exact keys
               await emailjs.send("service_0eqbi1g", "template_esrskby", emailParams, "1dVR-bW4ux2YCGUK6");
               output.style.color = "green";
               output.innerText = `Card successfully linked & email update sent to ${holderName}!`;
@@ -1341,7 +1306,6 @@
               console.error("EmailJS error:", err);
            }
         } else {
-           // Fallback if the user was created before the email feature existed
            output.style.color = "green";
            output.innerText = `Card successfully registered to ${holderName} (No email on file).`;
         }
