@@ -21,6 +21,8 @@
       emailjs.init("1dVR-bW4ux2YCGUK6");
     })();
   </script>
+  <!-- jsPDF Library for Daily Summary PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <style>
     /* MODAL STYLES FOR FACULTY REPORT & ADMIN ENVELOPE */
@@ -420,6 +422,58 @@
       </table>
     </section>
 
+    <!-- CONTAINER: DAILY SUMMARY REPORT & PDF EXPORT -->
+    <section class="panel" style="margin-bottom: 20px;">
+      <h2>Daily Summary Report & PDF Export</h2>
+      <p style="font-size: 13px; color: #64748b;">Select a specific date to compile all user access, aircon commands, RFID taps, and issue reports for that day.</p>
+      
+      <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; flex-wrap: wrap;">
+        <label style="font-size: 13px; font-weight: bold; color: #1e40af;">Select Date:</label>
+        <input type="date" id="summaryDateInput" value="2026-09-28" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;">
+        <button type="button" class="button" onclick="generateDailySummary()" style="background: #005A92; color: white;">Generate Summary</button>
+        <button type="button" class="button" onclick="exportDailySummaryPDF()" id="btnExportPdf" disabled style="background: #16a34a; color: white;">📥 Export as PDF</button>
+      </div>
+
+      <!-- SUMMARY PREVIEW AREA -->
+      <div id="summaryPreviewArea" style="margin-top: 20px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: none;">
+        <h3 id="summaryTitle" style="margin-top: 0; color: #005A92; font-size: 16px;">Summary Report</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; margin-bottom: 15px;">
+          <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">Access Logs</span>
+            <span id="statAccessCount" style="font-size: 18px; font-weight: bold; color: #1e40af;">0</span>
+          </div>
+          <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">AC Commands</span>
+            <span id="statAcCount" style="font-size: 18px; font-weight: bold; color: #16a34a;">0</span>
+          </div>
+          <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">RFID Taps</span>
+            <span id="statRfidCount" style="font-size: 18px; font-weight: bold; color: #d97706;">0</span>
+          </div>
+          <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">Issues Reported</span>
+            <span id="statIssueCount" style="font-size: 18px; font-weight: bold; color: #dc2626;">0</span>
+          </div>
+        </div>
+
+        <div style="max-height: 250px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; background: white;">
+            <thead>
+              <tr style="background: #e2e8f0; color: #334155; text-align: left;">
+                <th style="padding: 6px;">Exact Timestamp</th>
+                <th style="padding: 6px;">Category / Source</th>
+                <th style="padding: 6px;">Action / Description</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
@@ -562,6 +616,10 @@
 
     let accountsPage = 1;
     let accountsData = [];
+
+    // DAILY SUMMARY GLOBAL STATE
+    let currentDailyData = [];
+    let selectedDateString = "";
 
     document.getElementById("userRoleBadge").innerText = `${role}: ${username}`;
 
@@ -963,6 +1021,139 @@
         alert(`Account '${usernameToDelete}' deleted successfully.`);
         loadUserAccounts();
       }
+    }
+
+    // 4. DAILY SUMMARY REPORT & EXACT TIMESTAMP FILTER LOGIC
+    async function generateDailySummary() {
+      const dateVal = document.getElementById("summaryDateInput").value;
+      if (!dateVal) {
+        alert("Please select a valid date first.");
+        return;
+      }
+
+      selectedDateString = dateVal;
+      const previewArea = document.getElementById("summaryPreviewArea");
+      const titleEl = document.getElementById("summaryTitle");
+      const tbody = document.getElementById("summaryTableBody");
+      const exportBtn = document.getElementById("btnExportPdf");
+
+      previewArea.style.display = "block";
+      titleEl.innerText = `Summary Report for ${new Date(dateVal).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}` ;
+      tbody.innerHTML = '<tr><td colspan="3" style="padding: 10px; text-align: center;">Filtering records by exact timestamp...</td></tr>';
+
+      try {
+        const [accessRes, cmdRes, rfidRes, issueRes] = await Promise.all([
+          window.supabaseClient.from("user_logs").select("*"),
+          window.supabaseClient.from("ac_commands").select("*"),
+          window.supabaseClient.from("rfid_events").select("*"),
+          window.supabaseClient.from("issue_reports").select("*")
+        ]);
+
+        const targetDate = new Date(dateVal).toDateString();
+
+        const matchesDate = (timestampStr) => {
+          if (!timestampStr) return false;
+          const recordDate = new Date(timestampStr).toDateString();
+          return recordDate === targetDate;
+        };
+
+        const filteredAccess = (accessRes.data || []).filter(item => matchesDate(item.logged_at));
+        const filteredCmds = (cmdRes.data || []).filter(item => matchesDate(item.issued_at || item.created_at));
+        const filteredRfid = (rfidRes.data || []).filter(item => matchesDate(item.occurred_at || item.created_at));
+        const filteredIssues = (issueRes.data || []).filter(item => matchesDate(item.created_at));
+
+        document.getElementById("statAccessCount").innerText = filteredAccess.length;
+        document.getElementById("statAcCount").innerText = filteredCmds.length;
+        document.getElementById("statRfidCount").innerText = filteredRfid.length;
+        document.getElementById("statIssueCount").innerText = filteredIssues.length;
+
+        currentDailyData = [
+          ...filteredAccess.map(x => ({ time: new Date(x.logged_at), type: 'USER ACCESS', source: x.username, detail: `${x.role} - ${x.action}` })),
+          ...filteredCmds.map(x => ({ time: new Date(x.issued_at || x.created_at), type: 'AC COMMAND', source: x.source || 'ADMIN', detail: `Command: ${x.command} (${x.status || 'EXECUTED'})` })),
+          ...filteredRfid.map(x => ({ time: new Date(x.occurred_at || x.created_at), type: 'RFID EVENT', source: x.card_uid || 'Card', detail: x.event_type })),
+          ...filteredIssues.map(x => ({ time: new Date(x.created_at), type: 'ISSUE REPORT', source: x.faculty_username, detail: `${x.issue_category}: ${x.message || 'No details'}` }))
+        ].sort((a, b) => b.time - a.time);
+
+        if (currentDailyData.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" style="padding: 10px; text-align: center; color: #64748b;">No records found for this specific date.</td></tr>';
+          exportBtn.disabled = true;
+        } else {
+          tbody.innerHTML = currentDailyData.map(row => `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 6px; font-family: monospace;">${row.time.toLocaleTimeString("en-PH", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+              <td style="padding: 6px; font-weight: bold; color: #005A92;">${row.type} (${row.source})</td>
+              <td style="padding: 6px;">${row.detail}</td>
+            </tr>
+          `).join("");
+          exportBtn.disabled = false;
+        }
+
+      } catch (err) {
+        console.error("Error generating daily summary:", err);
+        tbody.innerHTML = '<tr><td colspan="3" style="padding: 10px; text-align: center; color: red;">Failed to fetch daily summary records.</td></tr>';
+        exportBtn.disabled = true;
+      }
+    }
+
+    function exportDailySummaryPDF() {
+      if (!window.jspdf) {
+        alert("PDF generator library is still loading. Please try again.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(0, 90, 146);
+      doc.text("RVJ Classroom Performance Dashboard", 14, 20);
+
+      doc.setFontSize(12);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`Daily Activity Summary Report`, 14, 28);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Target Date: ${selectedDateString}`, 14, 35);
+      doc.text(`Generated On: ${new Date().toLocaleString("en-PH")}`, 14, 41);
+
+      doc.setDrawColor(203, 213, 225);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, 48, 182, 16, 2, 2, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.text(`Access Logs: ${document.getElementById("statAccessCount").innerText}`, 18, 58);
+      doc.text(`AC Commands: ${document.getElementById("statAcCount").innerText}`, 65, 58);
+      doc.text(`RFID Taps: ${document.getElementById("statRfidCount").innerText}`, 115, 58);
+      doc.text(`Issues: ${document.getElementById("statIssueCount").innerText}`, 160, 58);
+
+      let yPos = 75;
+      doc.setFont("helvetica", "bold");
+      doc.text("Exact Timestamp", 14, yPos);
+      doc.text("Record Type & Source", 60, yPos);
+      doc.text("Description / Details", 120, yPos);
+      
+      doc.setLineWidth(0.5);
+      doc.line(14, yPos + 2, 196, yPos + 2);
+      yPos += 8;
+
+      doc.setFont("helvetica", "normal");
+      currentDailyData.forEach((item) => {
+        if (yPos > 275) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        const timeStr = item.time.toLocaleTimeString("en-PH", { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        doc.text(timeStr, 14, yPos);
+        doc.text(`${item.type} (${item.source})`, 60, yPos, { maxWidth: 55 });
+        doc.text(item.detail, 120, yPos, { maxWidth: 75 });
+        
+        yPos += 10;
+      });
+
+      doc.save(`RVJ_Summary_Report_${selectedDateString}.pdf`);
     }
 
     async function createNewUser(e) {
