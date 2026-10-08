@@ -399,6 +399,18 @@
     <!-- CONTAINER 2: MANAGED USER ACCOUNTS, DISABLE & DELETE ACCESS -->
     <section class="panel">
       <h2>Registered System Accounts</h2>
+      
+      <!-- CASE-INSENSITIVE SEARCH BAR -->
+      <div style="margin-top: 15px; margin-bottom: 10px;">
+        <input 
+          type="text" 
+          id="accountSearchInput" 
+          onkeyup="filterAccounts()" 
+          placeholder="🔍 Search accounts by username or email..." 
+          style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"
+        >
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <p style="font-size: 13px; color: #64748b; margin: 0;">Administrators can enable, disable, or permanently delete faculty and admin accounts.</p>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -539,7 +551,6 @@
       subscribeToIssueReports();
     } else {
       document.getElementById("adminNav").style.display = "none";
-      document.getElementById("masterFilterBar").style.display = "none";
       document.getElementById("btnAdminEnvelope").style.display = "none";
       document.getElementById("btnReportIssue").style.display = "inline-block";
       document.getElementById("btnViewMyReports").style.display = "inline-block";
@@ -557,27 +568,6 @@
       if (tab === "users") {
         loadUserAccounts();
         loadRegisteredRFIDs();
-      }
-    }
-
-    // MASTER GLOBAL ROLE FILTER ACROSS ALL LOGS & ACCOUNTS
-    function filterAllRoleContainers(roleValue) {
-      const accessSelect = document.getElementById("filterAccessRole");
-      if (accessSelect) {
-        accessSelect.value = roleValue;
-        filterAccessLogs();
-      }
-
-      const acSelect = document.getElementById("filterAcSourceRole");
-      if (acSelect) {
-        acSelect.value = roleValue;
-        filterAcLogs();
-      }
-
-      const accountSelect = document.getElementById("filterAccountRole");
-      if (accountSelect) {
-        accountSelect.value = roleValue;
-        filterAccounts();
       }
     }
 
@@ -812,8 +802,17 @@
 
     function getFilteredAccounts() {
       const roleFilter = document.getElementById("filterAccountRole").value;
-      if (roleFilter === "ALL") return accountsData;
-      return accountsData.filter(acc => String(acc.role).toUpperCase() === roleFilter);
+      const searchQuery = document.getElementById("accountSearchInput") ? document.getElementById("accountSearchInput").value.trim().toLowerCase() : "";
+
+      return accountsData.filter(acc => {
+        const matchesRole = (roleFilter === "ALL") || (String(acc.role).toUpperCase() === roleFilter);
+        
+        const usernameMatch = acc.username ? acc.username.toLowerCase().includes(searchQuery) : false;
+        const emailMatch = acc.email ? acc.email.toLowerCase().includes(searchQuery) : false;
+        const matchesSearch = searchQuery === "" || usernameMatch || emailMatch;
+
+        return matchesRole && matchesSearch;
+      });
     }
 
     function renderAccountsTable() {
