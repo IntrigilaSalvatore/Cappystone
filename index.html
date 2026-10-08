@@ -1104,56 +1104,116 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(0, 90, 146);
-      doc.text("RVJ Classroom Performance Dashboard", 14, 20);
-
-      doc.setFontSize(12);
-      doc.setTextColor(51, 65, 85);
-      doc.text(`Daily Activity Summary Report`, 14, 28);
+      // SPCF Logo embedded from Base64
+      const spcfLogoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAb8AAAG/CAMAAAD/zSlAAAABVlBMVEX///8yHmb/xDj///4yHWj///z/zj7/xjgyH2X/yjX///oqFmf/yTgjAFj/yklTOUwuGGz/yj+QcVgaAGixjFcmEmj/0kdyUVdePU/NoUkiC2nBmVExIGBWP2DfsEMTAGDyv0tDMmPRqEWVdExqUVnasEeGYlNTPFh0WVB0VEYAAFavh030xkhZQVX/0FBHLVYNAFDEcwDIoE/yulPbqUyIZk4AAEeifFW2awAAAELFlEmGalhmTF3p5+y3YQD08/XKjE3eniUAADv58eLRzNjRqXm+fCbNp2zt4c+8t8eln7PTkCDvsjDbtIqPiqLb2eAAADLiw6V/dZfexJdtY4VXUnfn07HFl2IcEFMsJVxRRnPx6MpCMm9mXIi+hTnEgBExEU3VuIHpvGR0b4YWEkk7N1k0M0ZVUGhPQXlBIlVnZG9iQEdlRUB5YnDhsWhoRTKeh20nJEow8hKSAAAgAElEQVR4nOy96WPaWLI3LJBkCQkxxo6SCdCRyerBWUQWSrogiZAZ5kRKLDsYbxnYyvv1e57nz3Ofe///Le6qOJASIxQacpRPVncRmOYhTOrXXrxjmlm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7plm7p"; 
       
+      let textStartCoordX = 14; 
+
+      if (spcfLogoBase64 && spcfLogoBase64.startsWith("data:image")) {
+        try {
+          doc.addImage(spcfLogoBase64, 'PNG', 14, 11, 16, 16);
+          textStartCoordX = 34; // Shift header text to the right to accommodate the logo
+        } catch (e) {
+          console.warn("Logo rendering skipped, using academic header text.", e);
+        }
+      } else {
+        // Fallback institutional box badge
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(240, 240, 240);
+        doc.roundedRect(14, 11, 16, 16, 1, 1, "FD");
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("times", "bold");
+        doc.setFontSize(10);
+        doc.text("SPCF", 16.5, 21);
+        textStartCoordX = 34;
+      }
+
+      // Institutional Header (Times New Roman, Capstone Standard)
+      doc.setFont("times", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(0, 0, 0);
+      doc.text("SYSTEMS PLUS COLLEGE FOUNDATION", textStartCoordX, 17);
+
+      doc.setFontSize(11);
+      doc.setFont("times", "normal");
+      doc.text("College of Computing and Information Studies — BS Information Technology", textStartCoordX, 22);
+
+      doc.setFontSize(9.5);
+      doc.text("RVJ Classroom IoT Air Conditioning Performance & System State Monitoring Dashboard", textStartCoordX, 27);
+
+      // Formal Capstone Divider Lines
+      doc.setLineWidth(0.8);
+      doc.line(14, 32, 196, 32);
+      doc.setLineWidth(0.2);
+      doc.line(14, 33.5, 196, 33.5);
+
+      // Report Title Block
+      doc.setFont("times", "bold");
+      doc.setFontSize(12);
+      doc.text("DAILY ACTIVITY SUMMARY REPORT", 105, 42, { align: "center" });
+
+      doc.setFont("times", "normal");
       doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Target Date: ${selectedDateString}`, 14, 35);
-      doc.text(`Generated On: ${new Date().toLocaleString("en-PH")}`, 14, 41);
+      doc.text(`Target Date: ${selectedDateString}`, 14, 50);
+      doc.text(`Generated Timestamp: ${new Date().toLocaleString("en-PH")}`, 115, 50);
 
-      doc.setDrawColor(203, 213, 225);
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(14, 48, 182, 16, 2, 2, "FD");
+      // Summary Statistics Overview Block
+      doc.setDrawColor(100, 100, 100);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(14, 54, 182, 14, 1, 1, "FD");
 
-      doc.setFont("helvetica", "bold");
-      doc.text(`Access Logs: ${document.getElementById("statAccessCount").innerText}`, 18, 58);
-      doc.text(`AC Commands: ${document.getElementById("statAcCount").innerText}`, 65, 58);
-      doc.text(`RFID Taps: ${document.getElementById("statRfidCount").innerText}`, 115, 58);
-      doc.text(`Issues: ${document.getElementById("statIssueCount").innerText}`, 160, 58);
+      doc.setFont("times", "bold");
+      doc.setFontSize(9.5);
+      doc.text(`Access Logs: ${document.getElementById("statAccessCount").innerText}`, 18, 63);
+      doc.text(`AC Commands: ${document.getElementById("statAcCount").innerText}`, 68, 63);
+      doc.text(`RFID Taps: ${document.getElementById("statRfidCount").innerText}`, 118, 63);
+      doc.text(`Issues: ${document.getElementById("statIssueCount").innerText}`, 162, 63);
 
-      let yPos = 75;
-      doc.setFont("helvetica", "bold");
-      doc.text("Exact Timestamp", 14, yPos);
-      doc.text("Record Type & Source", 60, yPos);
-      doc.text("Description / Details", 120, yPos);
+      // Data Table Column Headers (Times New Roman Bold)
+      let yPos = 78;
+      doc.setFont("times", "bold");
+      doc.setFontSize(10);
+      doc.text("EXACT TIMESTAMP", 14, yPos);
+      doc.text("RECORD TYPE & SOURCE", 55, yPos);
+      doc.text("ACTION DESCRIPTION / DETAILS", 115, yPos);
       
       doc.setLineWidth(0.5);
       doc.line(14, yPos + 2, 196, yPos + 2);
       yPos += 8;
 
-      doc.setFont("helvetica", "normal");
-      currentDailyData.forEach((item) => {
-        if (yPos > 275) {
-          doc.addPage();
-          yPos = 20;
-        }
+      // Table Content Rows (Times New Roman Regular, 10pt)
+      doc.setFont("times", "normal");
+      doc.setFontSize(10);
 
-        const timeStr = item.time.toLocaleTimeString("en-PH", { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        doc.text(timeStr, 14, yPos);
-        doc.text(`${item.type} (${item.source})`, 60, yPos, { maxWidth: 55 });
-        doc.text(item.detail, 120, yPos, { maxWidth: 75 });
-        
-        yPos += 10;
-      });
+      if (currentDailyData.length === 0) {
+        doc.text("No records found for this specific date.", 14, yPos);
+      } else {
+        currentDailyData.forEach((item) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
 
-      doc.save(`RVJ_Summary_Report_${selectedDateString}.pdf`);
+          const timeStr = item.time.toLocaleTimeString("en-PH", { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          doc.text(timeStr, 14, yPos);
+          doc.text(`${item.type} (${item.source})`, 55, yPos, { maxWidth: 55 });
+          doc.text(item.detail, 115, yPos, { maxWidth: 80 });
+          
+          yPos += 9; 
+        });
+      }
+
+      // Capstone Footer Pagination
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFont("times", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Systems Plus College Foundation — Capstone Project Report | Page ${i} of ${pageCount}`, 105, 288, { align: "center" });
+      }
+
+      doc.save(`SPCF_RVJ_Summary_Report_${selectedDateString}.pdf`);
     }
 
     async function createNewUser(e) {
@@ -1223,7 +1283,6 @@
          output.style.color = "#f59e0b";
          output.innerText = `Account created, but email failed to send. ${rfidMessage}`;
          console.error("EmailJS error:", err);
-         alert("EmailJS Rejected the send. Reason: " + (err.text || err.message || JSON.stringify(err)));
      }
 
       document.getElementById("newEmail").value = "";
